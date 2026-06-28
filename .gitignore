@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Flask
+instance/
+.webassets-cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment Variables
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+media/
+
+# Babel
+*.mo
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Gunicorn
+gunicorn.pid
+
+# Nginx
+*.sock
+
+# Secrets
+config.py
+secrets.json
+credentials.json
+
+# Temporary Files
+*.tmp
+*.bak
+*.swp
+
+# Flask Session Files
+flask_session/
+
+# PDF Exports
+exports/
+reports/
+
+# Migrations (Optional)
+# migrations/
+
+# Node.js (if used)
+node_modules/
+
+# Local Configuration
+local_settings.py

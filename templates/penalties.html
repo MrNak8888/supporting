@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Employee Penalties') }}{% endblock %}
+{% block page_title %}{{ _('Employee Penalty Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Record and manage employee violations and salary deductions') }}</p>
+  {% if has_permission('penalty_create') %}
+  <a href="{{ url_for('new_penalty') }}" class="btn btn-danger">
+    <i class="fas fa-plus me-1"></i> {{ _('New Penalty') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by employee ID, name, department...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Status') }}</label>
+      <select name="status" class="form-select">
+        <option value="">{{ _('All Status') }}</option>
+        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>{{ _('Approved') }}</option>
+        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>{{ _('Filter') }}</button>
+    </div>
+    <div class="col-md-2">
+      <a href="{{ url_for('penalties') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="row g-2 mb-3">
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#f8fafc;border:1px solid #e2e8f0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#1a3c5e;">{{ total_count }}</div>
+      <div style="font-size:.7rem;color:#64748b;">{{ _('Total Penalties') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#fffbeb;border:1px solid #fde68a;">
+      <div style="font-size:1.2rem;font-weight:800;color:#f59e0b;">{{ pending_count }}</div>
+      <div style="font-size:.7rem;color:#92400e;">{{ _('Pending') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#10b981;">{{ approved_count }}</div>
+      <div style="font-size:.7rem;color:#166534;">{{ _('Approved') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#fef2f2;border:1px solid #fecaca;">
+      <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ rejected_count }}</div>
+      <div style="font-size:.7rem;color:#991b1b;">{{ _('Rejected') }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(shown)s of %(total)s record(s)', shown=penalties|length, total=total_count) }}</span>
+    {% if has_any_permission('penalty_view','penalty_download') %}
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+        </a>
+        <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger">
+          <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Penalty ID') }}</th>
+          <th>{{ _('Name Employee') }}</th>
+          <th>{{ _('ID') }}</th>
+          <th>{{ _('Department') }}</th>
+          <th>{{ _('Violation') }}</th>
+          <th>{{ _('Amount') }}</th>
+          <th>{{ _('Date') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Approved By') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ep in penalties %}
+        <tr>
+          <td style="font-weight:600;color:#7c3aed;">{{ ep.penalty_id }}</td>
+          <td style="font-weight:600;">{{ ep.employee_name }}</td>
+          <td style="color:#64748b;">{{ ep.employee_id }}</td>
+          <td>{{ ep.department or '—' }}</td>
+          <td>
+            <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:600;">
+              {{ ep.violation_type }}
+            </span>
+          </td>
+          <td style="font-weight:700;color:#dc2626;">${{ "%.2f"|format(ep.penalty_amount) }}</td>
+          <td style="color:#64748b;">{{ ep.incident_date }}</td>
+          <td><span class="status-badge badge-{{ ep.status.lower() }}">{{ ep.status }}</span></td>
+          <td>{{ ep.approved_by or '—' }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_penalty', id=ep.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if ep.status == 'Pending' and has_permission('penalty_edit') %}
+              <a href="{{ url_for('edit_penalty', id=ep.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              {% if has_permission('penalty_delete') %}
+              <form method="POST" action="{{ url_for('delete_penalty', id=ep.id) }}" onsubmit="return confirm('{{ _('Delete?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No penalty records found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

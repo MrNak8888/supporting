@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Role' if role else 'New Role' }}{% endblock %}
+{% block page_title %}{{ 'Edit Role' if role else 'New Role' }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('list_roles') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Back to Roles
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-user-gear me-2"></i>{{ 'Edit Role' if role else 'Role Configuration' }}
+      </h6>
+
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Role Name <span class="text-danger">*</span></label>
+            <input type="text" name="role_name" class="form-control" placeholder="Enter role name..." required autocomplete="off" value="{{ role.name if role else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Role Label</label>
+            <input type="text" name="role_label" class="form-control" placeholder="Display name..." value="{{ role.label if role else '' }}">
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" style="color:#1a3c5e;">
+            <i class="fas fa-shield-halved me-2"></i>Permissions
+          </h6>
+          <div class="form-check form-check-inline m-0">
+            <input class="form-check-input perm-checkbox" type="checkbox" id="selectAllPermissions">
+            <label class="form-check-label label-select-all" for="selectAllPermissions" style="font-weight: 600; font-size:.85rem;">Select All <span id="permCount">(0/0)</span></label>
+          </div>
+        </div>
+
+        <div class="accordion" id="permAccordion">
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDashboard" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-chart-line me-2"></i>Dashboard
+              </button>
+            </h2>
+            <div id="collapseDashboard" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="dashboard_view" id="p1" {{ 'checked' if role and 'dashboard_view' in role.permissions }}><label class="form-check-label" for="p1">View Dashboard</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="dashboard_edit" id="p2" {{ 'checked' if role and 'dashboard_edit' in role.permissions }}><label class="form-check-label" for="p2">Edit Dashboard</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="dashboard_download" id="p3" {{ 'checked' if role and 'dashboard_download' in role.permissions }}><label class="form-check-label" for="p3">Download Dashboard</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRouteRequests" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-route me-2"></i>Route Requests
+              </button>
+            </h2>
+            <div id="collapseRouteRequests" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_view" id="p4" {{ 'checked' if role and 'route_request_view' in role.permissions }}><label class="form-check-label" for="p4">View Requests</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_create" id="p5" {{ 'checked' if role and 'route_request_create' in role.permissions }}><label class="form-check-label" for="p5">Create Request</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_edit" id="p6" {{ 'checked' if role and 'route_request_edit' in role.permissions }}><label class="form-check-label" for="p6">Edit Request</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_delete" id="p7" {{ 'checked' if role and 'route_request_delete' in role.permissions }}><label class="form-check-label" for="p7">Delete Request</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_approve" id="p8" {{ 'checked' if role and 'route_request_approve' in role.permissions }}><label class="form-check-label" for="p8">Approve Request</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_reject" id="p9" {{ 'checked' if role and 'route_request_reject' in role.permissions }}><label class="form-check-label" for="p9">Reject Request</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="route_request_download" id="p10" {{ 'checked' if role and 'route_request_download' in role.permissions }}><label class="form-check-label" for="p10">Download Requests</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePenalties" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-gavel me-2"></i>Penalties
+              </button>
+            </h2>
+            <div id="collapsePenalties" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="penalty_view" id="p11" {{ 'checked' if role and 'penalty_view' in role.permissions }}><label class="form-check-label" for="p11">View Penalties</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="penalty_create" id="p12" {{ 'checked' if role and 'penalty_create' in role.permissions }}><label class="form-check-label" for="p12">Create Penalty</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="penalty_edit" id="p13" {{ 'checked' if role and 'penalty_edit' in role.permissions }}><label class="form-check-label" for="p13">Edit Penalty</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="penalty_delete" id="p14" {{ 'checked' if role and 'penalty_delete' in role.permissions }}><label class="form-check-label" for="p14">Delete Penalty</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="penalty_download" id="p15" {{ 'checked' if role and 'penalty_download' in role.permissions }}><label class="form-check-label" for="p15">Download Penalties</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTripReports" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-bus me-2"></i>Trip Operation Report
+              </button>
+            </h2>
+            <div id="collapseTripReports" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_view" id="p16" {{ 'checked' if role and 'trip_operation_report_view' in role.permissions }}><label class="form-check-label" for="p16">View Reports</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_create" id="p17" {{ 'checked' if role and 'trip_operation_report_create' in role.permissions }}><label class="form-check-label" for="p17">Create Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_edit" id="p18" {{ 'checked' if role and 'trip_operation_report_edit' in role.permissions }}><label class="form-check-label" for="p18">Edit Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_delete" id="p19" {{ 'checked' if role and 'trip_operation_report_delete' in role.permissions }}><label class="form-check-label" for="p19">Delete Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_download" id="p20" {{ 'checked' if role and 'trip_operation_report_download' in role.permissions }}><label class="form-check-label" for="p20">Download Reports</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReports" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-chart-bar me-2"></i>Reports
+              </button>
+            </h2>
+            <div id="collapseReports" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_view" id="p21" {{ 'checked' if role and 'report_view' in role.permissions }}><label class="form-check-label" for="p21">View Reports</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_create" id="p22" {{ 'checked' if role and 'report_create' in role.permissions }}><label class="form-check-label" for="p22">Create Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_edit" id="p23" {{ 'checked' if role and 'report_edit' in role.permissions }}><label class="form-check-label" for="p23">Edit Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_delete" id="p24" {{ 'checked' if role and 'report_delete' in role.permissions }}><label class="form-check-label" for="p24">Delete Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_export" id="p25" {{ 'checked' if role and 'report_export' in role.permissions }}><label class="form-check-label" for="p25">Export Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_print" id="p26" {{ 'checked' if role and 'report_print' in role.permissions }}><label class="form-check-label" for="p26">Print Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="report_download" id="p27" {{ 'checked' if role and 'report_download' in role.permissions }}><label class="form-check-label" for="p27">Download Report</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSystemSettings" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-cogs me-2"></i>System Settings
+              </button>
+            </h2>
+            <div id="collapseSystemSettings" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="system_settings_view" id="p28" {{ 'checked' if role and 'system_settings_view' in role.permissions }}><label class="form-check-label" for="p28">View Settings</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="system_settings_edit" id="p29" {{ 'checked' if role and 'system_settings_edit' in role.permissions }}><label class="form-check-label" for="p29">Edit Settings</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="system_settings_update" id="p30" {{ 'checked' if role and 'system_settings_update' in role.permissions }}><label class="form-check-label" for="p30">Update Settings</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDepartments" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-building me-2"></i>Departments
+              </button>
+            </h2>
+            <div id="collapseDepartments" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="department_view" id="p31" {{ 'checked' if role and 'department_view' in role.permissions }}><label class="form-check-label" for="p31">View Departments</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="department_create" id="p32" {{ 'checked' if role and 'department_create' in role.permissions }}><label class="form-check-label" for="p32">Create Department</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="department_edit" id="p33" {{ 'checked' if role and 'department_edit' in role.permissions }}><label class="form-check-label" for="p33">Edit Department</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="department_delete" id="p34" {{ 'checked' if role and 'department_delete' in role.permissions }}><label class="form-check-label" for="p34">Delete Department</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="department_download" id="p35" {{ 'checked' if role and 'department_download' in role.permissions }}><label class="form-check-label" for="p35">Download Departments</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePositions" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-briefcase me-2"></i>Positions
+              </button>
+            </h2>
+            <div id="collapsePositions" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="position_view" id="p36" {{ 'checked' if role and 'position_view' in role.permissions }}><label class="form-check-label" for="p36">View Positions</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="position_create" id="p37" {{ 'checked' if role and 'position_create' in role.permissions }}><label class="form-check-label" for="p37">Create Position</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="position_edit" id="p38" {{ 'checked' if role and 'position_edit' in role.permissions }}><label class="form-check-label" for="p38">Edit Position</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="position_delete" id="p39" {{ 'checked' if role and 'position_delete' in role.permissions }}><label class="form-check-label" for="p39">Delete Position</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="position_download" id="p40" {{ 'checked' if role and 'position_download' in role.permissions }}><label class="form-check-label" for="p40">Download Positions</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRoles" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-user-gear me-2"></i>Roles
+              </button>
+            </h2>
+            <div id="collapseRoles" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_view" id="p41" {{ 'checked' if role and 'role_view' in role.permissions }}><label class="form-check-label" for="p41">View Roles</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_create" id="p42" {{ 'checked' if role and 'role_create' in role.permissions }}><label class="form-check-label" for="p42">Create Role</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_edit" id="p43" {{ 'checked' if role and 'role_edit' in role.permissions }}><label class="form-check-label" for="p43">Edit Role</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_delete" id="p44" {{ 'checked' if role and 'role_delete' in role.permissions }}><label class="form-check-label" for="p44">Delete Role</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_assign_permissions" id="p45" {{ 'checked' if role and 'role_assign_permissions' in role.permissions }}><label class="form-check-label" for="p45">Assign Permissions</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="role_download" id="p46" {{ 'checked' if role and 'role_download' in role.permissions }}><label class="form-check-label" for="p46">Download Roles</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUsers" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-users me-2"></i>Users
+              </button>
+            </h2>
+            <div id="collapseUsers" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_view" id="p47" {{ 'checked' if role and 'user_view' in role.permissions }}><label class="form-check-label" for="p47">View Users</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_create" id="p48" {{ 'checked' if role and 'user_create' in role.permissions }}><label class="form-check-label" for="p48">Create User</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_edit" id="p49" {{ 'checked' if role and 'user_edit' in role.permissions }}><label class="form-check-label" for="p49">Edit User</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_delete" id="p50" {{ 'checked' if role and 'user_delete' in role.permissions }}><label class="form-check-label" for="p50">Delete User</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_assign_roles" id="p51" {{ 'checked' if role and 'user_assign_roles' in role.permissions }}><label class="form-check-label" for="p51">Assign Roles</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_reset_password" id="p52" {{ 'checked' if role and 'user_reset_password' in role.permissions }}><label class="form-check-label" for="p52">Reset Password</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_activate" id="p53" {{ 'checked' if role and 'user_activate' in role.permissions }}><label class="form-check-label" for="p53">Activate User</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_deactivate" id="p54" {{ 'checked' if role and 'user_deactivate' in role.permissions }}><label class="form-check-label" for="p54">Deactivate User</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="user_download" id="p55" {{ 'checked' if role and 'user_download' in role.permissions }}><label class="form-check-label" for="p55">Download Users</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> {{ 'Update Role' if role else 'Create Role' }}
+          </button>
+          <a href="{{ url_for('list_roles') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const selectAllCheck = document.getElementById('selectAllPermissions');
+const checkboxes = document.querySelectorAll('.perm-checkbox');
+const permCount = document.getElementById('permCount');
+
+function updateCount() {
+  const checked = document.querySelectorAll('.perm-checkbox:checked').length;
+  permCount.textContent = `(${checked}/${checkboxes.length})`;
+  selectAllCheck.checked = (checked === checkboxes.length);
+}
+
+selectAllCheck.addEventListener('change', function() {
+  checkboxes.forEach(cb => { cb.checked = selectAllCheck.checked; });
+  updateCount();
+});
+
+checkboxes.forEach(cb => { cb.addEventListener('change', updateCount); });
+updateCount();
+</script>
+{% endblock %}

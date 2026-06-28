@@ -1,0 +1,916 @@
+# Khmer translations for IT Management System.
+# Copyright (C) 2026
+# This file is distributed under the same license as the IT Management System project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: IT Management System\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-28 14:34+0700\n"
+"PO-Revision-Date: 2026-06-28 14:34+0700\n"
+"Last-Translator: \n"
+"Language: km\n"
+"Language-Team: km\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app.py:102
+msgid "Please log in to access this page."
+msgstr "សូមចូលប្រព័ន្ធដើម្បីចូលមើលទំព័រនេះ។"
+
+#: app.py:133
+msgid "Administrator"
+msgstr "អ្នកគ្រប់គ្រង"
+
+#: app.py:134
+msgid "IT Staff"
+msgstr "បុគ្គលិក IT"
+
+#: app.py:135
+msgid "Branch Manager"
+msgstr "អ្នកគ្រប់គ្រងសាខា"
+
+#: app.py:136
+msgid "Regional Manager"
+msgstr "អ្នកគ្រប់គ្រងតំបន់"
+
+#: app.py:137
+msgid "HR Manager"
+msgstr "អ្នកគ្រប់គ្រងធនធានមនុស្ស"
+
+#: app.py:392
+msgid "You do not have permission to access this page."
+msgstr "អ្នកមិនមានសិទ្ធិចូលមើលទំព័រនេះទេ។"
+
+#: app.py:421
+msgid "Invalid username or password."
+msgstr "ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។"
+
+#: app.py:435
+msgid "Logo must be an image file (PNG, JPG, GIF, SVG)."
+msgstr "ឡូហ្គោត្រូវតែជាឯកសាររូបភាព (PNG, JPG, GIF, SVG)។"
+
+#: app.py:438
+msgid "Logo uploaded successfully!"
+msgstr "បានបង្ហោះឡូហ្គោដោយជោគជ័យ!"
+
+#: app.py:440
+msgid "No file selected."
+msgstr "មិនទាន់ជ្រើសរើសឯកសារទេ។"
+
+#: app.py:451
+msgid "Logo removed."
+msgstr "បានលុបឡូហ្គោ។"
+
+#: app.py:761 app.py:830
+msgid "Origin and destination are required."
+msgstr "ត្រូវបញ្ចូលចំណុចចេញដំណើរ និងគោលដៅ។"
+
+#: app.py:790
+#, python-format
+msgid "Route Request %(id)s submitted successfully!"
+msgstr "សំណើបន្ទាត់ដំណើរ %(id)s ត្រូវបានដាក់ស្នើដោយជោគជ័យ!"
+
+#: app.py:821
+msgid "Access denied."
+msgstr "មិនមានសិទ្ធិចូលប្រើ។"
+
+#: app.py:824
+msgid "Only pending requests can be edited."
+msgstr "មានតែសំណើដែលកំពុងរង់ចាំប៉ុណ្ណោះដែលអាចកែប្រែបាន។"
+
+#: app.py:850
+msgid "Request updated successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពសំណើដោយជោគជ័យ!"
+
+#: app.py:868
+#, python-format
+msgid "Request %(action)s successfully!"
+msgstr "សំណើត្រូវបាន %(action)s ដោយជោគជ័យ!"
+
+#: app.py:880
+msgid "Request deleted."
+msgstr "បានលុបសំណើ។"
+
+#: app.py:930 app.py:977
+msgid "Employee ID and name are required."
+msgstr "ត្រូវបញ្ចូលលេខសម្គាល់បុគ្គលិក និងឈ្មោះ។"
+
+#: app.py:952
+#, python-format
+msgid "Penalty Record %(id)s created successfully!"
+msgstr "កំណត់ត្រាពិន័យ %(id)s ត្រូវបានបង្កើតដោយជោគជ័យ!"
+
+#: app.py:971
+msgid "Only pending penalties can be edited."
+msgstr "មានតែពិន័យដែលកំពុងរង់ចាំប៉ុណ្ណោះដែលអាចកែប្រែបាន។"
+
+#: app.py:991
+msgid "Penalty record updated!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
+
+#: app.py:1006
+#, python-format
+msgid "Penalty %(action)s!"
+msgstr "ពិន័យ %(action)s!"
+
+#: app.py:1018
+msgid "Penalty record deleted."
+msgstr "បានលុបកំណត់ត្រាពិន័យ។"
+
+#: app.py:1077 app.py:1142
+msgid "Origin is required."
+msgstr "ត្រូវបញ្ចូលចំណុចចេញដំណើរ។"
+
+#: app.py:1079 app.py:1144
+msgid "Destination is required."
+msgstr "ត្រូវបញ្ចូលគោលដៅ។"
+
+#: app.py:1081 app.py:1146
+msgid "Departure Time is required."
+msgstr "ត្រូវបញ្ចូលម៉ោងចេញដំណើរ។"
+
+#: app.py:1083 app.py:1148
+msgid "Vehicle Number is required."
+msgstr "ត្រូវបញ្ចូលលេខយានជំនិះ។"
+
+#: app.py:1085 app.py:1150
+msgid "Vehicle Status is required."
+msgstr "ត្រូវបញ្ចូលស្ថានភាពយានជំនិះ។"
+
+#: app.py:1113
+#, python-format
+msgid "Trip Operation Report %(id)s created successfully!"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ %(id)s ត្រូវបានបង្កើតដោយជោគជ័យ!"
+
+#: app.py:1174
+msgid "Trip Operation Report updated successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពរបាយការណ៍ប្រតិបត្តិការធ្វើដំណើរដោយជោគជ័យ!"
+
+#: app.py:1186
+msgid "Trip Operation Report deleted."
+msgstr "បានលុបរបាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ។"
+
+#: app.py:1213 app.py:1235
+msgid "Department name is required."
+msgstr "ត្រូវបញ្ចូលឈ្មោះនាយកដ្ឋាន។"
+
+#: app.py:1222
+#, python-format
+msgid "Department \"%(name)s\" created successfully!"
+msgstr "នាយកដ្ឋាន \"%(name)s\" ត្រូវបានបង្កើតដោយជោគជ័យ!"
+
+#: app.py:1241
+msgid "Department updated successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពនាយកដ្ឋានដោយជោគជ័យ!"
+
+#: app.py:1252
+msgid "Cannot delete department with existing positions."
+msgstr "មិនអាចលុបនាយកដ្ឋានដែលមានមុខតំណែងនៅឡើយទេ។"
+
+#: app.py:1256
+msgid "Department deleted."
+msgstr "បានលុបនាយកដ្ឋាន។"
+
+#: app.py:1284 app.py:1309
+msgid "Position name and department are required."
+msgstr "ត្រូវបញ្ចូលឈ្មោះមុខតំណែង និងនាយកដ្ឋាន។"
+
+#: app.py:1294
+#, python-format
+msgid "Position \"%(name)s\" created successfully!"
+msgstr "មុខតំណែង \"%(name)s\" ត្រូវបានបង្កើតដោយជោគជ័យ!"
+
+#: app.py:1316
+msgid "Position updated successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពមុខតំណែងដោយជោគជ័យ!"
+
+#: app.py:1329
+msgid "Position deleted."
+msgstr "បានលុបមុខតំណែង។"
+
+#: app.py:1580
+#, python-format
+msgid "Module \"%(key)s\" not found."
+msgstr "ម៉ូឌុល \"%(key)s\" រកមិនឃើញទេ។"
+
+#: app.py:1600
+#, python-format
+msgid "%(label)s is required."
+msgstr "ត្រូវបញ្ចូល %(label)s។"
+
+#: app.py:1610
+#, python-format
+msgid "%(label)s must be at least %(len)d characters."
+msgstr "%(label)s ត្រូវតែមានយ៉ាងហោចណាស់ %(len)d តួអក្សរ។"
+
+#: app.py:1614
+#, python-format
+msgid "%(label)s must not exceed %(len)d characters."
+msgstr "%(label)s មិនត្រូវលើសពី %(len)d តួអក្សរទេ។"
+
+#: app.py:1618
+#, python-format
+msgid "%(label)s format is invalid."
+msgstr "ទម្រង់ %(label)s មិនត្រឹមត្រូវ។"
+
+#: app.py:1630
+#, python-format
+msgid "%(label)s must be unique."
+msgstr "%(label)s ត្រូវតែមានតែមួយគត់។"
+
+#: app.py:1637
+#, python-format
+msgid "%(label)s validation failed."
+msgstr "ការត្រួតពិនិត្យ %(label)s បរាជ័យ។"
+
+#: app.py:1646
+#, python-format
+msgid "%(label)s must be a valid number."
+msgstr "%(label)s ត្រូវតែជាលេខត្រឹមត្រូវ។"
+
+#: app.py:1687
+msgid "Module not found."
+msgstr "រកមិនឃើញម៉ូឌុលទេ។"
+
+#: app.py:1836
+#, python-format
+msgid "%(name)s created successfully."
+msgstr "%(name)s ត្រូវបានបង្កើតដោយជោគជ័យ។"
+
+#: app.py:1892
+#, python-format
+msgid "%(name)s updated successfully."
+msgstr "%(name)s ត្រូវបានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យ។"
+
+#: app.py:1904
+msgid "Record deleted."
+msgstr "បានលុបកំណត់ត្រា។"
+
+#: app.py:1915
+msgid "Record activated."
+msgstr "បានដំណើរការកំណត់ត្រា។"
+
+#: app.py:1915
+msgid "Record deactivated."
+msgstr "បានបិទដំណើរការកំណត់ត្រា។"
+
+#: app.py:1983 app.py:2030
+msgid "Role name is required."
+msgstr "ត្រូវបញ្ចូលឈ្មោះតួនាទី។"
+
+#: app.py:1988 app.py:2034
+msgid "A role with that name already exists."
+msgstr "តួនាទីដែលមានឈ្មោះនេះមានរួចហើយ។"
+
+#: app.py:1996
+#, python-format
+msgid "Role \"%(name)s\" updated."
+msgstr "តួនាទី \"%(name)s\" ត្រូវបានធ្វើបច្ចុប្បន្នភាព។"
+
+#: app.py:2009
+#, python-format
+msgid "Role \"%(name)s\" deleted."
+msgstr "តួនាទី \"%(name)s\" ត្រូវបានលុប។"
+
+#: app.py:2041
+#, python-format
+msgid "Role \"%(name)s\" created with %(count)d permissions."
+msgstr "តួនាទី \"%(name)s\" ត្រូវបានបង្កើតដោយមានសិទ្ធិ %(count)d។"
+
+#: app.py:2062
+msgid "Selected role not found."
+msgstr "រកមិនឃើញតួនាទីដែលបានជ្រើសរើសទេ។"
+
+#: app.py:2070
+msgid "Username already exists."
+msgstr "ឈ្មោះអ្នកប្រើមានរួចហើយ។"
+
+#: app.py:2075
+#, python-format
+msgid "User %(name)s created!"
+msgstr "អ្នកប្រើ %(name)s ត្រូវបានបង្កើត!"
+
+#: app.py:2103
+msgid "User updated!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពអ្នកប្រើ!"
+
+#: app.py:2115
+msgid "Cannot delete yourself."
+msgstr "មិនអាចលុបខ្លួនឯងបានទេ។"
+
+#: app.py:2119
+msgid "User deleted."
+msgstr "បានលុបអ្នកប្រើ។"
+
+#: templates/base.html:6 templates/login.html:6 templates/login.html:231
+msgid "IT Management System"
+msgstr "ប្រព័ន្ធគ្រប់គ្រង IT"
+
+#: templates/base.html:252 templates/dashboard.html:2
+msgid "IT Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/base.html:253
+msgid "System v1.0"
+msgstr "ប្រព័ន្ធ v1.0"
+
+#: templates/base.html:256
+msgid "Main"
+msgstr "មេ"
+
+#: templates/base.html:258 templates/base.html:351 templates/dashboard.html:2
+#: templates/dashboard.html:3 templates/dashboard.html:10
+msgid "Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/base.html:261 templates/route_requests.html:2
+msgid "Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/base.html:263
+msgid "All Requests"
+msgstr "សំណើទាំងអស់"
+
+#: templates/base.html:267 templates/dashboard.html:172
+#: templates/route_requests.html:15
+msgid "New Request"
+msgstr "សំណើថ្មី"
+
+#: templates/base.html:272
+msgid "HR & Organization"
+msgstr "ធនធានមនុស្ស និងអង្គការ"
+
+#: templates/base.html:274
+msgid "Penalties"
+msgstr "ពិន័យ"
+
+#: templates/base.html:278 templates/dashboard.html:176
+msgid "New Penalty"
+msgstr "ពិន័យថ្មី"
+
+#: templates/base.html:283
+msgid "Trip Operations"
+msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/base.html:285
+msgid "Trip Operation Report"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/base.html:289
+msgid "New Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/base.html:294
+msgid "Analytics"
+msgstr "ការវិភាគ"
+
+#: templates/base.html:296
+msgid "Reports"
+msgstr "របាយការណ៍"
+
+#: templates/base.html:300
+msgid "Settings"
+msgstr "ការកំណត់"
+
+#: templates/base.html:302
+msgid "System Settings"
+msgstr "ការកំណត់ប្រព័ន្ធ"
+
+#: templates/base.html:305
+msgid "Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/base.html:308
+msgid "Positions"
+msgstr "មុខតំណែង"
+
+#: templates/base.html:311 templates/base.html:385
+msgid "Roles"
+msgstr "តួនាទី"
+
+#: templates/base.html:314 templates/base.html:386
+msgid "Users"
+msgstr "អ្នកប្រើ"
+
+#: templates/base.html:329 templates/base.html:388
+msgid "Log Out"
+msgstr "ចាកចេញ"
+
+#: templates/base.html:356
+msgid "Search..."
+msgstr "ស្វែងរក..."
+
+#: templates/base.html:360
+msgid "Language"
+msgstr "ភាសា"
+
+#: templates/base.html:368
+msgid "Toggle Dark Mode"
+msgstr "ប្តូររបៀបងងឹត"
+
+#: templates/base.html:371 templates/dashboard.html:295
+msgid "Notifications"
+msgstr "ការជូនដំណឹង"
+
+#: templates/dashboard.html:11
+#, python-format
+msgid "Welcome back, %(name)s. Here's what's happening today."
+msgstr "ស្វាគមន៍ការត្រលប់មកវិញ, %(name)s។ នេះជាអ្វីដែលកំពុងកើតឡើងថ្ងៃនេះ។"
+
+#: templates/dashboard.html:15
+msgid "Today"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/dashboard.html:16
+msgid "This Week"
+msgstr "សប្តាហ៍នេះ"
+
+#: templates/dashboard.html:17
+msgid "This Month"
+msgstr "ខែនេះ"
+
+#: templates/dashboard.html:18
+msgid "This Year"
+msgstr "ឆ្នាំនេះ"
+
+#: templates/dashboard.html:19
+msgid "All Time"
+msgstr "គ្រប់ពេល"
+
+#: templates/dashboard.html:20
+msgid "Custom"
+msgstr "ផ្ទាល់ខ្លួន"
+
+#: templates/dashboard.html:24
+msgid "to"
+msgstr "ដល់"
+
+#: templates/dashboard.html:26
+msgid "Apply"
+msgstr "អនុវត្ត"
+
+#: templates/dashboard.html:41
+msgid "Total Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរសរុប"
+
+#: templates/dashboard.html:51
+msgid "Pending Requests"
+msgstr "សំណើរង់ចាំ"
+
+#: templates/dashboard.html:61
+msgid "Approved Requests"
+msgstr "សំណើដែលបានអនុម័ត"
+
+#: templates/dashboard.html:71
+msgid "Rejected Requests"
+msgstr "សំណើដែលត្រូវបានច្រានចោល"
+
+#: templates/dashboard.html:85
+msgid "Total Penalty Cases"
+msgstr "ករណីពិន័យសរុប"
+
+#: templates/dashboard.html:95
+msgid "Total Penalty Amount"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/dashboard.html:105
+msgid "Pending Penalties"
+msgstr "ពិន័យរង់ចាំ"
+
+#: templates/dashboard.html:115
+msgid "Processed Requests"
+msgstr "សំណើដែលបានដំណើរការ"
+
+#: templates/dashboard.html:129
+msgid "Total Trip Reports"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/dashboard.html:139
+msgid "Departed Trips"
+msgstr "ដំណើរដែលបានចេញ"
+
+#: templates/dashboard.html:149
+msgid "Not Departed"
+msgstr "មិនទាន់ចេញដំណើរ"
+
+#: templates/dashboard.html:159
+msgid "Total Passengers"
+msgstr "អ្នកដំណើរសរុប"
+
+#: templates/dashboard.html:169
+msgid "Quick Actions"
+msgstr "សកម្មភាពរហ័ស"
+
+#: templates/dashboard.html:180
+msgid "New Trip Report"
+msgstr "របាយការណ៍ធ្វើដំណើរថ្មី"
+
+#: templates/dashboard.html:183
+msgid "Export Excel"
+msgstr "នាំចេញ Excel"
+
+#: templates/dashboard.html:186
+msgid "Export PDF"
+msgstr "នាំចេញ PDF"
+
+#: templates/dashboard.html:189
+msgid "Print"
+msgstr "បោះពុម្ព"
+
+#: templates/dashboard.html:201
+msgid "Request Status Overview"
+msgstr "ទិដ្ឋភាពទូទៅស្ថានភាពសំណើ"
+
+#: templates/dashboard.html:207
+msgid "Monthly Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរប្រចាំខែ"
+
+#: templates/dashboard.html:213
+msgid "Penalty Trend"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/dashboard.html:219
+msgid "Trip Operations Summary"
+msgstr "សេចក្តីសង្ខេបប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/dashboard.html:230
+msgid "Recent Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរថ្មីៗ"
+
+#: templates/dashboard.html:231
+msgid "View All"
+msgstr "មើលទាំងអស់"
+
+#: templates/dashboard.html:237 templates/route_requests.html:91
+msgid "Request ID"
+msgstr "លេខសម្គាល់សំណើ"
+
+#: templates/dashboard.html:238
+msgid "Employee"
+msgstr "បុគ្គលិក"
+
+#: templates/dashboard.html:239
+msgid "Destination"
+msgstr "គោលដៅ"
+
+#: templates/dashboard.html:240
+msgid "Request Date"
+msgstr "កាលបរិច្ឆេទសំណើ"
+
+#: templates/dashboard.html:241 templates/route_requests.html:28
+#: templates/route_requests.html:99
+msgid "Status"
+msgstr "ស្ថានភាព"
+
+#: templates/dashboard.html:242 templates/route_requests.html:100
+msgid "Actions"
+msgstr "សកម្មភាព"
+
+#: templates/dashboard.html:261 templates/route_requests.html:142
+msgid "No requests found"
+msgstr "រកមិនឃើញសំណើទេ"
+
+#: templates/dashboard.html:274
+msgid "Recent Activities"
+msgstr "សកម្មភាពថ្មីៗ"
+
+#: templates/dashboard.html:288
+msgid "No recent activities"
+msgstr "គ្មានសកម្មភាពថ្មីៗទេ"
+
+#: templates/dashboard.html:306
+msgid "No pending notifications"
+msgstr "គ្មានការជូនដំណឹងរង់ចាំទេ"
+
+#: templates/dashboard.html:324
+msgid "Login Logo"
+msgstr "ឡូហ្គោចូលប្រព័ន្ធ"
+
+#: templates/dashboard.html:325
+msgid "Current logo displayed on login page"
+msgstr "ឡូហ្គោបច្ចុប្បន្នដែលបង្ហាញនៅលើទំព័រចូលប្រព័ន្ធ"
+
+#: templates/dashboard.html:325
+msgid "No logo uploaded yet"
+msgstr "មិនទាន់មានឡូហ្គោដែលបានបង្ហោះទេ"
+
+#: templates/dashboard.html:334
+msgid "Upload"
+msgstr "បង្ហោះ"
+
+#: templates/dashboard.html:337
+msgid "Remove logo?"
+msgstr "លុបឡូហ្គោ?"
+
+#: templates/dashboard.html:352
+msgid "Export & Reports"
+msgstr "នាំចេញ និងរបាយការណ៍"
+
+#: templates/dashboard.html:357
+msgid "Requests Excel"
+msgstr "Excel សំណើ"
+
+#: templates/dashboard.html:363
+msgid "Requests PDF"
+msgstr "PDF សំណើ"
+
+#: templates/dashboard.html:369
+msgid "Penalties Excel"
+msgstr "Excel ពិន័យ"
+
+#: templates/dashboard.html:375
+msgid "Penalties PDF"
+msgstr "PDF ពិន័យ"
+
+#: templates/dashboard.html:381
+msgid "Trip Reports Excel"
+msgstr "Excel របាយការណ៍ធ្វើដំណើរ"
+
+#: templates/dashboard.html:387
+msgid "Trip Reports PDF"
+msgstr "PDF របាយការណ៍ធ្វើដំណើរ"
+
+#: templates/dashboard.html:393
+msgid "Print Page"
+msgstr "បោះពុម្ពទំព័រ"
+
+#: templates/login.html:6
+msgid "Login"
+msgstr "ចូលប្រព័ន្ធ"
+
+#: templates/login.html:232
+msgid "Sign in to your account to continue"
+msgstr "ចូលគណនីរបស់អ្នកដើម្បីបន្ត"
+
+#: templates/login.html:247
+msgid "Username"
+msgstr "ឈ្មោះអ្នកប្រើ"
+
+#: templates/login.html:250
+msgid "Enter username"
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/login.html:255
+msgid "Password"
+msgstr "ពាក្យសម្ងាត់"
+
+#: templates/login.html:258
+msgid "Enter password"
+msgstr "បញ្ចូលពាក្យសម្ងាត់"
+
+#: templates/login.html:266
+msgid "Sign In"
+msgstr "ចូលប្រព័ន្ធ"
+
+#: templates/route_request_form.html:2
+msgid "Edit"
+msgstr "កែប្រែ"
+
+#: templates/route_request_form.html:2
+msgid "New"
+msgstr "ថ្មី"
+
+#: templates/route_request_form.html:2
+msgid "Route Request"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/route_request_form.html:3
+msgid "Edit Request"
+msgstr "កែប្រែសំណើ"
+
+#: templates/route_request_form.html:3
+msgid "New Route Request"
+msgstr "សំណើបន្ទាត់ដំណើរថ្មី"
+
+#: templates/route_request_form.html:8
+msgid "Back to Requests"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/route_request_form.html:18
+msgid "Route Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/route_request_form.html:22
+msgid "From (Origin)"
+msgstr "ពី (ចំណុចចេញដំណើរ)"
+
+#: templates/route_request_form.html:24
+msgid "Select Origin"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/route_request_form.html:31
+msgid "To (Destination)"
+msgstr "ទៅ (គោលដៅ)"
+
+#: templates/route_request_form.html:33
+msgid "Select Destination"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/route_request_form.html:40
+msgid "Transportation Type"
+msgstr "ប្រភេទយានជំនិះ"
+
+#: templates/route_request_form.html:49
+msgid "National Road"
+msgstr "ផ្លូវជាតិ"
+
+#: templates/route_request_form.html:51
+msgid "e.g., NR6"
+msgstr "ឧ. NR6"
+
+#: templates/route_request_form.html:54
+msgid "Price ($)"
+msgstr "តម្លៃ ($)"
+
+#: templates/route_request_form.html:59
+msgid "Departure Time"
+msgstr "ម៉ោងចេញដំណើរ"
+
+#: templates/route_request_form.html:64
+msgid "Arrival Time"
+msgstr "ម៉ោងមកដល់"
+
+#: templates/route_request_form.html:69
+msgid "Start Date"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/route_request_form.html:74
+msgid "End Date"
+msgstr "ថ្ងៃបញ្ចប់"
+
+#: templates/route_request_form.html:83
+msgid "Organization Details"
+msgstr "ព័ត៌មានលម្អិតអង្គការ"
+
+#: templates/route_request_form.html:87
+msgid "Requester Name"
+msgstr "ឈ្មោះអ្នកស្នើសុំ"
+
+#: templates/route_request_form.html:93
+msgid "Branch Location"
+msgstr "ទីតាំងសាខា"
+
+#: templates/route_request_form.html:102 templates/route_requests.html:96
+msgid "Company"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/route_request_form.html:115
+msgid "Attachments & Notes"
+msgstr "ឯកសារភ្ជាប់ និងកំណត់ចំណាំ"
+
+#: templates/route_request_form.html:119
+msgid "Supporting Documents"
+msgstr "ឯកសារគាំទ្រ"
+
+#: templates/route_request_form.html:123
+msgid "Current file:"
+msgstr "ឯកសារបច្ចុប្បន្ន៖"
+
+#: templates/route_request_form.html:128
+msgid "Remarks"
+msgstr "កំណត់ចំណាំ"
+
+#: templates/route_request_form.html:129
+msgid "Additional notes..."
+msgstr "កំណត់ចំណាំបន្ថែម..."
+
+#: templates/route_request_form.html:135
+msgid "Allow Access Permission"
+msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
+
+#: templates/route_request_form.html:146
+msgid "Request Status"
+msgstr "ស្ថានភាពសំណើ"
+
+#: templates/route_request_form.html:150
+msgid "ID:"
+msgstr "លេខសម្គាល់៖"
+
+#: templates/route_request_form.html:151
+msgid "Submitted:"
+msgstr "បានដាក់ស្នើ៖"
+
+#: templates/route_request_form.html:152
+msgid "Status:"
+msgstr "ស្ថានភាព៖"
+
+#: templates/route_request_form.html:157
+msgid "A unique Request ID will be auto-generated upon submission."
+msgstr "លេខសម្គាល់សំណើតែមួយគត់នឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិនៅពេលដាក់ស្នើ។"
+
+#: templates/route_request_form.html:164
+msgid "Save Changes"
+msgstr "រក្សាទុកការផ្លាស់ប្តូរ"
+
+#: templates/route_request_form.html:164
+msgid "Submit Request"
+msgstr "ដាក់ស្នើសំណើ"
+
+#: templates/route_request_form.html:166
+msgid "Cancel"
+msgstr "បោះបង់"
+
+#: templates/route_request_form.html:172
+msgid "Quick Reference"
+msgstr "ឯកសារយោងរហ័ស"
+
+#: templates/route_request_form.html:174
+msgid "Pending: Awaiting regional approval"
+msgstr "រង់ចាំ៖ កំពុងរង់ចាំការអនុម័តពីតំបន់"
+
+#: templates/route_request_form.html:175
+msgid "Approved: Forwarded to IT"
+msgstr "បានអនុម័ត៖ បញ្ជូនទៅ IT"
+
+#: templates/route_request_form.html:176
+msgid "Rejected: Request declined"
+msgstr "បានច្រានចោល៖ សំណើត្រូវបានបដិសេធ"
+
+#: templates/route_requests.html:3
+msgid "Route Request Management"
+msgstr "ការគ្រប់គ្រងសំណើបន្ទាត់ដំណើរ"
+
+#: templates/route_requests.html:9
+msgid "Back to Reports & Analytics"
+msgstr "ត្រលប់ទៅរបាយការណ៍ និងការវិភាគ"
+
+#: templates/route_requests.html:11
+msgid "Manage and track all transportation route requests"
+msgstr "គ្រប់គ្រង និងតាមដានរាល់សំណើបន្ទាត់ដំណើរដឹកជញ្ជូន"
+
+#: templates/route_requests.html:24
+msgid "Search"
+msgstr "ស្វែងរក"
+
+#: templates/route_requests.html:25
+msgid "Search by ID, name, route..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/route_requests.html:30
+msgid "All Status"
+msgstr "ស្ថានភាពទាំងអស់"
+
+#: templates/route_requests.html:37
+msgid "Filter"
+msgstr "តម្រង"
+
+#: templates/route_requests.html:40
+msgid "Clear"
+msgstr "សម្អាត"
+
+#: templates/route_requests.html:50
+msgid "Total Requests"
+msgstr "សំណើសរុប"
+
+#: templates/route_requests.html:56
+msgid "Pending"
+msgstr "រង់ចាំ"
+
+#: templates/route_requests.html:62
+msgid "Approved"
+msgstr "បានអនុម័ត"
+
+#: templates/route_requests.html:68
+msgid "Rejected"
+msgstr "បានច្រានចោល"
+
+#: templates/route_requests.html:75
+#, python-format
+msgid "Showing %(count)d of %(total)d record(s)"
+msgstr "បង្ហាញ %(count)d ក្នុងចំណោម %(total)d កំណត់ត្រា"
+
+#: templates/route_requests.html:79
+msgid "Excel"
+msgstr "Excel"
+
+#: templates/route_requests.html:82
+msgid "PDF"
+msgstr "PDF"
+
+#: templates/route_requests.html:92
+msgid "Date"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/route_requests.html:93
+msgid "Requester"
+msgstr "អ្នកស្នើសុំ"
+
+#: templates/route_requests.html:94
+msgid "Route"
+msgstr "បន្ទាត់ដំណើរ"
+
+#: templates/route_requests.html:95
+msgid "Branch"
+msgstr "សាខា"
+
+#: templates/route_requests.html:97
+msgid "Transport"
+msgstr "ការដឹកជញ្ជូន"
+
+#: templates/route_requests.html:98
+msgid "Price"
+msgstr "តម្លៃ"

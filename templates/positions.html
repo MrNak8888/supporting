@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Positions{% endblock %}
+{% block page_title %}Position Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem;">Manage job positions by department</p>
+  {% if has_permission('position_create') %}
+  <a href="{{ url_for('new_position') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> New Position
+  </a>
+  {% endif %}
+</div>
+
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-8">
+      <label class="form-label">Search</label>
+      <input type="text" name="search" class="form-control" placeholder="Search by position name..." value="{{ search }}">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>Filter</button>
+    </div>
+    <div class="col-md-2">
+      <a href="{{ url_for('positions') }}" class="btn btn-outline-secondary w-100">Clear</a>
+    </div>
+  </form>
+</div>
+
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ positions|length }} record(s)</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Position Name</th>
+          <th>Department</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pos in positions %}
+        <tr>
+          <td style="font-weight:600;">{{ pos.name }}</td>
+          <td><span class="badge bg-primary">{{ pos.department.name }}</span></td>
+          <td style="color:#64748b;">{{ pos.description or '—' }}</td>
+          <td>
+            <span class="status-badge {% if pos.status == 'Active' %}badge-approved{% else %}badge-rejected{% endif %}">
+              {{ pos.status }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('edit_position', id=pos.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% if has_permission('position_delete') %}
+              <form method="POST" action="{{ url_for('delete_position', id=pos.id) }}" onsubmit="return confirm('Delete this position?');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No positions found
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}{{ rr.request_id }}{% endblock %}
+{% block page_title %}Request Detail — {{ rr.request_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Back
+  </a>
+  {% if rr.status == 'Pending' and has_permission('route_request_edit') %}
+  <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-outline-warning btn-sm">
+    <i class="fas fa-edit me-1"></i> Edit
+  </a>
+  {% endif %}
+  {% if has_permission('route_request_delete') %}
+  <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('Delete?');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>Delete</button>
+  </form>
+  {% endif %}
+  <div class="ms-auto">
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> Excel
+      </a>
+      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
+        <i class="fas fa-file-pdf me-1"></i> PDF
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <h5 class="fw-bold mb-1" style="color:#1a3c5e;">{{ rr.request_id }}</h5>
+          <small class="text-muted">Submitted on {{ rr.request_date }}</small>
+        </div>
+        <span class="status-badge badge-{{ rr.status.lower() }}" style="font-size:.9rem;padding:8px 16px;">{{ rr.status }}</span>
+      </div>
+
+      <!-- Route Visual -->
+      <div class="p-3 mb-4 rounded" style="background:linear-gradient(90deg,#f0f9ff,#f0fdf4);border:1px dashed #93c5fd;">
+        <div class="d-flex align-items-center gap-4">
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ rr.destination_from }}</div>
+            <small class="text-muted">Origin</small>
+            <div style="font-size:.8rem;color:#475569;">{{ rr.departure_time or '—' }}</div>
+          </div>
+          <div class="flex-1 text-center" style="flex:1;">
+            <div style="height:2px;background:linear-gradient(90deg,#1a3c5e,#f59e0b);border-radius:2px;position:relative;">
+              <i class="fas fa-bus" style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#fff;padding:2px 4px;color:#1a3c5e;font-size:.75rem;"></i>
+            </div>
+            <small class="text-muted d-block mt-1">{{ rr.transportation or 'N/A' }} · {{ rr.national_road or '' }}</small>
+          </div>
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ rr.destination_to }}</div>
+            <small class="text-muted">Destination</small>
+            <div style="font-size:.8rem;color:#475569;">{{ rr.arrival_time or '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        {% set fields = [
+          ('Requester', rr.requester_name),
+          ('Branch', rr.branch_location),
+          ('Company', rr.company),
+          ('Price', '$' ~ '%.2f'|format(rr.price)),
+          ('Start Date', rr.start_date|string),
+          ('End Date', rr.end_date|string),
+          ('Access Allowed', 'Yes' if rr.allow_access else 'No'),
+          ('Created', rr.created_date.strftime('%d %b %Y %H:%M')),
+        ] %}
+        {% for label, value in fields %}
+        <div class="col-md-6">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:#374151;">{{ value or '—' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if rr.remarks %}
+        <div class="col-12">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">Remarks</div>
+            <div style="color:#374151;">{{ rr.remarks }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if rr.attachment %}
+        <div class="col-12">
+          <div style="background:#f0f9ff;border-radius:8px;padding:12px 14px;border:1px solid #bae6fd;">
+            <i class="fas fa-paperclip text-primary me-1"></i>
+            <a href="/static/uploads/{{ rr.attachment }}" target="_blank">{{ rr.attachment }}</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if rr.review_note %}
+    <div class="form-card" style="border-left:4px solid {% if rr.status=='Approved' %}#10b981{% else %}#ef4444{% endif %};">
+      <h6 class="fw-bold mb-2">Review Note</h6>
+      <p class="mb-1 text-muted" style="font-size:.875rem;">{{ rr.review_note }}</p>
+      {% if rr.reviewer %}
+      <small class="text-muted">— {{ rr.reviewer.full_name }}</small>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Side: Approve/Reject -->
+  <div class="col-lg-4">
+    {% if rr.status == 'Pending' and has_any_permission('route_request_approve', 'route_request_reject') %}
+    <div class="form-card mb-3" style="border-top:4px solid #f59e0b;">
+      <h6 class="fw-bold mb-3"><i class="fas fa-gavel me-2 text-warning"></i>Review Request</h6>
+      <form method="POST" action="{{ url_for('review_route_request', id=rr.id) }}">
+        <div class="mb-3">
+          <label class="form-label">Review Note (optional)</label>
+          <textarea name="review_note" class="form-control" rows="3" placeholder="Add a note..."></textarea>
+        </div>
+        <div class="d-grid gap-2">
+          <button type="submit" name="action" value="Approved" class="btn btn-success">
+            <i class="fas fa-check me-1"></i> Approve
+          </button>
+          <button type="submit" name="action" value="Rejected" class="btn btn-danger">
+            <i class="fas fa-times me-1"></i> Reject
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="form-card">
+      <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>Timeline</h6>
+      <div style="font-size:.82rem;">
+        <div class="d-flex gap-3 mb-3">
+          <div style="width:8px;height:8px;background:#1a3c5e;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600">Request Submitted</div><div class="text-muted">{{ rr.created_date.strftime('%d %b %Y %H:%M') }}</div></div>
+        </div>
+        {% if rr.status != 'Pending' %}
+        <div class="d-flex gap-3">
+          <div style="width:8px;height:8px;background:{% if rr.status=='Approved' %}#10b981{% else %}#ef4444{% endif %};border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div>
+            <div class="fw-600">{{ rr.status }}</div>
+            <div class="text-muted">{{ rr.updated_date.strftime('%d %b %Y %H:%M') if rr.updated_date else '' }}</div>
+            {% if rr.reviewer %}<div class="text-muted">by {{ rr.reviewer.full_name }}</div>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="d-flex gap-3">
+          <div style="width:8px;height:8px;background:#e2e8f0;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600 text-muted">Awaiting Review</div></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

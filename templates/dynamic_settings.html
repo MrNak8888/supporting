@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% block title %}System Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  /* Override content area to dark theme for this page */
+  body, body.dark, #main, .content, .topbar {
+    background: #080c18 !important;
+    transition: none;
+  }
+  .topbar { border-bottom-color: rgba(255,255,255,0.05) !important; }
+  .topbar .page-title { color: #e2e8f0 !important; }
+  .topbar .icon-btn { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.6) !important; }
+  .topbar .search-box input { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.08) !important; color: #e2e8f0 !important; }
+  .topbar .search-box input::placeholder { color: rgba(255,255,255,0.3) !important; }
+  .topbar .datetime { color: rgba(255,255,255,0.4) !important; }
+
+  .settings-body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    position: relative;
+    min-height: 600px;
+  }
+
+  /* ── Animated Circuit Background ── */
+  .settings-body::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(59,130,246,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Circuit grid lines ── */
+  .settings-body::after {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 70%);
+  }
+
+  /* ── Glowing digital dots / light trails ── */
+  .circuit-dots {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .circuit-dots span {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #3B82F6;
+    box-shadow: 0 0 8px #3B82F6, 0 0 20px rgba(59,130,246,0.4);
+    animation: floatDot 8s infinite ease-in-out;
+  }
+  .circuit-dots span:nth-child(1) { top: 12%; left: 15%; animation-delay: 0s; }
+  .circuit-dots span:nth-child(2) { top: 45%; left: 75%; animation-delay: 1.5s; width: 6px; height: 6px; }
+  .circuit-dots span:nth-child(3) { top: 70%; left: 30%; animation-delay: 3s; }
+  .circuit-dots span:nth-child(4) { top: 25%; left: 85%; animation-delay: 4.5s; width: 5px; height: 5px; }
+  .circuit-dots span:nth-child(5) { top: 80%; left: 60%; animation-delay: 6s; }
+  .circuit-dots span:nth-child(6) { top: 55%; left: 10%; animation-delay: 2.2s; width: 3px; height: 3px; }
+  .circuit-dots span:nth-child(7) { top: 10%; left: 50%; animation-delay: 5.5s; width: 5px; height: 5px; }
+  .circuit-dots span:nth-child(8) { top: 90%; left: 45%; animation-delay: 7s; }
+  .circuit-dots span:nth-child(9) { top: 35%; left: 40%; animation-delay: 0.8s; width: 6px; height: 6px; }
+
+  @keyframes floatDot {
+    0%, 100% { opacity: 0.3; transform: translateY(0) scale(1); }
+    50% { opacity: 1; transform: translateY(-20px) scale(1.5); }
+  }
+
+  /* ── Light trail lines ── */
+  .light-trail {
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+  .light-trail::before {
+    content: '';
+    position: absolute;
+    width: 120px; height: 1px;
+    background: linear-gradient(90deg, transparent, #3B82F6, transparent);
+    animation: trailPulse 4s infinite;
+  }
+  .light-trail:nth-child(1) { top: 30%; left: 10%; transform: rotate(35deg); }
+  .light-trail:nth-child(2) { top: 65%; left: 55%; transform: rotate(-25deg); animation-delay: 1.5s; }
+  .light-trail:nth-child(3) { top: 20%; left: 70%; transform: rotate(60deg); animation-delay: 3s; }
+
+  @keyframes trailPulse {
+    0%, 100% { opacity: 0.2; width: 80px; }
+    50% { opacity: 0.6; width: 160px; }
+  }
+
+  /* ── Section header ── */
+  .settings-header {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 32px;
+  }
+  .settings-header h2 {
+    font-weight: 800;
+    font-size: 1.6rem;
+    background: linear-gradient(135deg, #fff 0%, #93c5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .settings-header p {
+    color: rgba(255,255,255,0.5);
+    font-size: .85rem;
+    margin: 6px 0 0 0;
+    font-weight: 400;
+  }
+
+  /* ── 3D Glassmorphic Tiles ── */
+  .tile-grid {
+    position: relative;
+    z-index: 1;
+  }
+  .tile-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 28px 22px 22px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    box-shadow:
+      0 4px 24px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    transform: perspective(800px) rotateX(2deg) translateY(0);
+    overflow: hidden;
+  }
+  .tile-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .tile-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 40%, rgba(59,130,246,0.06) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+
+  .tile-card:hover {
+    transform: perspective(800px) rotateX(4deg) translateY(-8px) scale(1.02);
+    box-shadow:
+      0 12px 48px rgba(59,130,246,0.15),
+      0 4px 16px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .tile-card:hover::before { opacity: 1; }
+  .tile-card:hover::after { opacity: 1; }
+
+  .tile-card:active {
+    transform: perspective(800px) rotateX(1deg) translateY(-2px) scale(0.98);
+  }
+
+  /* ── Hexagonal icon container ── */
+  .tile-icon-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(59,130,246,0.25) 0%, rgba(59,130,246,0.1) 100%);
+    border: 1px solid rgba(59,130,246,0.2);
+    transition: all 0.4s;
+  }
+  .tile-icon-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(30,58,138,0.1) 100%);
+    z-index: 0;
+  }
+  .tile-icon-wrap i {
+    position: relative;
+    z-index: 1;
+    font-size: 1.6rem;
+    color: #60a5fa;
+    filter: drop-shadow(0 0 8px rgba(59,130,246,0.4));
+    transition: all 0.4s;
+  }
+  .tile-card:hover .tile-icon-wrap {
+    background: linear-gradient(135deg, rgba(59,130,246,0.35) 0%, rgba(59,130,246,0.15) 100%);
+    border-color: rgba(59,130,246,0.5);
+    transform: scale(1.05);
+  }
+  .tile-card:hover .tile-icon-wrap i {
+    color: #93c5fd;
+    filter: drop-shadow(0 0 16px rgba(59,130,246,0.6));
+  }
+
+  /* ── Tile content ── */
+  .tile-name {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+  .tile-count {
+    font-size: .75rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
+  }
+  .tile-active-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16,185,129,0.5);
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* ── Glow border ring ── */
+  .tile-glow-ring {
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.2) 0%, transparent 40%, transparent 60%, rgba(59,130,246,0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  .tile-card:hover .tile-glow-ring {
+    opacity: 1;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 576px) {
+    .tile-icon-wrap { width: 60px; height: 60px; }
+    .tile-icon-wrap i { font-size: 1.3rem; }
+    .tile-card { padding: 20px 16px 18px; }
+  }
+
+  /* ── Glow line decoration ── */
+  .glow-line {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3B82F6, transparent);
+    margin: 0 auto 6px;
+    border-radius: 2px;
+    opacity: 0.5;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-body">
+  <!-- Circuit background decorations -->
+  <div class="circuit-dots">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="light-trail"></div>
+  <div class="light-trail"></div>
+  <div class="light-trail"></div>
+
+  <!-- Header -->
+  <div class="settings-header">
+    <h2><i class="fas fa-microchip me-2" style="background:linear-gradient(135deg,#3B82F6,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;"></i>System Settings</h2>
+    <p>Manage your system configuration modules</p>
+  </div>
+
+  <!-- Tile Grid -->
+  <div class="row g-3 tile-grid">
+    {% for m in modules %}
+    <div class="col-lg-3 col-md-4 col-sm-6">
+      <a href="{{ url_for('dynamic_list', module_key=m.module_key) }}" class="tile-card">
+        <div class="tile-glow-ring"></div>
+        <div class="tile-icon-wrap">
+          <i class="fas {{ m.module_icon }}"></i>
+        </div>
+        <div class="tile-name">{{ m.module_name }}</div>
+        <div class="glow-line"></div>
+        <div class="tile-count">
+          <span class="tile-active-dot"></span>
+          {{ m.records|selectattr('is_active')|list|length }} active
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

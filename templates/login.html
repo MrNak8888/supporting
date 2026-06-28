@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale or 'en' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Login') }} — {{ _('IT Management System') }}</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(rgba(106, 17, 203, 0.4), rgba(37, 117, 252, 0.3)), 
+                  url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .logo-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      padding-top: 8px;
+    }
+    .logo-area img {
+      max-width: 320px;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      -webkit-user-drag: none;
+      image-rendering: optimizeQuality;
+    }
+
+    .login-card h4 {
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .login-card p {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.875rem;
+      margin-bottom: 32px;
+    }
+
+    .form-label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #ffffff;
+      text-align: left;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .input-group-custom {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-group-custom:focus-within {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .input-icon {
+      padding-left: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1rem;
+    }
+
+    .toggle-password {
+      padding-right: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .toggle-password:hover {
+      color: #ffffff;
+    }
+
+    .form-control-custom {
+      background: transparent !important;
+      border: none !important;
+      color: #ffffff !important;
+      padding: 14px 12px 14px 12px;
+      font-size: 0.95rem;
+      width: 100%;
+    }
+
+    .form-control-custom:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .form-control-custom::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-login {
+      background: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      width: 100%;
+      color: #4c1d95;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      margin-top: 12px;
+    }
+
+    .btn-login:hover {
+      box-shadow: 0 12px 24px rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+      background: #f8fafc;
+    }
+
+    .demo-accounts {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 20px;
+      margin-top: 24px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .demo-accounts h6 {
+      color: #93c5fd;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    .demo-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .demo-item {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .demo-item code {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .alert {
+      border-radius: 14px;
+      font-size: 0.85rem;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .alert-success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #86efac;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  
+  <div class="login-card">
+    
+    <div class="logo-area">
+      {% if login_logo_url %}
+        <img src="{{ login_logo_url }}" alt="Company Logo">
+      {% endif %}
+    </div>
+    
+    <h4>{{ _('IT Management System') }}</h4>
+    <p>{{ _('Sign in to your account to continue') }}</p>
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'danger' if cat=='danger' else 'success' }} d-flex align-items-center">
+          <i class="fas {{ 'fa-exclamation-circle' if cat=='danger' else 'fa-check-circle' }} me-2"></i>
+          <div>{{ msg }}</div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">{{ _('Username') }}</label>
+        <div class="input-group-custom">
+          <span class="input-icon"><i class="fas fa-user"></i></span>
+          <input type="text" name="username" class="form-control-custom" placeholder="{{ _('Enter username') }}" required>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">{{ _('Password') }}</label>
+        <div class="input-group-custom">
+          <span class="input-icon"><i class="fas fa-lock"></i></span>
+          <input type="password" id="passwordInput" name="password" class="form-control-custom" placeholder="{{ _('Enter password') }}" required>
+          <span class="toggle-password" id="togglePasswordBtn">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">
+        {{ _('Sign In') }} <i class="fas fa-arrow-right ms-1"></i>
+      </button>
+    </form>
+  </div>
+
+
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  const passwordInput = document.getElementById('passwordInput');
+  const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+  const eyeIcon = document.getElementById('eyeIcon');
+
+  togglePasswordBtn.addEventListener('click', function () {
+    // ប្តូរប្រភេទ input រវាង password និង text
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      // ប្តូរ Icon ទៅជាភ្នែកមានបន្ទាត់ឆ្នូតកាត់ (លាក់វិញ)
+      eyeIcon.classList.remove('fa-eye');
+      eyeIcon.classList.add('fa-eye-slash');
+    } else {
+      passwordInput.type = 'password';
+      // ប្តូរ Icon ទៅជាភ្នែកធម្មតា (បង្ហាញ)
+      eyeIcon.classList.remove('fa-eye-slash');
+      eyeIcon.classList.add('fa-eye');
+    }
+  });
+</script>
+
+</body>
+</html>

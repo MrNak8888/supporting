@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale or 'en' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ _('IT Management System') }}{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <style>
+    :root {
+      --primary: #1a3c5e;
+      --primary-light: #2563a8;
+      --primary-dark: #0f2744;
+      --accent: #f59e0b;
+      --sidebar-w: 260px;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --card-shadow: 0 2px 8px rgba(0,0,0,.06);
+      --card-border: #e8edf2;
+      --text-primary: #1a3c5e;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --table-hover: #f8fafc;
+      --badge-bg: #f1f5f9;
+      --input-bg: #ffffff;
+      --input-border: #d1d5db;
+      --topbar-bg: #ffffff;
+      --topbar-border: #e2e8f0;
+    }
+    body.dark {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-shadow: 0 2px 8px rgba(0,0,0,.2);
+      --card-border: #334155;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --table-hover: #1e293b;
+      --badge-bg: #334155;
+      --input-bg: #1e293b;
+      --input-border: #475569;
+      --topbar-bg: #1e293b;
+      --topbar-border: #334155;
+    }
+    body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; color: var(--text-primary); transition: background .3s, color .3s; }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-w); height: 100vh; position: fixed; top: 0; left: 0;
+      background: linear-gradient(160deg, #0f2744 0%, #1a3c5e 100%);
+      display: flex; flex-direction: column; z-index: 1000; transition: .3s;
+      overflow-y: auto;
+    }
+    #sidebar .brand { padding: 20px 24px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    #sidebar .brand h5 { color: #fff; margin: 0; font-size: 1rem; font-weight: 700; }
+    #sidebar .brand small { color: var(--accent); font-size: .75rem; }
+    #sidebar .nav-section { padding: 12px 16px 4px; color: rgba(255,255,255,.4); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+    #sidebar .nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: rgba(255,255,255,.75);
+      text-decoration: none; font-size: .875rem; border-radius: 6px; margin: 2px 8px;
+      transition: .2s;
+    }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { background: rgba(255,255,255,.1); color: #fff; }
+    #sidebar .nav-link.active { border-left: 3px solid var(--accent); }
+    #sidebar .nav-link i { width: 18px; text-align: center; opacity: .8; }
+    #sidebar .user-box { margin-top: auto; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); }
+    #sidebar .user-box .role-badge { background: var(--accent); color: #1a1a1a; font-size: .65rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+
+    /* ── MAIN ── */
+    #main { margin-left: var(--sidebar-w); min-height: 100vh; }
+    .topbar {
+      background: var(--topbar-bg); padding: 8px 28px;
+      border-bottom: 1px solid var(--topbar-border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 99;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      transition: background .3s;
+      min-height: 60px;
+    }
+    .topbar .page-title { font-weight: 700; color: var(--text-primary); font-size: 1.05rem; margin: 0; }
+    .topbar .search-box {
+      position: relative; max-width: 320px; width: 100%;
+    }
+    .topbar .search-box input {
+      background: var(--bg); border: 1px solid var(--input-border); border-radius: 10px;
+      padding: 7px 14px 7px 36px; font-size: .82rem; width: 100%; color: var(--text-primary);
+      transition: .2s;
+    }
+    .topbar .search-box input:focus { border-color: var(--primary-light); outline: none; box-shadow: 0 0 0 3px rgba(37,99,168,.15); }
+    .topbar .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: .85rem; }
+    .topbar .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar .datetime { font-size: .8rem; color: var(--text-secondary); white-space: nowrap; }
+    .topbar .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--input-border);
+      background: var(--card-bg); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-secondary); font-size: .9rem; position: relative; transition: .2s;
+    }
+    .topbar .icon-btn:hover { background: var(--bg); color: var(--text-primary); }
+    .topbar .icon-btn .badge-dot {
+      position: absolute; top: 4px; right: 4px; width: 8px; height: 8px;
+      background: #ef4444; border-radius: 50%; border: 2px solid var(--topbar-bg);
+    }
+    .topbar .user-avatar {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #1a1a1a; font-size: .85rem; cursor: pointer;
+    }
+    .content { padding: 24px 28px; }
+
+    /* ── DASHBOARD SPECIFIC ── */
+    .dash-header { margin-bottom: 24px; }
+    .dash-header h2 { font-weight: 800; font-size: 1.5rem; margin: 0; color: var(--text-primary); }
+    .dash-header p { color: var(--text-secondary); font-size: .85rem; margin: 4px 0 0 0; }
+    .date-range-bar {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .date-range-bar .range-btn {
+      padding: 5px 14px; border-radius: 20px; font-size: .78rem; font-weight: 500;
+      border: 1px solid var(--input-border); background: transparent; color: var(--text-secondary);
+      cursor: pointer; transition: .2s;
+    }
+    .date-range-bar .range-btn:hover, .date-range-bar .range-btn.active {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+
+    /* ── KPI CARDS ── */
+    .kpi-card {
+      background: var(--card-bg); border-radius: 18px; padding: 20px 22px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+    .kpi-card .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .kpi-card .kpi-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    }
+    .kpi-card .kpi-value { font-size: 1.75rem; font-weight: 800; color: var(--text-primary); line-height: 1; margin-bottom: 4px; }
+    .kpi-card .kpi-label { color: var(--text-secondary); font-size: .78rem; font-weight: 500; }
+    .kpi-card .kpi-trend {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+    }
+    .kpi-card .kpi-trend.up { color: #059669; background: #d1fae5; }
+    .kpi-card .kpi-trend.down { color: #dc2626; background: #fee2e2; }
+    .kpi-card .kpi-trend.neutral { color: #64748b; background: var(--badge-bg); }
+
+    /* ── CHART CARDS ── */
+    .chart-card {
+      background: var(--card-bg); border-radius: 18px; padding: 20px 22px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      transition: box-shadow .2s;
+    }
+    .chart-card .chart-title {
+      font-weight: 700; font-size: .9rem; color: var(--text-primary);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── TABLE ── */
+    .data-table {
+      background: var(--card-bg); border-radius: 18px; overflow: hidden;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+    }
+    .data-table .table { margin: 0; font-size: .85rem; }
+    .data-table .table thead th {
+      background: var(--primary); color: #fff; font-weight: 600; border: none;
+      padding: 12px 16px; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .data-table .table tbody td { padding: 11px 16px; vertical-align: middle; border-color: var(--card-border); color: var(--text-primary); }
+    .data-table .table tbody tr:hover { background: var(--table-hover); }
+
+    /* ── BADGES ── */
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-approved { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    .badge-departed { background: #d1fae5; color: #065f46; }
+    .badge-not-departed { background: #fee2e2; color: #991b1b; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: .73rem; font-weight: 600; white-space: nowrap; }
+
+    /* ── QUICK ACTIONS ── */
+    .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .quick-actions .qa-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 12px; font-size: .82rem; font-weight: 600;
+      text-decoration: none; transition: .2s; border: none;
+    }
+    .quick-actions .qa-btn i { font-size: 1rem; }
+
+    /* ── ACTIVITY FEED ── */
+    .activity-item {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item .activity-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: .85rem;
+    }
+    .activity-item .activity-text { flex: 1; font-size: .82rem; color: var(--text-primary); }
+    .activity-item .activity-text strong { color: var(--text-primary); }
+    .activity-item .activity-time { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── NOTIFICATION LIST ── */
+    .notif-item {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item .notif-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    }
+
+    /* ── FORM (shared) ── */
+    .form-card { background: var(--card-bg); border-radius: 18px; padding: 28px; box-shadow: var(--card-shadow); border: 1px solid var(--card-border); }
+    .form-label { font-weight: 600; font-size: .85rem; color: var(--text-secondary); }
+    .form-control, .form-select {
+      background: var(--input-bg); border: 1px solid var(--input-border);
+      border-radius: 10px; font-size: .875rem; color: var(--text-primary);
+    }
+    .form-control:focus, .form-select:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(37,99,168,.15); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-light); border-color: var(--primary-light); }
+
+    /* ── ALERTS ── */
+    .flash-messages { position: fixed; top: 70px; right: 20px; z-index: 9999; width: 320px; }
+    .alert { border-radius: 12px; border: none; font-size: .85rem; }
+
+    /* ── DARK TOGGLE ── */
+    .dark-toggle { cursor: pointer; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 992px) {
+      #sidebar { width: 0; overflow: hidden; }
+      #sidebar.open { width: var(--sidebar-w); }
+      #main { margin-left: 0; }
+      .content { padding: 16px; }
+      .topbar { padding: 8px 16px; }
+    }
+    /* Dropdown for user menu */
+    .user-dropdown { cursor: pointer; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="brand">
+    <h5><i class="fas fa-network-wired me-2" style="color:var(--accent)"></i>{{ _('IT Management') }}</h5>
+    <small>{{ _('System v1.0') }}</small>
+  </div>
+  <div style="flex:1; padding: 8px 0;">
+    <div class="nav-section">{{ _('Main') }}</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <i class="fas fa-th-large"></i> {{ _('Dashboard') }}
+    </a>
+    {% if has_any_permission('route_request_view','route_request_create','route_request_edit','route_request_delete','route_request_approve','route_request_reject','route_request_download') %}
+    <div class="nav-section">{{ _('Route Requests') }}</div>
+    <a href="{{ url_for('route_requests') }}" class="nav-link {% if 'route' in (request.endpoint or '') %}active{% endif %}">
+      <i class="fas fa-route"></i> {{ _('All Requests') }}
+    </a>
+    {% if has_permission('route_request_create') %}
+    <a href="{{ url_for('new_route_request') }}" class="nav-link">
+      <i class="fas fa-plus-circle"></i> {{ _('New Request') }}
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if has_any_permission('penalty_view','penalty_create','penalty_edit','penalty_delete','penalty_download') %}
+    <div class="nav-section">{{ _('HR & Organization') }}</div>
+    <a href="{{ url_for('penalties') }}" class="nav-link {% if request.endpoint and 'penalt' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-gavel"></i> {{ _('Penalties') }}
+    </a>
+    {% if has_permission('penalty_create') %}
+    <a href="{{ url_for('new_penalty') }}" class="nav-link">
+      <i class="fas fa-plus-circle"></i> {{ _('New Penalty') }}
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if has_any_permission('trip_operation_report_view','trip_operation_report_create','trip_operation_report_edit','trip_operation_report_delete','trip_operation_report_download') %}
+    <div class="nav-section">{{ _('Trip Operations') }}</div>
+    <a href="{{ url_for('trip_operation_reports') }}" class="nav-link {% if 'trip_operation' in (request.endpoint or '') %}active{% endif %}">
+      <i class="fas fa-bus"></i> {{ _('Trip Operation Report') }}
+    </a>
+    {% if has_permission('trip_operation_report_create') %}
+    <a href="{{ url_for('new_trip_operation_report') }}" class="nav-link">
+      <i class="fas fa-plus-circle"></i> {{ _('New Report') }}
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if has_any_permission('report_view','report_create','report_edit','report_delete','report_export','report_print','report_download') %}
+    <div class="nav-section">{{ _('Analytics') }}</div>
+    <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint=='reports' %}active{% endif %}">
+      <i class="fas fa-chart-bar"></i> {{ _('Reports') }}
+    </a>
+    {% endif %}
+    {% if current_user.role == 'admin' or has_any_permission('system_settings_view','department_view','position_view','role_view','user_view') %}
+    <div class="nav-section">{{ _('Settings') }}</div>
+    {% if has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
+    <a href="{{ url_for('dynamic_settings') }}" class="nav-link {% if request.endpoint and 'dynamic' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-cogs"></i> {{ _('System Settings') }}
+    </a>
+    {% endif %}
+    {% if has_any_permission('department_view','department_create','department_edit','department_delete','department_download') %}
+    <a href="{{ url_for('departments') }}" class="nav-link {% if request.endpoint and 'department' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-building"></i> {{ _('Departments') }}
+    </a>
+    {% endif %}
+    {% if has_any_permission('position_view','position_create','position_edit','position_delete','position_download') %}
+    <a href="{{ url_for('positions') }}" class="nav-link {% if request.endpoint and 'position' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-briefcase"></i> {{ _('Positions') }}
+    </a>
+    {% endif %}
+    {% if has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
+    <a href="{{ url_for('list_roles') }}" class="nav-link {% if request.endpoint and 'role' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-user-shield"></i> {{ _('Roles') }}
+    </a>
+    {% endif %}
+    {% if has_any_permission('user_view','user_create','user_edit','user_delete','user_download') %}
+    <a href="{{ url_for('users') }}" class="nav-link {% if 'user' in (request.endpoint or '') %}active{% endif %}">
+      <i class="fas fa-users"></i> {{ _('Users') }}
+    </a>
+    {% endif %}
+    {% endif %}
+  </div>
+  <div class="user-box">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a1a;font-size:.9rem;">
+        {{ current_user.full_name[0] }}
+      </div>
+      <div>
+        <div style="color:#fff;font-size:.82rem;font-weight:600;">{{ current_user.full_name }}</div>
+        <span class="role-badge">{{ current_user.role_label }}</span>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="nav-link" style="padding: 8px 0; margin:0;">
+      <i class="fas fa-sign-out-alt"></i> {{ _('Log Out') }}
+    </a>
+  </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+<div class="flash-messages">
+  {% for cat, msg in get_flashed_messages(with_categories=True) %}
+  <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'warning' if cat=='warning' else 'info' }} alert-dismissible fade show shadow-sm">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="d-lg-none btn btn-sm btn-outline-secondary me-1" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h6 class="page-title">{% block page_title %}{{ _('Dashboard') }}{% endblock %}</h6>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box d-none d-md-block">
+        <i class="fas fa-search"></i>
+        <input type="text" id="globalSearch" placeholder="{{ _('Search...') }}">
+      </div>
+      <div class="datetime" id="headerDateTime">{{ now.strftime('%d %B %Y, %H:%M') if now else '' }}</div>
+      <div class="dropdown">
+        <button class="icon-btn dropdown-toggle" data-bs-toggle="dropdown" title="{{ _('Language') }}">
+          <i class="fas fa-globe"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border:1px solid var(--card-border);min-width:120px;">
+          <li><a class="dropdown-item {% if current_locale=='en' %}active{% endif %}" href="{{ url_for('set_language', lang='en') }}">English</a></li>
+          <li><a class="dropdown-item {% if current_locale=='km' %}active{% endif %}" href="{{ url_for('set_language', lang='km') }}">ភាសាខ្មែរ</a></li>
+        </ul>
+      </div>
+      <button class="icon-btn dark-toggle" onclick="toggleDark()" title="{{ _('Toggle Dark Mode') }}">
+        <i class="fas fa-moon" id="darkIcon"></i>
+      </button>
+      <button class="icon-btn" title="{{ _('Notifications') }}" onclick="location.href='#notifications-section'">
+        <i class="fas fa-bell"></i>
+        {% set pending_notif_count = pending_route_requests|default(0) + pending_penalties_count|default(0) %}
+        {% if pending_notif_count > 0 %}<span class="badge-dot"></span>{% endif %}
+      </button>
+      <div class="dropdown">
+        <div class="user-avatar dropdown-toggle" data-bs-toggle="dropdown">
+          {{ current_user.full_name[0] }}
+        </div>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border:1px solid var(--card-border);min-width:180px;">
+          <li><span class="dropdown-item-text" style="font-weight:600;color:var(--text-primary);">{{ current_user.full_name }}</span></li>
+          <li><span class="dropdown-item-text" style="font-size:.78rem;color:var(--text-secondary);">{{ current_user.role_label }}</span></li>
+          <li><hr class="dropdown-divider"></li>
+          {% if current_user.role == 'admin' or has_any_permission('role_view','user_view') %}
+          {% if has_any_permission('role_view','role_create','role_edit','role_delete') %}
+          <li><a class="dropdown-item" href="{{ url_for('list_roles') }}"><i class="fas fa-user-shield me-2"></i>{{ _('Roles') }}</a></li>
+          {% endif %}
+          {% if has_any_permission('user_view','user_create','user_edit','user_delete') %}
+          <li><a class="dropdown-item" href="{{ url_for('users') }}"><i class="fas fa-users me-2"></i>{{ _('Users') }}</a></li>
+          {% endif %}
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>{{ _('Log Out') }}</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  // Dark mode
+  function toggleDark() {
+    document.body.classList.toggle('dark');
+    const icon = document.getElementById('darkIcon');
+    if (document.body.classList.contains('dark')) {
+      icon.className = 'fas fa-sun';
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      icon.className = 'fas fa-moon';
+      localStorage.setItem('darkMode', 'false');
+    }
+  }
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+    document.getElementById('darkIcon').className = 'fas fa-sun';
+  }
+
+  // Sidebar toggle
+  document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // Auto-dismiss alerts
+  setTimeout(() => {
+    document.querySelectorAll('.flash-messages .alert').forEach(a => {
+      bootstrap.Alert.getOrCreateInstance(a)?.close();
+    });
+  }, 4000);
+
+  // Update clock every minute
+  function updateClock() {
+    {% if now %}
+    const d = new Date();
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const el = document.getElementById('headerDateTime');
+    if (el) {
+      el.textContent = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ', ' +
+        String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+    {% endif %}
+  }
+  setInterval(updateClock, 30000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

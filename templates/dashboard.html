@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Dashboard') }} — {{ _('IT Management') }}{% endblock %}
+{% block page_title %}{{ _('Dashboard') }}{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dash-header">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+      <h2>{{ _('Dashboard') }}</h2>
+      <p>{{ _('Welcome back, %(name)s. Here\'s what\'s happening today.', name=current_user.full_name) }}</p>
+    </div>
+    <div class="date-range-bar">
+      <span style="font-size:.78rem;color:var(--text-secondary);font-weight:600;margin-right:4px;"><i class="fas fa-calendar-alt me-1"></i></span>
+      <a href="?range=today" class="range-btn {% if range_filter=='today' %}active{% endif %}">{{ _('Today') }}</a>
+      <a href="?range=week" class="range-btn {% if range_filter=='week' %}active{% endif %}">{{ _('This Week') }}</a>
+      <a href="?range=month" class="range-btn {% if range_filter=='month' %}active{% endif %}">{{ _('This Month') }}</a>
+      <a href="?range=year" class="range-btn {% if range_filter=='year' %}active{% endif %}">{{ _('This Year') }}</a>
+      <a href="?range=all" class="range-btn {% if range_filter=='all' or not range_filter %}active{% endif %}">{{ _('All Time') }}</a>
+      <span class="range-btn {% if range_filter=='custom' %}active{% endif %}" id="customRangeToggle" style="cursor:pointer;">{{ _('Custom') }}</span>
+      <form id="customRangeForm" method="GET" action="{{ url_for('dashboard') }}" class="d-flex align-items-center gap-2" style="display:none;">
+        <input type="hidden" name="range" value="custom">
+        <input type="date" name="start_date" class="form-control form-control-sm" style="width:140px;font-size:.78rem;border-radius:8px;" value="{{ custom_start }}" required>
+        <span style="color:var(--text-secondary);font-size:.78rem;">{{ _('to') }}</span>
+        <input type="date" name="end_date" class="form-control form-control-sm" style="width:140px;font-size:.78rem;border-radius:8px;" value="{{ custom_end }}" required>
+        <button type="submit" class="btn btn-sm btn-primary" style="border-radius:8px;font-size:.78rem;">{{ _('Apply') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Cards Row 1: Route Requests -->
+<div class="row g-3 mb-3">
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#dbeafe;"><i class="fas fa-route" style="color:#1d4ed8;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.total_requests.cls }}"><i class="fas fa-{{ kpi_trends.total_requests.icon }}"></i> {{ kpi_trends.total_requests.label }}</span>
+      </div>
+      <div class="kpi-value">{{ total_requests }}</div>
+      <div class="kpi-label">{{ _('Total Route Requests') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-clock" style="color:#d97706;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.pending_requests.cls }}"><i class="fas fa-{{ kpi_trends.pending_requests.icon }}"></i> {{ kpi_trends.pending_requests.label }}</span>
+      </div>
+      <div class="kpi-value">{{ pending_requests }}</div>
+      <div class="kpi-label">{{ _('Pending Requests') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#d1fae5;"><i class="fas fa-check-circle" style="color:#059669;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.approved_requests.cls }}"><i class="fas fa-{{ kpi_trends.approved_requests.icon }}"></i> {{ kpi_trends.approved_requests.label }}</span>
+      </div>
+      <div class="kpi-value">{{ approved_requests }}</div>
+      <div class="kpi-label">{{ _('Approved Requests') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fee2e2;"><i class="fas fa-times-circle" style="color:#dc2626;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.rejected_requests.cls }}"><i class="fas fa-{{ kpi_trends.rejected_requests.icon }}"></i> {{ kpi_trends.rejected_requests.label }}</span>
+      </div>
+      <div class="kpi-value">{{ rejected_requests }}</div>
+      <div class="kpi-label">{{ _('Rejected Requests') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Cards Row 2: Penalties + Processed -->
+<div class="row g-3 mb-3">
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#ede9fe;"><i class="fas fa-exclamation-triangle" style="color:#7c3aed;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.total_penalties.cls }}"><i class="fas fa-{{ kpi_trends.total_penalties.icon }}"></i> {{ kpi_trends.total_penalties.label }}</span>
+      </div>
+      <div class="kpi-value">{{ total_penalties }}</div>
+      <div class="kpi-label">{{ _('Total Penalty Cases') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fce7f3;"><i class="fas fa-dollar-sign" style="color:#be185d;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.total_penalty_amount.cls }}"><i class="fas fa-{{ kpi_trends.total_penalty_amount.icon }}"></i> {{ kpi_trends.total_penalty_amount.label }}</span>
+      </div>
+      <div class="kpi-value">${{ "%.0f"|format(total_penalty_amount) }}</div>
+      <div class="kpi-label">{{ _('Total Penalty Amount') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-hourglass-half" style="color:#d97706;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.pending_penalties.cls }}"><i class="fas fa-{{ kpi_trends.pending_penalties.icon }}"></i> {{ kpi_trends.pending_penalties.label }}</span>
+      </div>
+      <div class="kpi-value">{{ pending_penalties }}</div>
+      <div class="kpi-label">{{ _('Pending Penalties') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#dbeafe;"><i class="fas fa-check-double" style="color:#1d4ed8;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.processed_requests.cls }}"><i class="fas fa-{{ kpi_trends.processed_requests.icon }}"></i> {{ kpi_trends.processed_requests.label }}</span>
+      </div>
+      <div class="kpi-value">{{ processed_requests }}</div>
+      <div class="kpi-label">{{ _('Processed Requests') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Cards Row 3: Trip Reports -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#e0f2fe;"><i class="fas fa-bus" style="color:#0284c7;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.total_reports.cls }}"><i class="fas fa-{{ kpi_trends.total_reports.icon }}"></i> {{ kpi_trends.total_reports.label }}</span>
+      </div>
+      <div class="kpi-value">{{ total_reports }}</div>
+      <div class="kpi-label">{{ _('Total Trip Reports') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#d1fae5;"><i class="fas fa-check-circle" style="color:#059669;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.departed_reports.cls }}"><i class="fas fa-{{ kpi_trends.departed_reports.icon }}"></i> {{ kpi_trends.departed_reports.label }}</span>
+      </div>
+      <div class="kpi-value">{{ departed_reports }}</div>
+      <div class="kpi-label">{{ _('Departed Trips') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fee2e2;"><i class="fas fa-times-circle" style="color:#dc2626;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.not_departed_reports.cls }}"><i class="fas fa-{{ kpi_trends.not_departed_reports.icon }}"></i> {{ kpi_trends.not_departed_reports.label }}</span>
+      </div>
+      <div class="kpi-value">{{ not_departed_reports }}</div>
+      <div class="kpi-label">{{ _('Not Departed') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-users" style="color:#d97706;"></i></div>
+        <span class="kpi-trend {{ kpi_trends.total_passengers.cls }}"><i class="fas fa-{{ kpi_trends.total_passengers.icon }}"></i> {{ kpi_trends.total_passengers.label }}</span>
+      </div>
+      <div class="kpi-value">{{ total_passengers }}</div>
+      <div class="kpi-label">{{ _('Total Passengers') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="chart-card" style="padding:14px 20px;">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span style="font-weight:600;font-size:.85rem;color:var(--text-primary);"><i class="fas fa-bolt me-2" style="color:var(--accent);"></i>{{ _('Quick Actions') }}</span>
+        <div class="quick-actions">
+          <a href="{{ url_for('new_route_request') }}" class="qa-btn" style="background:#dbeafe;color:#1d4ed8;">
+            <i class="fas fa-plus-circle"></i> {{ _('New Request') }}
+          </a>
+          {% if has_permission('penalty_create') %}
+          <a href="{{ url_for('new_penalty') }}" class="qa-btn" style="background:#ede9fe;color:#7c3aed;">
+            <i class="fas fa-gavel"></i> {{ _('New Penalty') }}
+          </a>
+          {% endif %}
+          <a href="{{ url_for('new_trip_operation_report') }}" class="qa-btn" style="background:#e0f2fe;color:#0284c7;">
+            <i class="fas fa-bus"></i> {{ _('New Trip Report') }}
+          </a>
+          <a href="{{ url_for('export_requests_excel') }}" class="qa-btn" style="background:#d1fae5;color:#059669;">
+            <i class="fas fa-file-excel"></i> {{ _('Export Excel') }}
+          </a>
+          <a href="{{ url_for('export_requests_pdf') }}" class="qa-btn" style="background:#fee2e2;color:#dc2626;">
+            <i class="fas fa-file-pdf"></i> {{ _('Export PDF') }}
+          </a>
+          <button onclick="window.print()" class="qa-btn" style="background:#fef3c7;color:#d97706;">
+            <i class="fas fa-print"></i> {{ _('Print') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="chart-card" style="height:300px;">
+      <div class="chart-title"><i class="fas fa-chart-pie" style="color:#f59e0b;"></i> {{ _('Request Status Overview') }}</div>
+      <canvas id="statusChart" style="max-height:220px;"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="chart-card" style="height:300px;">
+      <div class="chart-title"><i class="fas fa-chart-bar" style="color:#1a3c5e;"></i> {{ _('Monthly Route Requests') }}</div>
+      <canvas id="monthlyChart" style="max-height:220px;"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="chart-card" style="height:300px;">
+      <div class="chart-title"><i class="fas fa-chart-line" style="color:#7c3aed;"></i> {{ _('Penalty Trend') }}</div>
+      <canvas id="penaltyTrendChart" style="max-height:220px;"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="chart-card" style="height:300px;">
+      <div class="chart-title"><i class="fas fa-chart-column" style="color:#0284c7;"></i> {{ _('Trip Operations Summary') }}</div>
+      <canvas id="tripStackedChart" style="max-height:220px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Requests DataTable -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="data-table">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+        <h6 class="mb-0 fw-bold" style="color:var(--text-primary);"><i class="fas fa-route me-2" style="color:#1d4ed8;"></i>{{ _('Recent Route Requests') }}</h6>
+        <a href="{{ url_for('route_requests') }}" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;border-radius:8px;">{{ _('View All') }}</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table" id="requestsTable">
+          <thead>
+            <tr>
+              <th>{{ _('Request ID') }}</th>
+              <th>{{ _('Employee') }}</th>
+              <th>{{ _('Destination') }}</th>
+              <th>{{ _('Request Date') }}</th>
+              <th>{{ _('Status') }}</th>
+              <th>{{ _('Actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rr in recent_requests %}
+            <tr>
+              <td><a href="{{ url_for('view_route_request', id=rr.id) }}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">{{ rr.request_id }}</a></td>
+              <td>{{ rr.requester_name }}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ rr.destination_from }} → {{ rr.destination_to }}</td>
+              <td>{{ rr.request_date.strftime('%d %b %Y') if rr.request_date else '' }}</td>
+              <td><span class="status-badge badge-{{ rr.status.lower() }}">{{ rr.status }}</span></td>
+              <td>
+                <a href="{{ url_for('view_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:.75rem;border-radius:6px;" title="View"><i class="fas fa-eye"></i></a>
+                {% if has_permission('route_request_edit') and rr.status == 'Pending' %}
+                <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-warning" style="padding:2px 8px;font-size:.75rem;border-radius:6px;" title="Edit"><i class="fas fa-edit"></i></a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">{{ _('No requests found') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activities + Notifications -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="data-table p-3">
+      <h6 class="fw-bold mb-3" style="color:var(--text-primary);"><i class="fas fa-clock-rotate me-2" style="color:#059669;"></i>{{ _('Recent Activities') }}</h6>
+      <div style="max-height:320px;overflow-y:auto;">
+        {% for activity in recent_activities %}
+        <div class="activity-item">
+          <div class="activity-icon" style="background:{{ activity.bg_color }};color:{{ activity.color }};">
+            <i class="{{ activity.icon }}"></i>
+          </div>
+          <div class="activity-text">
+            <strong>{{ activity.title }}</strong>
+            <div>{{ activity.description }}</div>
+            <div class="activity-time"><i class="far fa-clock me-1"></i>{{ activity.time_ago }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4" style="font-size:.85rem;">{{ _('No recent activities') }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6" id="notifications-section">
+    <div class="data-table p-3">
+      <h6 class="fw-bold mb-3" style="color:var(--text-primary);"><i class="fas fa-bell me-2" style="color:#f59e0b;"></i>{{ _('Notifications') }}</h6>
+      <div style="max-height:320px;overflow-y:auto;">
+        {% for notif in notifications %}
+        <div class="notif-item">
+          <div class="notif-dot" style="background:{{ notif.dot_color }};"></div>
+          <div style="flex:1;">
+            <div style="font-size:.85rem;color:var(--text-primary);font-weight:500;">{{ notif.message }}</div>
+            <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px;">{{ notif.time_ago }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4" style="font-size:.85rem;">{{ _('No pending notifications') }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logo Upload (Admin Only) -->
+{% if current_user.role == 'admin' or has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:48px;height:48px;border-radius:12px;background:#f0f9ff;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-image text-primary" style="font-size:1.2rem;"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0" style="color:var(--text-primary);">{{ _('Login Logo') }}</h6>
+            <small style="color:var(--text-secondary);">{% if login_logo_url %}{{ _('Current logo displayed on login page') }}{% else %}{{ _('No logo uploaded yet') }}{% endif %}</small>
+          </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          {% if login_logo_url %}
+          <img src="{{ login_logo_url }}?t={{ range(99999, 999999) | random }}" style="height:48px;border-radius:8px;border:1px solid var(--card-border);padding:4px;background:var(--card-bg);">
+          {% endif %}
+          <form method="POST" action="{{ url_for('upload_logo') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="file" name="logo" accept="image/*" class="form-control form-control-sm" style="max-width:200px;" required>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-upload me-1"></i>{{ _('Upload') }}</button>
+          </form>
+          {% if login_logo_url %}
+          <form method="POST" action="{{ url_for('delete_logo') }}" onsubmit="return confirm('{{ _('Remove logo?') }}');">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Export Section -->
+<div class="row g-3">
+  <div class="col-12">
+    <div class="chart-card">
+      <h6 class="chart-title"><i class="fas fa-download me-2" style="color:#059669;"></i>{{ _('Export & Reports') }}</h6>
+      <div class="row g-2">
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Requests Excel') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Requests PDF') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Penalties Excel') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Penalties PDF') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Trip Reports Excel') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Trip Reports PDF') }}</small>
+          </a>
+        </div>
+        <div class="col-6 col-md-3 col-lg">
+          <button onclick="window.print()" class="btn btn-outline-warning w-100 py-3" style="border-radius:12px;">
+            <i class="fas fa-print d-block mb-1" style="font-size:1.3rem;"></i>
+            <small>{{ _('Print Page') }}</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Status Donut Chart ──
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending', 'Approved', 'Rejected'],
+      datasets: [{
+        data: [{{ pending_requests }}, {{ approved_requests }}, {{ rejected_requests }}],
+        backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+        borderWidth: 0,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '70%',
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } }
+    }
+  });
+
+  // ── Monthly Bar Chart ──
+  new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ monthly_labels|tojson }},
+      datasets: [
+        { label: 'Route Requests', data: {{ monthly_requests|tojson }}, backgroundColor: '#1a3c5e', borderRadius: 6 },
+        { label: 'Penalties', data: {{ monthly_penalties|tojson }}, backgroundColor: '#f59e0b', borderRadius: 6 },
+        { label: 'Trip Reports', data: {{ monthly_reports|tojson }}, backgroundColor: '#0284c7', borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── Penalty Trend Line Chart ──
+  new Chart(document.getElementById('penaltyTrendChart'), {
+    type: 'line',
+    data: {
+      labels: {{ monthly_labels|tojson }},
+      datasets: [{
+        label: 'Penalties',
+        data: {{ monthly_penalties|tojson }},
+        borderColor: '#7c3aed',
+        backgroundColor: 'rgba(124,58,237,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#7c3aed',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── Trip Stacked Bar Chart ──
+  new Chart(document.getElementById('tripStackedChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ monthly_labels|tojson }},
+      datasets: [
+        { label: 'Departed', data: {{ monthly_trip_departed|tojson }}, backgroundColor: '#10b981', borderRadius: 4 },
+        { label: 'Not Departed', data: {{ monthly_trip_not_departed|tojson }}, backgroundColor: '#ef4444', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { stacked: true, grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── DataTable initialization ──
+  $(document).ready(function() {
+    if ($.fn.DataTable && document.getElementById('requestsTable')) {
+      $('#requestsTable').DataTable({
+        pageLength: 5,
+        lengthMenu: [[5, 10, 25, -1], [5, 10, 25, 'All']],
+        order: [[3, 'desc']],
+        language: { search: '', searchPlaceholder: 'Search requests...' },
+        dom: '<"d-flex justify-content-between align-items-center mb-2"lf>tip',
+        paging: true,
+        info: true,
+      });
+      // Style the DataTable search
+      $('.dataTables_filter input').addClass('form-control form-control-sm').css({
+        'border-radius': '8px', 'padding': '6px 12px', 'font-size': '.82rem',
+        'border': '1px solid var(--input-border)', 'background': 'var(--input-bg)', 'color': 'var(--text-primary)'
+      });
+      $('.dataTables_length select').addClass('form-select form-select-sm').css({
+        'border-radius': '8px', 'padding': '4px 24px 4px 8px', 'font-size': '.78rem',
+        'border': '1px solid var(--input-border)', 'background': 'var(--input-bg)', 'color': 'var(--text-primary)'
+      });
+    }
+  });
+
+  // ── Custom date range toggle ──
+  const toggleBtn = document.getElementById('customRangeToggle');
+  const customForm = document.getElementById('customRangeForm');
+  if (toggleBtn && customForm) {
+    function toggleForm(show) {
+      customForm.style.display = show ? 'inline-flex' : 'none';
+      toggleBtn.style.display = show ? 'none' : '';
+    }
+    toggleBtn.addEventListener('click', () => toggleForm(true));
+    {% if range_filter == 'custom' %}
+      toggleForm(true);
+    {% endif %}
+  }
+
+  // ── Global search ──
+  document.getElementById('globalSearch')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && this.value.trim()) {
+      const q = this.value.trim();
+      const currentUrl = window.location.pathname;
+      if (currentUrl.includes('dashboard')) {
+        // On dashboard, search is limited; could navigate to search page
+        // For now, do nothing special
+      }
+    }
+  });
+</script>
+{% endblock %}

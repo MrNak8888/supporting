@@ -1,0 +1,918 @@
+# English translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-06-28 14:34+0700\n"
+"PO-Revision-Date: 2026-06-28 14:34+0700\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app.py:102
+msgid "Please log in to access this page."
+msgstr ""
+
+#: app.py:133
+msgid "Administrator"
+msgstr ""
+
+#: app.py:134
+msgid "IT Staff"
+msgstr ""
+
+#: app.py:135
+msgid "Branch Manager"
+msgstr ""
+
+#: app.py:136
+msgid "Regional Manager"
+msgstr ""
+
+#: app.py:137
+msgid "HR Manager"
+msgstr ""
+
+#: app.py:392
+msgid "You do not have permission to access this page."
+msgstr ""
+
+#: app.py:421
+msgid "Invalid username or password."
+msgstr ""
+
+#: app.py:435
+msgid "Logo must be an image file (PNG, JPG, GIF, SVG)."
+msgstr ""
+
+#: app.py:438
+msgid "Logo uploaded successfully!"
+msgstr ""
+
+#: app.py:440
+msgid "No file selected."
+msgstr ""
+
+#: app.py:451
+msgid "Logo removed."
+msgstr ""
+
+#: app.py:761 app.py:830
+msgid "Origin and destination are required."
+msgstr ""
+
+#: app.py:790
+#, python-format
+msgid "Route Request %(id)s submitted successfully!"
+msgstr ""
+
+#: app.py:821
+msgid "Access denied."
+msgstr ""
+
+#: app.py:824
+msgid "Only pending requests can be edited."
+msgstr ""
+
+#: app.py:850
+msgid "Request updated successfully!"
+msgstr ""
+
+#: app.py:868
+#, python-format
+msgid "Request %(action)s successfully!"
+msgstr ""
+
+#: app.py:880
+msgid "Request deleted."
+msgstr ""
+
+#: app.py:930 app.py:977
+msgid "Employee ID and name are required."
+msgstr ""
+
+#: app.py:952
+#, python-format
+msgid "Penalty Record %(id)s created successfully!"
+msgstr ""
+
+#: app.py:971
+msgid "Only pending penalties can be edited."
+msgstr ""
+
+#: app.py:991
+msgid "Penalty record updated!"
+msgstr ""
+
+#: app.py:1006
+#, python-format
+msgid "Penalty %(action)s!"
+msgstr ""
+
+#: app.py:1018
+msgid "Penalty record deleted."
+msgstr ""
+
+#: app.py:1077 app.py:1142
+msgid "Origin is required."
+msgstr ""
+
+#: app.py:1079 app.py:1144
+msgid "Destination is required."
+msgstr ""
+
+#: app.py:1081 app.py:1146
+msgid "Departure Time is required."
+msgstr ""
+
+#: app.py:1083 app.py:1148
+msgid "Vehicle Number is required."
+msgstr ""
+
+#: app.py:1085 app.py:1150
+msgid "Vehicle Status is required."
+msgstr ""
+
+#: app.py:1113
+#, python-format
+msgid "Trip Operation Report %(id)s created successfully!"
+msgstr ""
+
+#: app.py:1174
+msgid "Trip Operation Report updated successfully!"
+msgstr ""
+
+#: app.py:1186
+msgid "Trip Operation Report deleted."
+msgstr ""
+
+#: app.py:1213 app.py:1235
+msgid "Department name is required."
+msgstr ""
+
+#: app.py:1222
+#, python-format
+msgid "Department \"%(name)s\" created successfully!"
+msgstr ""
+
+#: app.py:1241
+msgid "Department updated successfully!"
+msgstr ""
+
+#: app.py:1252
+msgid "Cannot delete department with existing positions."
+msgstr ""
+
+#: app.py:1256
+msgid "Department deleted."
+msgstr ""
+
+#: app.py:1284 app.py:1309
+msgid "Position name and department are required."
+msgstr ""
+
+#: app.py:1294
+#, python-format
+msgid "Position \"%(name)s\" created successfully!"
+msgstr ""
+
+#: app.py:1316
+msgid "Position updated successfully!"
+msgstr ""
+
+#: app.py:1329
+msgid "Position deleted."
+msgstr ""
+
+#: app.py:1580
+#, python-format
+msgid "Module \"%(key)s\" not found."
+msgstr ""
+
+#: app.py:1600
+#, python-format
+msgid "%(label)s is required."
+msgstr ""
+
+#: app.py:1610
+#, python-format
+msgid "%(label)s must be at least %(len)d characters."
+msgstr ""
+
+#: app.py:1614
+#, python-format
+msgid "%(label)s must not exceed %(len)d characters."
+msgstr ""
+
+#: app.py:1618
+#, python-format
+msgid "%(label)s format is invalid."
+msgstr ""
+
+#: app.py:1630
+#, python-format
+msgid "%(label)s must be unique."
+msgstr ""
+
+#: app.py:1637
+#, python-format
+msgid "%(label)s validation failed."
+msgstr ""
+
+#: app.py:1646
+#, python-format
+msgid "%(label)s must be a valid number."
+msgstr ""
+
+#: app.py:1687
+msgid "Module not found."
+msgstr ""
+
+#: app.py:1836
+#, python-format
+msgid "%(name)s created successfully."
+msgstr ""
+
+#: app.py:1892
+#, python-format
+msgid "%(name)s updated successfully."
+msgstr ""
+
+#: app.py:1904
+msgid "Record deleted."
+msgstr ""
+
+#: app.py:1915
+msgid "Record activated."
+msgstr ""
+
+#: app.py:1915
+msgid "Record deactivated."
+msgstr ""
+
+#: app.py:1983 app.py:2030
+msgid "Role name is required."
+msgstr ""
+
+#: app.py:1988 app.py:2034
+msgid "A role with that name already exists."
+msgstr ""
+
+#: app.py:1996
+#, python-format
+msgid "Role \"%(name)s\" updated."
+msgstr ""
+
+#: app.py:2009
+#, python-format
+msgid "Role \"%(name)s\" deleted."
+msgstr ""
+
+#: app.py:2041
+#, python-format
+msgid "Role \"%(name)s\" created with %(count)d permissions."
+msgstr ""
+
+#: app.py:2062
+msgid "Selected role not found."
+msgstr ""
+
+#: app.py:2070
+msgid "Username already exists."
+msgstr ""
+
+#: app.py:2075
+#, python-format
+msgid "User %(name)s created!"
+msgstr ""
+
+#: app.py:2103
+msgid "User updated!"
+msgstr ""
+
+#: app.py:2115
+msgid "Cannot delete yourself."
+msgstr ""
+
+#: app.py:2119
+msgid "User deleted."
+msgstr ""
+
+#: templates/base.html:6 templates/login.html:6 templates/login.html:231
+msgid "IT Management System"
+msgstr ""
+
+#: templates/base.html:252 templates/dashboard.html:2
+msgid "IT Management"
+msgstr ""
+
+#: templates/base.html:253
+msgid "System v1.0"
+msgstr ""
+
+#: templates/base.html:256
+msgid "Main"
+msgstr ""
+
+#: templates/base.html:258 templates/base.html:351 templates/dashboard.html:2
+#: templates/dashboard.html:3 templates/dashboard.html:10
+msgid "Dashboard"
+msgstr ""
+
+#: templates/base.html:261 templates/route_requests.html:2
+msgid "Route Requests"
+msgstr ""
+
+#: templates/base.html:263
+msgid "All Requests"
+msgstr ""
+
+#: templates/base.html:267 templates/dashboard.html:172
+#: templates/route_requests.html:15
+msgid "New Request"
+msgstr ""
+
+#: templates/base.html:272
+msgid "HR & Organization"
+msgstr ""
+
+#: templates/base.html:274
+msgid "Penalties"
+msgstr ""
+
+#: templates/base.html:278 templates/dashboard.html:176
+msgid "New Penalty"
+msgstr ""
+
+#: templates/base.html:283
+msgid "Trip Operations"
+msgstr ""
+
+#: templates/base.html:285
+msgid "Trip Operation Report"
+msgstr ""
+
+#: templates/base.html:289
+msgid "New Report"
+msgstr ""
+
+#: templates/base.html:294
+msgid "Analytics"
+msgstr ""
+
+#: templates/base.html:296
+msgid "Reports"
+msgstr ""
+
+#: templates/base.html:300
+msgid "Settings"
+msgstr ""
+
+#: templates/base.html:302
+msgid "System Settings"
+msgstr ""
+
+#: templates/base.html:305
+msgid "Departments"
+msgstr ""
+
+#: templates/base.html:308
+msgid "Positions"
+msgstr ""
+
+#: templates/base.html:311 templates/base.html:385
+msgid "Roles"
+msgstr ""
+
+#: templates/base.html:314 templates/base.html:386
+msgid "Users"
+msgstr ""
+
+#: templates/base.html:329 templates/base.html:388
+msgid "Log Out"
+msgstr ""
+
+#: templates/base.html:356
+msgid "Search..."
+msgstr ""
+
+#: templates/base.html:360
+msgid "Language"
+msgstr ""
+
+#: templates/base.html:368
+msgid "Toggle Dark Mode"
+msgstr ""
+
+#: templates/base.html:371 templates/dashboard.html:295
+msgid "Notifications"
+msgstr ""
+
+#: templates/dashboard.html:11
+#, python-format
+msgid "Welcome back, %(name)s. Here's what's happening today."
+msgstr ""
+
+#: templates/dashboard.html:15
+msgid "Today"
+msgstr ""
+
+#: templates/dashboard.html:16
+msgid "This Week"
+msgstr ""
+
+#: templates/dashboard.html:17
+msgid "This Month"
+msgstr ""
+
+#: templates/dashboard.html:18
+msgid "This Year"
+msgstr ""
+
+#: templates/dashboard.html:19
+msgid "All Time"
+msgstr ""
+
+#: templates/dashboard.html:20
+msgid "Custom"
+msgstr ""
+
+#: templates/dashboard.html:24
+msgid "to"
+msgstr ""
+
+#: templates/dashboard.html:26
+msgid "Apply"
+msgstr ""
+
+#: templates/dashboard.html:41
+msgid "Total Route Requests"
+msgstr ""
+
+#: templates/dashboard.html:51
+msgid "Pending Requests"
+msgstr ""
+
+#: templates/dashboard.html:61
+msgid "Approved Requests"
+msgstr ""
+
+#: templates/dashboard.html:71
+msgid "Rejected Requests"
+msgstr ""
+
+#: templates/dashboard.html:85
+msgid "Total Penalty Cases"
+msgstr ""
+
+#: templates/dashboard.html:95
+msgid "Total Penalty Amount"
+msgstr ""
+
+#: templates/dashboard.html:105
+msgid "Pending Penalties"
+msgstr ""
+
+#: templates/dashboard.html:115
+msgid "Processed Requests"
+msgstr ""
+
+#: templates/dashboard.html:129
+msgid "Total Trip Reports"
+msgstr ""
+
+#: templates/dashboard.html:139
+msgid "Departed Trips"
+msgstr ""
+
+#: templates/dashboard.html:149
+msgid "Not Departed"
+msgstr ""
+
+#: templates/dashboard.html:159
+msgid "Total Passengers"
+msgstr ""
+
+#: templates/dashboard.html:169
+msgid "Quick Actions"
+msgstr ""
+
+#: templates/dashboard.html:180
+msgid "New Trip Report"
+msgstr ""
+
+#: templates/dashboard.html:183
+msgid "Export Excel"
+msgstr ""
+
+#: templates/dashboard.html:186
+msgid "Export PDF"
+msgstr ""
+
+#: templates/dashboard.html:189
+msgid "Print"
+msgstr ""
+
+#: templates/dashboard.html:201
+msgid "Request Status Overview"
+msgstr ""
+
+#: templates/dashboard.html:207
+msgid "Monthly Route Requests"
+msgstr ""
+
+#: templates/dashboard.html:213
+msgid "Penalty Trend"
+msgstr ""
+
+#: templates/dashboard.html:219
+msgid "Trip Operations Summary"
+msgstr ""
+
+#: templates/dashboard.html:230
+msgid "Recent Route Requests"
+msgstr ""
+
+#: templates/dashboard.html:231
+msgid "View All"
+msgstr ""
+
+#: templates/dashboard.html:237 templates/route_requests.html:91
+msgid "Request ID"
+msgstr ""
+
+#: templates/dashboard.html:238
+msgid "Employee"
+msgstr ""
+
+#: templates/dashboard.html:239
+msgid "Destination"
+msgstr ""
+
+#: templates/dashboard.html:240
+msgid "Request Date"
+msgstr ""
+
+#: templates/dashboard.html:241 templates/route_requests.html:28
+#: templates/route_requests.html:99
+msgid "Status"
+msgstr ""
+
+#: templates/dashboard.html:242 templates/route_requests.html:100
+msgid "Actions"
+msgstr ""
+
+#: templates/dashboard.html:261 templates/route_requests.html:142
+msgid "No requests found"
+msgstr ""
+
+#: templates/dashboard.html:274
+msgid "Recent Activities"
+msgstr ""
+
+#: templates/dashboard.html:288
+msgid "No recent activities"
+msgstr ""
+
+#: templates/dashboard.html:306
+msgid "No pending notifications"
+msgstr ""
+
+#: templates/dashboard.html:324
+msgid "Login Logo"
+msgstr ""
+
+#: templates/dashboard.html:325
+msgid "Current logo displayed on login page"
+msgstr ""
+
+#: templates/dashboard.html:325
+msgid "No logo uploaded yet"
+msgstr ""
+
+#: templates/dashboard.html:334
+msgid "Upload"
+msgstr ""
+
+#: templates/dashboard.html:337
+msgid "Remove logo?"
+msgstr ""
+
+#: templates/dashboard.html:352
+msgid "Export & Reports"
+msgstr ""
+
+#: templates/dashboard.html:357
+msgid "Requests Excel"
+msgstr ""
+
+#: templates/dashboard.html:363
+msgid "Requests PDF"
+msgstr ""
+
+#: templates/dashboard.html:369
+msgid "Penalties Excel"
+msgstr ""
+
+#: templates/dashboard.html:375
+msgid "Penalties PDF"
+msgstr ""
+
+#: templates/dashboard.html:381
+msgid "Trip Reports Excel"
+msgstr ""
+
+#: templates/dashboard.html:387
+msgid "Trip Reports PDF"
+msgstr ""
+
+#: templates/dashboard.html:393
+msgid "Print Page"
+msgstr ""
+
+#: templates/login.html:6
+msgid "Login"
+msgstr ""
+
+#: templates/login.html:232
+msgid "Sign in to your account to continue"
+msgstr ""
+
+#: templates/login.html:247
+msgid "Username"
+msgstr ""
+
+#: templates/login.html:250
+msgid "Enter username"
+msgstr ""
+
+#: templates/login.html:255
+msgid "Password"
+msgstr ""
+
+#: templates/login.html:258
+msgid "Enter password"
+msgstr ""
+
+#: templates/login.html:266
+msgid "Sign In"
+msgstr ""
+
+#: templates/route_request_form.html:2
+msgid "Edit"
+msgstr ""
+
+#: templates/route_request_form.html:2
+msgid "New"
+msgstr ""
+
+#: templates/route_request_form.html:2
+msgid "Route Request"
+msgstr ""
+
+#: templates/route_request_form.html:3
+msgid "Edit Request"
+msgstr ""
+
+#: templates/route_request_form.html:3
+msgid "New Route Request"
+msgstr ""
+
+#: templates/route_request_form.html:8
+msgid "Back to Requests"
+msgstr ""
+
+#: templates/route_request_form.html:18
+msgid "Route Information"
+msgstr ""
+
+#: templates/route_request_form.html:22
+msgid "From (Origin)"
+msgstr ""
+
+#: templates/route_request_form.html:24
+msgid "Select Origin"
+msgstr ""
+
+#: templates/route_request_form.html:31
+msgid "To (Destination)"
+msgstr ""
+
+#: templates/route_request_form.html:33
+msgid "Select Destination"
+msgstr ""
+
+#: templates/route_request_form.html:40
+msgid "Transportation Type"
+msgstr ""
+
+#: templates/route_request_form.html:49
+msgid "National Road"
+msgstr ""
+
+#: templates/route_request_form.html:51
+msgid "e.g., NR6"
+msgstr ""
+
+#: templates/route_request_form.html:54
+msgid "Price ($)"
+msgstr ""
+
+#: templates/route_request_form.html:59
+msgid "Departure Time"
+msgstr ""
+
+#: templates/route_request_form.html:64
+msgid "Arrival Time"
+msgstr ""
+
+#: templates/route_request_form.html:69
+msgid "Start Date"
+msgstr ""
+
+#: templates/route_request_form.html:74
+msgid "End Date"
+msgstr ""
+
+#: templates/route_request_form.html:83
+msgid "Organization Details"
+msgstr ""
+
+#: templates/route_request_form.html:87
+msgid "Requester Name"
+msgstr ""
+
+#: templates/route_request_form.html:93
+msgid "Branch Location"
+msgstr ""
+
+#: templates/route_request_form.html:102 templates/route_requests.html:96
+msgid "Company"
+msgstr ""
+
+#: templates/route_request_form.html:115
+msgid "Attachments & Notes"
+msgstr ""
+
+#: templates/route_request_form.html:119
+msgid "Supporting Documents"
+msgstr ""
+
+#: templates/route_request_form.html:123
+msgid "Current file:"
+msgstr ""
+
+#: templates/route_request_form.html:128
+msgid "Remarks"
+msgstr ""
+
+#: templates/route_request_form.html:129
+msgid "Additional notes..."
+msgstr ""
+
+#: templates/route_request_form.html:135
+msgid "Allow Access Permission"
+msgstr ""
+
+#: templates/route_request_form.html:146
+msgid "Request Status"
+msgstr ""
+
+#: templates/route_request_form.html:150
+msgid "ID:"
+msgstr ""
+
+#: templates/route_request_form.html:151
+msgid "Submitted:"
+msgstr ""
+
+#: templates/route_request_form.html:152
+msgid "Status:"
+msgstr ""
+
+#: templates/route_request_form.html:157
+msgid "A unique Request ID will be auto-generated upon submission."
+msgstr ""
+
+#: templates/route_request_form.html:164
+msgid "Save Changes"
+msgstr ""
+
+#: templates/route_request_form.html:164
+msgid "Submit Request"
+msgstr ""
+
+#: templates/route_request_form.html:166
+msgid "Cancel"
+msgstr ""
+
+#: templates/route_request_form.html:172
+msgid "Quick Reference"
+msgstr ""
+
+#: templates/route_request_form.html:174
+msgid "Pending: Awaiting regional approval"
+msgstr ""
+
+#: templates/route_request_form.html:175
+msgid "Approved: Forwarded to IT"
+msgstr ""
+
+#: templates/route_request_form.html:176
+msgid "Rejected: Request declined"
+msgstr ""
+
+#: templates/route_requests.html:3
+msgid "Route Request Management"
+msgstr ""
+
+#: templates/route_requests.html:9
+msgid "Back to Reports & Analytics"
+msgstr ""
+
+#: templates/route_requests.html:11
+msgid "Manage and track all transportation route requests"
+msgstr ""
+
+#: templates/route_requests.html:24
+msgid "Search"
+msgstr ""
+
+#: templates/route_requests.html:25
+msgid "Search by ID, name, route..."
+msgstr ""
+
+#: templates/route_requests.html:30
+msgid "All Status"
+msgstr ""
+
+#: templates/route_requests.html:37
+msgid "Filter"
+msgstr ""
+
+#: templates/route_requests.html:40
+msgid "Clear"
+msgstr ""
+
+#: templates/route_requests.html:50
+msgid "Total Requests"
+msgstr ""
+
+#: templates/route_requests.html:56
+msgid "Pending"
+msgstr ""
+
+#: templates/route_requests.html:62
+msgid "Approved"
+msgstr ""
+
+#: templates/route_requests.html:68
+msgid "Rejected"
+msgstr ""
+
+#: templates/route_requests.html:75
+#, python-format
+msgid "Showing %(count)d of %(total)d record(s)"
+msgstr ""
+
+#: templates/route_requests.html:79
+msgid "Excel"
+msgstr ""
+
+#: templates/route_requests.html:82
+msgid "PDF"
+msgstr ""
+
+#: templates/route_requests.html:92
+msgid "Date"
+msgstr ""
+
+#: templates/route_requests.html:93
+msgid "Requester"
+msgstr ""
+
+#: templates/route_requests.html:94
+msgid "Route"
+msgstr ""
+
+#: templates/route_requests.html:95
+msgid "Branch"
+msgstr ""
+
+#: templates/route_requests.html:97
+msgid "Transport"
+msgstr ""
+
+#: templates/route_requests.html:98
+msgid "Price"
+msgstr ""
+

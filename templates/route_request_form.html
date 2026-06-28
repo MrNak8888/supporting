@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block title %}{% if request_obj %}{{ _('Edit') }}{% else %}{{ _('New') }}{% endif %} {{ _('Route Request') }}{% endblock %}
+{% block page_title %}{% if request_obj %}{{ _('Edit Request') }} — {{ request_obj.request_id }}{% else %}{{ _('New Route Request') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Requests') }}
+  </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+<div class="row g-4">
+  <!-- Left Column -->
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-route me-2"></i>{{ _('Route Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('From (Origin)') }} <span class="text-danger">*</span></label>
+          <select name="destination_from" class="form-select" required>
+            <option value="">— {{ _('Select Origin') }} —</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if request_obj and request_obj.destination_from == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('To (Destination)') }} <span class="text-danger">*</span></label>
+          <select name="destination_to" class="form-select" required>
+            <option value="">— {{ _('Select Destination') }} —</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if request_obj and request_obj.destination_to == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Transportation Type') }}</label>
+          <select name="transportation" class="form-select">
+            <option value="">— Select Type —</option>
+            {% for t in transport_types %}
+            <option value="{{ t.data.name }}" {% if request_obj and request_obj.transportation == t.data.name %}selected{% endif %}>{{ t.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('National Road') }}</label>
+          <input type="text" name="national_road" class="form-control"
+            value="{{ request_obj.national_road if request_obj else '' }}" placeholder="{{ _('e.g., NR6') }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Price ($)') }}</label>
+          <input type="number" name="price" class="form-control" step="0.01" min="0"
+            value="{{ request_obj.price if request_obj else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Departure Time') }}</label>
+          <input type="time" name="departure_time" class="form-control"
+            value="{{ request_obj.departure_time if request_obj else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Arrival Time') }}</label>
+          <input type="time" name="arrival_time" class="form-control"
+            value="{{ request_obj.arrival_time if request_obj else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Start Date') }}</label>
+          <input type="date" name="start_date" class="form-control"
+            value="{{ request_obj.start_date if request_obj else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('End Date') }}</label>
+          <input type="date" name="end_date" class="form-control"
+            value="{{ request_obj.end_date if request_obj else '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-building me-2"></i>{{ _('Organization Details') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Requester Name') }}</label>
+          <input type="text" class="form-control" readonly
+            value="{{ request_obj.requester_name if request_obj else current_user.full_name }}"
+            style="background:#f1f5f9;cursor:not-allowed;">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Branch Location') }}</label>
+          <select name="branch_location" class="form-select">
+            <option value="">— Select Branch —</option>
+            {% for b in branches %}
+            <option value="{{ b.data.name }}" {% if request_obj and request_obj.branch_location == b.data.name %}selected{% elif not request_obj and current_user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Company') }}</label>
+          <select name="company" class="form-select">
+            <option value="">— Select Company —</option>
+            {% for c in companies %}
+            <option value="{{ c.data.name }}" {% if request_obj and request_obj.company == c.data.name %}selected{% elif not request_obj and loop.first %}selected{% endif %}>{{ c.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-paperclip me-2"></i>{{ _('Attachments & Notes') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ _('Supporting Documents') }}</label>
+          <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.jpg,.png">
+          {% if request_obj and request_obj.attachment %}
+          <div class="mt-1" style="font-size:.8rem;color:#64748b;">
+            {{ _('Current file:') }} <a href="/static/uploads/{{ request_obj.attachment }}" target="_blank">{{ request_obj.attachment }}</a>
+          </div>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Remarks') }}</label>
+          <textarea name="remarks" class="form-control" rows="3" placeholder="{{ _('Additional notes...') }}">{{ request_obj.remarks if request_obj else '' }}</textarea>
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            <input type="checkbox" name="allow_access" class="form-check-input" id="allowAccess"
+              {% if not request_obj or request_obj.allow_access %}checked{% endif %}>
+            <label class="form-check-label" for="allowAccess">{{ _('Allow Access Permission') }}</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-info-circle me-2"></i>{{ _('Request Status') }}
+      </h6>
+      {% if request_obj %}
+      <div class="mb-3 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+        <div class="mb-2"><strong>{{ _('ID:') }}</strong> {{ request_obj.request_id }}</div>
+        <div class="mb-2"><strong>{{ _('Submitted:') }}</strong> {{ request_obj.request_date }}</div>
+        <div><strong>{{ _('Status:') }}</strong> <span class="status-badge badge-{{ request_obj.status.lower() }} ms-1">{{ request_obj.status }}</span></div>
+      </div>
+      {% else %}
+      <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <i class="fas fa-info-circle text-success me-1"></i>
+        <small class="text-success">{{ _('A unique Request ID will be auto-generated upon submission.') }}</small>
+      </div>
+      {% endif %}
+
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-{{ 'save' if request_obj else 'paper-plane' }} me-2"></i>
+          {{ _('Save Changes') if request_obj else _('Submit Request') }}
+        </button>
+        <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+
+    <!-- Route preview -->
+    <div class="form-card mt-3">
+      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Quick Reference') }}</h6>
+      <div style="font-size:.8rem;color:#64748b;line-height:2;">
+        <div><i class="fas fa-circle text-danger me-2" style="font-size:.5rem;"></i>{{ _('Pending: Awaiting regional approval') }}</div>
+        <div><i class="fas fa-circle text-success me-2" style="font-size:.5rem;"></i>{{ _('Approved: Forwarded to IT') }}</div>
+        <div><i class="fas fa-circle text-danger me-2" style="font-size:.5rem;"></i>{{ _('Rejected: Request declined') }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

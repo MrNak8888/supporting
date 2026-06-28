@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{% if dept %}{{ _('Edit Department') }}{% else %}{{ _('New Department') }}{% endif %}{% endblock %}
+{% block page_title %}{% if dept %}{{ _('Edit Department') }} — {{ dept.name }}{% else %}{{ _('New Department') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('departments') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Departments') }}
+  </a>
+</div>
+
+<form method="POST">
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-building me-2"></i>{{ _('Department Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Department Name') }} <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required
+            value="{{ dept.name if dept else '' }}" placeholder="{{ _('e.g., Human Resources') }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Status') }}</label>
+          <select name="status" class="form-select">
+            <option value="Active" {% if dept and dept.status == 'Active' %}selected{% endif %}>{{ _('Active') }}</option>
+            <option value="Inactive" {% if dept and dept.status == 'Inactive' %}selected{% endif %}>{{ _('Inactive') }}</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Description') }}</label>
+          <textarea name="description" class="form-control" rows="4" placeholder="{{ _('Department description...') }}">{{ dept.description if dept else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Save') }}</h6>
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-{{ 'save' if dept else 'plus' }} me-2"></i>
+          {{ _('Save Changes') if dept else _('Create Department') }}
+        </button>
+        <a href="{{ url_for('departments') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

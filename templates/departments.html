@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Departments') }}{% endblock %}
+{% block page_title %}{{ _('Department Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage organizational departments') }}</p>
+  {% if has_permission('department_create') %}
+  <a href="{{ url_for('new_department') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> {{ _('New Department') }}
+  </a>
+  {% endif %}
+</div>
+
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-8">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by name...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>{{ _('Filter') }}</button>
+    </div>
+    <div class="col-md-2">
+      <a href="{{ url_for('departments') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ _('%(count)s record(s)', count=departments|length) }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Department Name') }}</th>
+          <th>{{ _('Description') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dept in departments %}
+        <tr>
+          <td style="font-weight:600;">{{ dept.name }}</td>
+          <td style="color:#64748b;">{{ dept.description or '—' }}</td>
+          <td>
+            <span class="status-badge {% if dept.status == 'Active' %}badge-approved{% else %}badge-rejected{% endif %}">
+              {{ dept.status }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('edit_department', id=dept.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% if has_permission('department_delete') %}
+              <form method="POST" action="{{ url_for('delete_department', id=dept.id) }}" onsubmit="return confirm('{{ _('Delete this department?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No departments found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

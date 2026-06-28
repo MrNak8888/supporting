@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Trip Operation Reports') }}{% endblock %}
+{% block page_title %}{{ _('Trip Operation Report Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-chart-bar me-1"></i> {{ _('Back to Reports & Analytics') }}
+    </a>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage and track all trip operation reports') }}</p>
+  </div>
+  {% if has_permission('trip_operation_report_create') %}
+  <a href="{{ url_for('new_trip_operation_report') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> {{ _('New Report') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by ID, vehicle, phone, coordinator...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Origin') }}</label>
+      <input type="text" name="direction" class="form-control" placeholder="{{ _('Search by origin...') }}" value="{{ direction_filter }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Vehicle Status') }}</label>
+      <select name="vehicle_status" class="form-select">
+        <option value="">{{ _('All Statuses') }}</option>
+        <option value="Departed" {% if status_filter=='Departed' %}selected{% endif %}>{{ _('Departed') }}</option>
+        <option value="Not Departed" {% if status_filter=='Not Departed' %}selected{% endif %}>{{ _('Not Departed') }}</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>{{ _('Filter') }}</button>
+    </div>
+  </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3">
+  <div class="col-md-4">
+    <div class="p-2 rounded text-center" style="background:#f8fafc;border:1px solid #e2e8f0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#1a3c5e;">{{ total_count }}</div>
+      <div style="font-size:.7rem;color:#64748b;">{{ _('Total Reports') }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-2 rounded text-center" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#10b981;">{{ departed_count }}</div>
+      <div style="font-size:.7rem;color:#166534;">{{ _('Departed') }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-2 rounded text-center" style="background:#fef2f2;border:1px solid #fecaca;">
+      <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ not_departed_count }}</div>
+      <div style="font-size:.7rem;color:#991b1b;">{{ _('Not Departed') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(shown)s of %(total)s record(s)', shown=reports|length, total=total_count) }}</span>
+    {% if has_any_permission('trip_operation_report_view','trip_operation_report_download') %}
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+        </a>
+        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
+          <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Report ID') }}</th>
+          <th>{{ _('Vehicle') }}</th>
+          <th>{{ _('From') }}</th>
+          <th>{{ _('To') }}</th>
+          <th>{{ _('Departure') }}</th>
+          <th>{{ _('Driver Phone') }}</th>
+          <th>{{ _('Arrival Station') }}</th>
+          <th>{{ _('Passengers') }}</th>
+          <th>{{ _('Coordinator') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td><a href="{{ url_for('view_trip_operation_report', id=r.id) }}" style="color:#1d4ed8;font-weight:600;text-decoration:none;">{{ r.report_id }}</a></td>
+          <td>{{ r.vehicle_number }}</td>
+          <td>{{ r.origin or '—' }}</td>
+          <td>{{ r.destination or '—' }}</td>
+          <td style="color:#64748b;">{{ r.departure_time if r.departure_time else '—' }}</td>
+          <td style="color:#64748b;">{{ r.driver_phone if r.driver_phone else '—' }}</td>
+          <td style="color:#64748b;">{{ r.arrival_at_station if r.arrival_at_station else '—' }}</td>
+          <td>{{ r.passenger_count }}</td>
+          <td>{{ r.coordinator_name if r.coordinator_name else '—' }}</td>
+          <td><span class="status-badge {% if r.vehicle_status=='Departed' %}badge-approved{% else %}badge-pending{% endif %}">{{ r.vehicle_status }}</span></td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_trip_operation_report', id=r.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if has_permission('trip_operation_report_edit') %}
+              <a href="{{ url_for('edit_trip_operation_report', id=r.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              {% if has_permission('trip_operation_report_delete') %}
+              <form method="POST" action="{{ url_for('delete_trip_operation_report', id=r.id) }}" onsubmit="return confirm('{{ _('Delete this report?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No reports found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

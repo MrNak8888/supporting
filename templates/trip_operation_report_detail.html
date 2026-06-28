@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}{{ tor.report_id }}{% endblock %}
+{% block page_title %}{{ _('Trip Operation Report') }} — {{ tor.report_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
+  </a>
+  {% if has_permission('trip_operation_report_edit') %}
+  <a href="{{ url_for('edit_trip_operation_report', id=tor.id) }}" class="btn btn-outline-warning btn-sm">
+    <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
+  </a>
+  {% endif %}
+  {% if has_permission('trip_operation_report_delete') %}
+  <form method="POST" action="{{ url_for('delete_trip_operation_report', id=tor.id) }}" onsubmit="return confirm('{{ _('Delete this report?') }}');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
+  </form>
+  {% endif %}
+  <div class="ms-auto">
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+        </a>
+        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
+          <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <h5 class="fw-bold mb-1" style="color:#1a3c5e;">{{ tor.report_id }}</h5>
+          <small class="text-muted">{{ _('Created on %(date)s', date=tor.created_date.strftime('%d %b %Y %H:%M') if tor.created_date else '') }}</small>
+        </div>
+        <span class="status-badge {% if tor.vehicle_status=='Departed' %}badge-approved{% else %}badge-pending{% endif %}" style="font-size:.9rem;padding:8px 16px;">{{ tor.vehicle_status }}</span>
+      </div>
+
+      <!-- Trip Summary Visual -->
+      <div class="p-3 mb-4 rounded" style="background:linear-gradient(90deg,#f0f9ff,#f0fdf4);border:1px dashed #93c5fd;">
+        <div class="d-flex align-items-center gap-4">
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ tor.travel_direction }}</div>
+            <small class="text-muted">{{ _('Direction') }}</small>
+          </div>
+          <div class="flex-1 text-center" style="flex:1;">
+            <div style="height:2px;background:linear-gradient(90deg,#1a3c5e,#f59e0b);border-radius:2px;position:relative;">
+              <i class="fas fa-bus" style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#fff;padding:2px 4px;color:#1a3c5e;font-size:.75rem;"></i>
+            </div>
+            <small class="text-muted d-block mt-1">{{ tor.vehicle_number }}</small>
+          </div>
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ tor.departure_time if tor.departure_time else '—' }}</div>
+            <small class="text-muted">{{ _('Departure') }}</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        {% set fields = [
+          (_('Travel Direction'), tor.travel_direction),
+          (_('Departure Time'), tor.departure_time if tor.departure_time else '—'),
+          (_('Power Off Time'), tor.power_off_time if tor.power_off_time else '—'),
+          (_('Power On Time'), tor.power_on_time if tor.power_on_time else '—'),
+          (_('Vehicle Number'), tor.vehicle_number),
+          (_('Driver Phone'), tor.driver_phone if tor.driver_phone else '—'),
+          (_('Arrival at Station'), tor.arrival_at_station if tor.arrival_at_station else '—'),
+          (_('Departure from Station'), tor.departure_from_station if tor.departure_from_station else '—'),
+          (_('Delay Duration'), (tor.travel_delay_duration|string ~ ' min') if tor.travel_delay_duration else '0 min'),
+          (_('Passenger Count'), tor.passenger_count|string),
+          (_('Coordinator'), tor.coordinator_name if tor.coordinator_name else '—'),
+          (_('Created By'), tor.creator.full_name if tor.creator else '—'),
+        ] %}
+        {% for label, value in fields %}
+        <div class="col-md-6">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:#374151;">{{ value }}</div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if tor.reason_for_delay %}
+        <div class="col-12">
+          <div style="background:#fef3c7;border-radius:8px;padding:12px 14px;border:1px solid #fde68a;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#92400e;letter-spacing:.06em;margin-bottom:3px;">{{ _('Reason for Delay') }}</div>
+            <div style="color:#92400e;">{{ tor.reason_for_delay }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if tor.note %}
+        <div class="col-12">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">{{ _('Note') }}</div>
+            <div style="color:#374151;">{{ tor.note }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>{{ _('Timeline') }}</h6>
+      <div style="font-size:.82rem;">
+        <div class="d-flex gap-3 mb-3">
+          <div style="width:8px;height:8px;background:#1a3c5e;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600">{{ _('Report Created') }}</div><div class="text-muted">{{ tor.created_date.strftime('%d %b %Y %H:%M') if tor.created_date else '' }}</div></div>
+        </div>
+        <div class="d-flex gap-3 mb-3">
+          <div style="width:8px;height:8px;background:{% if tor.vehicle_status=='Departed' %}#10b981{% else %}#f59e0b{% endif %};border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600">{{ tor.vehicle_status }}</div></div>
+        </div>
+        {% if tor.updated_date %}
+        <div class="d-flex gap-3">
+          <div style="width:8px;height:8px;background:#94a3b8;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600">{{ _('Last Updated') }}</div><div class="text-muted">{{ tor.updated_date.strftime('%d %b %Y %H:%M') if tor.updated_date else '' }}</div></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

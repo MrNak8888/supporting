@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}{% if report %}{{ _('Edit Trip Operation Report') }}{% else %}{{ _('New Trip Operation Report') }}{% endif %}{% endblock %}
+{% block page_title %}{% if report %}{{ _('Edit Report') }} — {{ report.report_id }}{% else %}{{ _('New Trip Operation Report') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Trip Reports') }}
+  </a>
+</div>
+
+<form method="POST">
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Trip Information -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-road me-2"></i>{{ _('Trip Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('From (Origin)') }} <span class="text-danger">*</span></label>
+          <select name="origin" class="form-select" required>
+            <option value="">{{ _('— Select Origin —') }}</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if report and report.origin == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('To (Destination)') }} <span class="text-danger">*</span></label>
+          <select name="destination" class="form-select" required>
+            <option value="">{{ _('— Select Destination —') }}</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if report and report.destination == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Departure Time') }} <span class="text-danger">*</span></label>
+          <input type="time" name="departure_time" class="form-control" required
+            value="{{ report.departure_time if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Power Off Time') }}</label>
+          <input type="time" name="power_off_time" class="form-control"
+            value="{{ report.power_off_time if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Power On Time') }}</label>
+          <input type="time" name="power_on_time" class="form-control"
+            value="{{ report.power_on_time if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Vehicle Number') }} <span class="text-danger">*</span></label>
+          <input type="text" name="vehicle_number" class="form-control" required
+            value="{{ report.vehicle_number if report else '' }}" placeholder="{{ _('e.g., PP-1234') }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Driver Phone Number') }}</label>
+          <input type="text" name="driver_phone" class="form-control"
+            value="{{ report.driver_phone if report else '' }}" placeholder="{{ _('e.g., 012 345 678') }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Number of Passengers') }} <span class="text-danger">*</span></label>
+          <input type="number" name="passenger_count" class="form-control" min="0"
+            value="{{ report.passenger_count if report else 0 }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Station Information -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-building me-2"></i>{{ _('Station Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Arrival at Station') }}</label>
+          <input type="time" name="arrival_at_station" class="form-control"
+            value="{{ report.arrival_at_station if report else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Departure from Station') }}</label>
+          <input type="time" name="departure_from_station" class="form-control"
+            value="{{ report.departure_from_station if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Travel Delay Duration (min)') }}</label>
+          <input type="number" name="travel_delay_duration" class="form-control" min="0" step="0.5"
+            value="{{ report.travel_delay_duration if report else 0 }}">
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">{{ _('Reason for Delay') }}</label>
+          <textarea name="reason_for_delay" class="form-control" rows="2" placeholder="{{ _('Reason if any...') }}">{{ report.reason_for_delay if report else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status & Notes -->
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-clipboard-list me-2"></i>{{ _('Status & Notes') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Vehicle Status') }} <span class="text-danger">*</span></label>
+          <select name="vehicle_status" class="form-select" required>
+            <option value="">{{ _('-- Select Status --') }}</option>
+            <option value="Departed" {% if report and report.vehicle_status=='Departed' %}selected{% endif %}>{{ _('Departed') }}</option>
+            <option value="Not Departed" {% if report and report.vehicle_status=='Not Departed' %}selected{% endif %}>{{ _('Not Departed') }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Passenger Coordinator Name') }}</label>
+          <input type="text" name="coordinator_name" class="form-control"
+            value="{{ report.coordinator_name if report else '' }}" placeholder="{{ _('Coordinator name') }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Note') }}</label>
+          <textarea name="note" class="form-control" rows="3" placeholder="{{ _('Additional notes...') }}">{{ report.note if report else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-info-circle me-2"></i>{{ _('Report Status') }}
+      </h6>
+      {% if report %}
+      <div class="mb-3 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+        <div class="mb-2"><strong>{{ _('ID:') }}</strong> {{ report.report_id }}</div>
+        <div class="mb-2"><strong>{{ _('Created:') }}</strong> {{ report.created_date.strftime('%d/%m/%Y %H:%M') if report.created_date else '' }}</div>
+        <div><strong>{{ _('Status:') }}</strong> <span class="status-badge {% if report.vehicle_status=='Departed' %}badge-approved{% else %}badge-pending{% endif %} ms-1">{{ report.vehicle_status }}</span></div>
+      </div>
+      {% else %}
+      <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <i class="fas fa-info-circle text-success me-1"></i>
+        <small class="text-success">{{ _('A unique Report ID will be auto-generated upon submission.') }}</small>
+      </div>
+      {% endif %}
+
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-{{ 'save' if report else 'paper-plane' }} me-2"></i>
+          {{ _('Save Changes') if report else _('Submit Report') }}
+        </button>
+        <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+
+    <div class="form-card mt-3">
+      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Quick Reference') }}</h6>
+      <div style="font-size:.8rem;color:#64748b;line-height:2;">
+        <div><i class="fas fa-circle text-success me-2" style="font-size:.5rem;"></i>{{ _('Departed: Vehicle has departed') }}</div>
+        <div><i class="fas fa-circle text-warning me-2" style="font-size:.5rem;"></i>{{ _('Not Departed: Vehicle still at station') }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

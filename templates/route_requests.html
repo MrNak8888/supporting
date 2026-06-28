@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Route Requests') }}{% endblock %}
+{% block page_title %}{{ _('Route Request Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-chart-bar me-1"></i> {{ _('Back to Reports & Analytics') }}
+    </a>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage and track all transportation route requests') }}</p>
+  </div>
+  {% if has_permission('route_request_create') %}
+  <a href="{{ url_for('new_route_request') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> {{ _('New Request') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by ID, name, route...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Status') }}</label>
+      <select name="status" class="form-select">
+        <option value="">{{ _('All Status') }}</option>
+        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending</option>
+        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>Approved</option>
+        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>{{ _('Filter') }}</button>
+    </div>
+    <div class="col-md-2">
+      <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="row g-2 mb-3">
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#f8fafc;border:1px solid #e2e8f0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#1a3c5e;">{{ total_count }}</div>
+      <div style="font-size:.7rem;color:#64748b;">{{ _('Total Requests') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#fffbeb;border:1px solid #fde68a;">
+      <div style="font-size:1.2rem;font-weight:800;color:#f59e0b;">{{ pending_count }}</div>
+      <div style="font-size:.7rem;color:#92400e;">{{ _('Pending') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+      <div style="font-size:1.2rem;font-weight:800;color:#10b981;">{{ approved_count }}</div>
+      <div style="font-size:.7rem;color:#166534;">{{ _('Approved') }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 rounded text-center" style="background:#fef2f2;border:1px solid #fecaca;">
+      <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ rejected_count }}</div>
+      <div style="font-size:.7rem;color:#991b1b;">{{ _('Rejected') }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(count)d of %(total)d record(s)', count=requests|length, total=total_count) }}</span>
+    {% if has_any_permission('route_request_view','route_request_download') %}
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+      </a>
+      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
+        <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Request ID') }}</th>
+          <th>{{ _('Date') }}</th>
+          <th>{{ _('Requester') }}</th>
+          <th>{{ _('Route') }}</th>
+          <th>{{ _('Branch') }}</th>
+          <th>{{ _('Company') }}</th>
+          <th>{{ _('Transport') }}</th>
+          <th>{{ _('Price') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rr in requests %}
+        <tr>
+          <td><a href="{{ url_for('view_route_request', id=rr.id) }}" style="color:#1d4ed8;font-weight:600;text-decoration:none;">{{ rr.request_id }}</a></td>
+          <td style="color:#64748b;">{{ rr.request_date }}</td>
+          <td>{{ rr.requester_name }}</td>
+          <td>
+            <span style="font-size:.8rem;">
+              <i class="fas fa-map-marker-alt text-danger me-1"></i>{{ rr.destination_from }}<br>
+              <i class="fas fa-flag-checkered text-success me-1"></i>{{ rr.destination_to }}
+            </span>
+          </td>
+          <td>{{ rr.branch_location or '—' }}</td>
+          <td>{{ rr.company or '—' }}</td>
+          <td>{{ rr.transportation or '—' }}</td>
+          <td>${{ "%.2f"|format(rr.price) }}</td>
+          <td><span class="status-badge badge-{{ rr.status.lower() }}">{{ rr.status }}</span></td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if rr.status == 'Pending' and has_permission('route_request_edit') %}
+              <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              {% if has_permission('route_request_delete') %}
+              <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('Delete this request?');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No requests found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

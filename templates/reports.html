@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Reports') }}{% endblock %}
+{% block page_title %}{{ _('Reports & Analytics') }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <!-- Route Request Summary -->
+  <div class="col-lg-6">
+    <div class="form-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-route me-2 text-primary"></i>{{ _('Route Requests Summary') }}</h6>
+        <div class="btn-group btn-group-sm">
+          <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+          </a>
+          <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
+            <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+          </a>
+        </div>
+      </div>
+      <canvas id="rrChart" style="max-height:200px;"></canvas>
+      <div class="row g-2 mt-3">
+        {% for status, count in rr_by_status.items() %}
+        <div class="col-4">
+          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Approved' %}#10b981{% elif status=='Rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ count }}</div>
+            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Penalty Summary -->
+  <div class="col-lg-6">
+    <div class="form-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>{{ _('Penalty Summary') }}</h6>
+        <div class="btn-group btn-group-sm">
+          <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+          </a>
+          <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger">
+            <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+          </a>
+        </div>
+      </div>
+      <canvas id="epChart" style="max-height:200px;"></canvas>
+      <div class="row g-2 mt-3">
+        {% for status, count in ep_by_status.items() %}
+        <div class="col-4">
+          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Approved' %}#10b981{% elif status=='Rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ count }}</div>
+            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trip Operation Report Summary -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="form-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-bus me-2 text-info"></i>{{ _('Trip Report Summary') }}</h6>
+        <div class="d-flex gap-1">
+          <div class="btn-group btn-group-sm">
+            <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
+              <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+            </a>
+            <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
+              <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+            </a>
+          </div>
+          <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-sm btn-outline-info">
+            <i class="fas fa-list me-1"></i>{{ _('View All') }}
+          </a>
+        </div>
+      </div>
+      <canvas id="torChart" style="max-height:200px;"></canvas>
+      <div class="row g-2 mt-3">
+        {% for status, count in tor_by_status.items() %}
+        <div class="col-6">
+          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Departed' %}#10b981{% else %}#ef4444{% endif %};">{{ count }}</div>
+            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <hr class="my-3">
+      <div class="d-flex justify-content-between px-2">
+        <span style="color:#64748b;font-size:.875rem;">{{ _('Total Reports') }}</span>
+        <span style="font-weight:700;color:#1a3c5e;">{{ tor_total }}</span>
+      </div>
+      <div class="d-flex justify-content-between px-2 mt-1">
+        <span style="color:#64748b;font-size:.875rem;">{{ _('Total Passengers') }}</span>
+        <span style="font-weight:700;color:#1a3c5e;">{{ tor_passengers }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Department Breakdown -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="data-table">
+      <div class="p-3 border-bottom">
+        <h6 class="mb-0 fw-bold" style="color:#1a3c5e;"><i class="fas fa-building me-2"></i>{{ _('Penalty by Department') }}</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ _('Department') }}</th>
+              <th>{{ _('Total Cases') }}</th>
+              <th>{{ _('Total Amount') }}</th>
+              <th>{{ _('Visual') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set max_amount = dept_penalties | map('last') | select | list | max if dept_penalties else 1 %}
+            {% for dept, count, amount in dept_penalties %}
+            <tr>
+              <td><span class="fw-600">{{ dept or _('Unassigned') }}</span></td>
+              <td>{{ _('%(count)s case', count=count) }}{{ _('s') if count != 1 else '' }}</td>
+              <td style="font-weight:700;color:#dc2626;">${{ "%.2f"|format(amount or 0) }}</td>
+              <td style="min-width:120px;">
+                <div style="background:#fee2e2;border-radius:4px;height:8px;">
+                  <div style="background:#dc2626;border-radius:4px;height:8px;width:{{ ((amount or 0) / (max_amount or 1) * 100)|round }}%;"></div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center py-4 text-muted">{{ _('No penalty data available') }}</td></tr>
+            {% endfor %}
+          </tbody>
+          {% if dept_penalties %}
+          <tfoot>
+            <tr style="background:#f8fafc;font-weight:700;">
+              <td>{{ _('Total') }}</td>
+              <td>{{ ep_by_status.values()|sum }}</td>
+              <td style="color:#dc2626;">${{ "%.2f"|format(total_penalty_amount) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Export Panel -->
+<div class="form-card">
+  <h6 class="fw-bold mb-4" style="color:#1a3c5e;"><i class="fas fa-download me-2"></i>{{ _('Export Reports') }}</h6>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="btn-group w-100">
+        <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success w-50 py-3">
+          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Route Requests') }}<br>{{ _('Excel') }}</small>
+        </a>
+        <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger w-50 py-3">
+          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Route Requests') }}<br>{{ _('PDF') }}</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="btn-group w-100">
+        <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success w-50 py-3">
+          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Penalties') }}<br>{{ _('Excel') }}</small>
+        </a>
+        <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger w-50 py-3">
+          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Penalties') }}<br>{{ _('PDF') }}</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="btn-group w-100">
+        <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success w-50 py-3">
+          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Trip Reports') }}<br>{{ _('Excel') }}</small>
+        </a>
+        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger w-50 py-3">
+          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
+          <small>{{ _('Trip Reports') }}<br>{{ _('PDF') }}</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('route_requests') }}?status=Pending" class="btn btn-outline-warning w-100 py-3">
+        <i class="fas fa-clock d-block mb-1" style="font-size:1.3rem;"></i>
+        <small>{{ _('Pending Requests') }}<br>{{ _('View List') }}</small>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('penalties') }}?status=Approved" class="btn btn-outline-primary w-100 py-3">
+        <i class="fas fa-check-circle d-block mb-1" style="font-size:1.3rem;"></i>
+        <small>{{ _('Approved Penalties') }}<br>{{ _('View List') }}</small>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-info w-100 py-3">
+        <i class="fas fa-bus d-block mb-1" style="font-size:1.3rem;"></i>
+        <small>{{ _('Trip Reports') }}<br>{{ _('View All') }}</small>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+new Chart(document.getElementById('rrChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ rr_by_status.keys()|list|tojson }},
+    datasets: [{ data: {{ rr_by_status.values()|list|tojson }}, backgroundColor: ['#f59e0b','#10b981','#ef4444'], borderWidth: 0 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('epChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ ep_by_status.keys()|list|tojson }},
+    datasets: [{ data: {{ ep_by_status.values()|list|tojson }}, backgroundColor: ['#f59e0b','#10b981','#ef4444'], borderWidth: 0 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('torChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ tor_by_status.keys()|list|tojson }},
+    datasets: [{ data: {{ tor_by_status.values()|list|tojson }}, backgroundColor: ['#10b981','#ef4444'], borderWidth: 0 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

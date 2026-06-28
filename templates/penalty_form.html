@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}{% if penalty %}{{ _('Edit Penalty') }}{% else %}{{ _('New Penalty') }}{% endif %}{% endblock %}
+{% block page_title %}{% if penalty %}{{ _('Edit Penalty') }} — {{ penalty.penalty_id }}{% else %}{{ _('New Penalty') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('penalties') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Penalties') }}
+  </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Employee Info -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #ef4444;padding-bottom:8px;">
+        <i class="fas fa-user me-2"></i>{{ _('Employee Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Employee ID') }} <span class="text-danger">*</span></label>
+          <input type="text" name="employee_id" class="form-control" required
+            value="{{ penalty.employee_id if penalty else '' }}" placeholder="{{ _('e.g., EMP001') }}">
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">{{ _('Employee Full Name') }} <span class="text-danger">*</span></label>
+          <input type="text" name="employee_name" class="form-control" required
+            value="{{ penalty.employee_name if penalty else '' }}" placeholder="{{ _('Full name') }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Department') }}</label>
+          <select name="department" class="form-select">
+            <option value="">{{ _('— Select Department —') }}</option>
+            {% for dept in ['IT','HR','Finance','Operations','Marketing','Management','Sales','Legal','Logistics'] %}
+            <option {% if penalty and penalty.department == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Position') }}</label>
+          <input type="text" name="position" class="form-control"
+            value="{{ penalty.position if penalty else '' }}" placeholder="{{ _('Job title') }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Violation Info -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #ef4444;padding-bottom:8px;">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ _('Violation Details') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Violation Type') }} <span class="text-danger">*</span></label>
+          <select name="violation_type" class="form-select" required>
+            <option value="">{{ _('— Select Type —') }}</option>
+            {% for v in ['Late Arrival','Absenteeism','Misconduct','Policy Violation','Performance Issue','Insubordination','Theft','Other'] %}
+            <option {% if penalty and penalty.violation_type == v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Incident Date') }}</label>
+          <input type="date" name="incident_date" class="form-control"
+            value="{{ penalty.incident_date if penalty else '' }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Description') }}</label>
+          <textarea name="description" class="form-control" rows="3"
+            placeholder="{{ _('Describe the violation in detail...') }}">{{ penalty.description if penalty else '' }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Penalty Amount ($)') }}</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="penalty_amount" class="form-control" step="0.01" min="0"
+              value="{{ penalty.penalty_amount if penalty else 0 }}">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Approved By') }}</label>
+          <input type="text" name="approved_by" class="form-control"
+            value="{{ penalty.approved_by if penalty else current_user.full_name }}"
+            placeholder="{{ _('Manager name') }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Evidence File') }}</label>
+          <input type="file" name="evidence_file" class="form-control" accept=".pdf,.jpg,.png,.doc,.docx">
+          {% if penalty and penalty.evidence_file %}
+          <div class="mt-1" style="font-size:.8rem;color:#64748b;">
+            {{ _('Current:') }} <a href="/static/uploads/{{ penalty.evidence_file }}" target="_blank">{{ penalty.evidence_file }}</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Record Status') }}</h6>
+      {% if penalty %}
+      <div class="mb-3 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+        <div class="mb-2"><strong>{{ _('ID:') }}</strong> {{ penalty.penalty_id }}</div>
+        <div><strong>{{ _('Status:') }}</strong> <span class="status-badge badge-{{ penalty.status.lower() }} ms-1">{{ penalty.status }}</span></div>
+      </div>
+      {% else %}
+      <div class="mb-3 p-3 rounded" style="background:#fff7ed;border:1px solid #fed7aa;">
+        <i class="fas fa-info-circle text-warning me-1"></i>
+        <small class="text-warning">{{ _('Auto ID will be assigned after submission.') }}</small>
+      </div>
+      {% endif %}
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-danger btn-lg">
+          <i class="fas fa-{{ 'save' if penalty else 'plus' }} me-2"></i>
+          {{ _('Save Changes') if penalty else _('Create Penalty') }}
+        </button>
+        <a href="{{ url_for('penalties') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+
+    <div class="form-card mt-3">
+      <h6 class="fw-bold mb-2" style="color:#1a3c5e;">{{ _('Violation Reference') }}</h6>
+      <div style="font-size:.78rem;color:#64748b;line-height:1.8;">
+        <div>• <strong>Late Arrival</strong>: $25–$50/instance</div>
+        <div>• <strong>Absenteeism</strong>: $50–$100/day</div>
+        <div>• <strong>Policy Violation</strong>: $50–$150</div>
+        <div>• <strong>Misconduct</strong>: $100–$500</div>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

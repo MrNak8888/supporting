@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Roles Management{% endblock %}
+{% block page_title %}Roles Management{% endblock %}
+
+{% set perm_labels = {
+  'dashboard_view': 'View Dashboard', 'dashboard_edit': 'Edit Dashboard', 'dashboard_download': 'Download Dashboard',
+  'route_request_view': 'View Requests', 'route_request_create': 'Create Request', 'route_request_edit': 'Edit Request', 'route_request_delete': 'Delete Request', 'route_request_approve': 'Approve Request', 'route_request_reject': 'Reject Request', 'route_request_download': 'Download Requests',
+  'penalty_view': 'View Penalties', 'penalty_create': 'Create Penalty', 'penalty_edit': 'Edit Penalty', 'penalty_delete': 'Delete Penalty', 'penalty_download': 'Download Penalties',
+  'trip_operation_report_view': 'View Trip Reports', 'trip_operation_report_create': 'Create Trip Report', 'trip_operation_report_edit': 'Edit Trip Report', 'trip_operation_report_delete': 'Delete Trip Report', 'trip_operation_report_download': 'Download Trip Reports',
+  'report_view': 'View Reports', 'report_create': 'Create Report', 'report_edit': 'Edit Report', 'report_delete': 'Delete Report', 'report_export': 'Export Report', 'report_print': 'Print Report', 'report_download': 'Download Report',
+  'system_settings_view': 'View Settings', 'system_settings_edit': 'Edit Settings', 'system_settings_update': 'Update Settings',
+  'department_view': 'View Departments', 'department_create': 'Create Department', 'department_edit': 'Edit Department', 'department_delete': 'Delete Department', 'department_download': 'Download Departments',
+  'position_view': 'View Positions', 'position_create': 'Create Position', 'position_edit': 'Edit Position', 'position_delete': 'Delete Position', 'position_download': 'Download Positions',
+  'role_view': 'View Roles', 'role_create': 'Create Role', 'role_edit': 'Edit Role', 'role_delete': 'Delete Role', 'role_assign_permissions': 'Assign Permissions', 'role_download': 'Download Roles',
+  'user_view': 'View Users', 'user_create': 'Create User', 'user_edit': 'Edit User', 'user_delete': 'Delete User',
+  'user_assign_roles': 'Assign Roles', 'user_reset_password': 'Reset Password', 'user_activate': 'Activate User', 'user_deactivate': 'Deactivate User', 'user_download': 'Download Users'
+} %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem;">Manage saved roles and their assigned permissions.</p>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('new_role') }}" class="btn btn-primary">
+      <i class="fas fa-plus-circle me-1"></i> Create Role
+    </a>
+    <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-users me-1"></i> Users
+    </a>
+  </div>
+</div>
+
+<div class="data-table">
+  <div class="p-3 border-bottom">
+    <span style="font-size:.875rem;color:#64748b;">{{ roles|length }} role(s) defined</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Role Name</th>
+          <th>Permissions</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for role in roles %}
+        <tr>
+          <td><strong>{{ role.name }}</strong></td>
+          <td>
+            {% if role.permissions %}
+              {% for p in role.permissions %}
+                <span class="badge" style="background:#eef2ff;color:#4338ca;font-weight:500;margin:1px 2px;">{{ perm_labels.get(p, p) }}</span>
+              {% endfor %}
+            {% else %}
+              <span style="color:#94a3b8;font-size:.8rem;">No permissions</span>
+            {% endif %}
+          </td>
+          <td style="color:#64748b;font-size:.8rem;">{{ role.created_date.strftime('%d %b %Y') }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('edit_role', id=role.id) }}" class="btn btn-sm btn-outline-warning" title="Edit Role"><i class="fas fa-edit"></i></a>
+              <form method="POST" action="{{ url_for('delete_role', id=role.id) }}" onsubmit="return confirm('Delete role &quot;{{ role.name }}&quot;?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Role"><i class="fas fa-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not roles %}
+        <tr>
+          <td colspan="4" class="text-center" style="color:#64748b;">No roles have been created yet.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mt-4">
+  <a href="javascript:history.back()" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back
+  </a>
+</div>
+{% endblock %}
