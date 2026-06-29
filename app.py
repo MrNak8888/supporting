@@ -278,8 +278,17 @@ class EmployeePenalty(db.Model):
     creator = db.relationship('User', foreign_keys=[created_by])
 
     def generate_id(self):
-        count = EmployeePenalty.query.count() + 1
-        self.penalty_id = f"EP-{datetime.now().year}-{count:04d}"
+        last = EmployeePenalty.query.order_by(EmployeePenalty.id.desc()).first()
+
+        if last and last.penalty_id:
+            try:
+                num = int(last.penalty_id.split('-')[-1]) + 1
+            except:
+                num = 1
+        else:
+            num = 1
+
+        self.penalty_id = f"EP-{datetime.now().year}-{num:04d}"
 
 
 class TripOperationReport(db.Model):
