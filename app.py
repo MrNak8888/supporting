@@ -1,6 +1,4 @@
-from dotenv import load_dotenv
 from urllib.parse import quote_plus
-load_dotenv()
 
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
@@ -59,24 +57,24 @@ def send_pdf(buf, filename):
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['SECRET_KEY'] = 'change-this-to-a-random-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"mysql+pymysql://{os.environ.get('DB_USER', 'root')}:{quote_plus(os.environ.get('DB_PASSWORD', ''))}"
-    f"@{os.environ.get('DB_HOST', 'localhost')}/{os.environ.get('DB_NAME', 'support_system')}"
+    f"mysql+pymysql://root:{quote_plus('Admin@9999')}"
+    f"@localhost/support_system"
     f"?charset=utf8mb4"
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
-app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', 50)) * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600
-app.config['KHMER_FONT_PATH'] = os.environ.get('KHMER_FONT_PATH', '')
-app.config['FERNET_KEY'] = os.environ.get('FERNET_KEY', '')
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+app.config['KHMER_FONT_PATH'] = ''
+app.config['FERNET_KEY'] = ''
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=int(os.environ.get('SESSION_HOURS', 8)))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 
 csrf = CSRFProtect(app)
 
@@ -5952,5 +5950,4 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()
-    debug_mode = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
-    app.run(debug=debug_mode, port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=False, port=5000)
