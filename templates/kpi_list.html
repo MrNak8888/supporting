@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('KPI Evaluations') }}{% endblock %}
+{% block page_title %}{{ _('KPI Evaluation Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage KPI evaluations for ticket officer staff') }}</p>
+  </div>
+  <a href="{{ url_for('new_kpi_evaluation') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> {{ _('New Evaluation') }}
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by name or ID...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Month') }}</label>
+      <select name="month" class="form-select">
+        <option value="">{{ _('All Months') }}</option>
+        {% for m in range(1, 13) %}
+        <option value="{{ m }}" {% if month_filter|string == m|string %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Year') }}</label>
+      <select name="year" class="form-select">
+        <option value="">{{ _('All Years') }}</option>
+        {% for y in range(2020, 2031) %}
+        <option value="{{ y }}" {% if year_filter|string == y|string %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:var(--text-secondary);">{{ _('Showing %(count)d record(s)', count=evaluations|length) }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Staff Name') }}</th>
+          <th>{{ _('Staff ID') }}</th>
+          <th>{{ _('Month/Year') }}</th>
+          <th>{{ _('Total Score') }}</th>
+          <th>{{ _('Rating') }}</th>
+          <th>{{ _('Evaluator') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ke in evaluations %}
+        <tr>
+          <td><a href="{{ url_for('view_kpi_evaluation', id=ke.id) }}" style="color:#6366f1;font-weight:600;text-decoration:none;">{{ ke.staff_name }}</a></td>
+          <td style="color:var(--text-secondary);">{{ ke.staff_id }}</td>
+          <td>{{ ke.evaluation_month }}/{{ ke.evaluation_year }}</td>
+          <td style="font-weight:700;">{{ ke.total_score }}</td>
+          <td>
+            <span class="status-badge" style="
+              {% if ke.performance_rating == 'Excellent' %}background:#d1fae5;color:#065f46;
+              {% elif ke.performance_rating == 'Very Good' %}background:#dbeafe;color:#1d4ed8;
+              {% elif ke.performance_rating == 'Good' %}background:#fef3c7;color:#92400e;
+              {% elif ke.performance_rating == 'Need Improvement' %}background:#fce7f3;color:#db2777;
+              {% else %}background:#fee2e2;color:#991b1b;
+              {% endif %}">
+              {{ ke.performance_rating }}
+            </span>
+          </td>
+          <td>{{ ke.evaluator_name or '—' }}</td>
+          <td><span class="status-badge {% if ke.status == 'Submitted' %}badge-approved{% else %}badge-pending{% endif %}">{{ ke.status }}</span></td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_kpi_evaluation', id=ke.id) }}" class="btn btn-sm btn-outline-primary" title="{{ _('View') }}">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if ke.status == 'Draft' %}
+              <a href="{{ url_for('edit_kpi_evaluation', id=ke.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              <form method="POST" action="{{ url_for('delete_kpi_evaluation', id=ke.id) }}" onsubmit="return confirm('{{ _('Delete this evaluation?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center py-5 text-muted">
+          <i class="fas fa-clipboard-list fa-2x mb-2 d-block"></i>{{ _('No evaluations found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

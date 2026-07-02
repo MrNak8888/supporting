@@ -75,10 +75,10 @@
     <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(count)d of %(total)d record(s)', count=requests|length, total=total_count) }}</span>
     {% if has_any_permission('route_request_view','route_request_download') %}
     <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
       </a>
-      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
+      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
       </a>
     </div>

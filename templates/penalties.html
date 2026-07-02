@@ -70,10 +70,10 @@
     <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(shown)s of %(total)s record(s)', shown=penalties|length, total=total_count) }}</span>
     {% if has_any_permission('penalty_view','penalty_download') %}
     <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
         </a>
-        <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger">
+        <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
           <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
       </a>
     </div>
@@ -88,10 +88,11 @@
           <th>{{ _('ID') }}</th>
           <th>{{ _('Department') }}</th>
           <th>{{ _('Violation') }}</th>
+          <th>{{ _('Old Code') }}</th>
           <th>{{ _('Amount') }}</th>
           <th>{{ _('Date') }}</th>
           <th>{{ _('Status') }}</th>
-          <th>{{ _('Approved By') }}</th>
+          <th>{{ _('Request by') }}</th>
           <th>{{ _('Actions') }}</th>
         </tr>
       </thead>
@@ -107,6 +108,7 @@
               {{ ep.violation_type }}
             </span>
           </td>
+          <td style="color:#64748b;">{{ ep.old_code or '—' }}</td>
           <td style="font-weight:700;color:#dc2626;">${{ "%.2f"|format(ep.penalty_amount) }}</td>
           <td style="color:#64748b;">{{ ep.incident_date }}</td>
           <td><span class="status-badge badge-{{ ep.status.lower() }}">{{ ep.status }}</span></td>
@@ -130,7 +132,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-center py-5 text-muted">
+        <tr><td colspan="11" class="text-center py-5 text-muted">
           <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No penalty records found') }}
         </td></tr>
         {% endfor %}

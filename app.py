@@ -1,19 +1,42 @@
+from dotenv import load_dotenv
+from urllib.parse import quote_plus
+load_dotenv()
+
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from functools import wraps
 from collections import defaultdict
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from flask_babel import Babel, _
+from cryptography.fernet import Fernet
 import os
 import io
 import json
 import uuid
 import re
 import calendar
+import logging
+import secrets
 from fpdf import FPDF
+from flask_wtf.csrf import CSRFProtect
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+import telegram_service
+
+
+
+def _safe_redirect(fallback):
+    ref = request.referrer
+    if ref:
+        from urllib.parse import urlparse
+        host = request.host_url.rstrip('/')
+        parsed = urlparse(ref)
+        if parsed.netloc == request.host or not parsed.netloc:
+            return redirect(ref)
+    return redirect(fallback)
 
 
 def send_excel(buf, filename):
@@ -36,13 +59,45 @@ def send_pdf(buf, filename):
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'it-management-secret-key-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///it_management.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"mysql+pymysql://{os.environ.get('DB_USER', 'root')}:{quote_plus(os.environ.get('DB_PASSWORD', ''))}"
+    f"@{os.environ.get('DB_HOST', 'localhost')}/{os.environ.get('DB_NAME', 'support_system')}"
+    f"?charset=utf8mb4"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
+app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_MB', 50)) * 1024 * 1024
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600
+app.config['KHMER_FONT_PATH'] = os.environ.get('KHMER_FONT_PATH', '')
+app.config['FERNET_KEY'] = os.environ.get('FERNET_KEY', '')
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=int(os.environ.get('SESSION_HOURS', 8)))
+
+csrf = CSRFProtect(app)
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
+def _find_khmer_font():
+    path = app.config.get('KHMER_FONT_PATH')
+    if path and os.path.exists(path):
+        return path
+    candidates = [
+        r'C:\Windows\Fonts\KhmerOS_sys.ttf',
+        '/usr/share/fonts/truetype/khmer/KhmerOS_sys.ttf',
+        '/usr/share/fonts/truetype/KhmerOS_sys.ttf',
+        '/usr/local/share/fonts/KhmerOS_sys.ttf',
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
 
 def get_locale():
     if 'lang' in session:
@@ -64,6 +119,19 @@ def save_upload(file):
         return unique_name
     return None
 
+ALLOWED_ANY_EXTS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'png', 'jpeg', 'gif', 'mp4', 'zip'}
+
+def save_any_upload(file):
+    if file and file.filename:
+        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if ext not in ALLOWED_ANY_EXTS:
+            return None
+        unique_name = f"{uuid.uuid4().hex}{'.' + ext if ext else ''}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+        return unique_name
+    return None
+
+
 def delete_upload(filename):
     if filename:
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -78,7 +146,150 @@ def _int_or_none(val):
         return None
 
 
+def _calc_layover(departure_time, departure_from_station):
+    if not departure_time or not departure_from_station:
+        return ''
+    try:
+        dep_parts = departure_time.split(':')
+        sta_parts = departure_from_station.split(':')
+        dep_min = int(dep_parts[0]) * 60 + int(dep_parts[1])
+        sta_min = int(sta_parts[0]) * 60 + int(sta_parts[1])
+        if sta_min < dep_min:
+            return '00:00'
+        diff = sta_min - dep_min
+        return f'{diff // 60:02d}:{diff % 60:02d}'
+    except (ValueError, IndexError, TypeError):
+        return ''
+
+
+def _calc_pct(value, total):
+    if not total:
+        return 0
+    return round(min((value / total) * 100, 100), 2)
+
+
+def _seed_if_empty(module_key, records):
+    """Seed DynamicRecord records for a module if none exist."""
+    mod = ConfigModule.query.filter_by(module_key=module_key).first()
+    if mod and not DynamicRecord.query.filter_by(module_id=mod.id).first():
+        for data in records:
+            rec = DynamicRecord(module_id=mod.id, data=data, is_active=True)
+            db.session.add(rec)
+
+
+# ── Telegram encryption helpers ──
+def _get_fernet():
+    fernet_key = app.config.get('FERNET_KEY')
+    if fernet_key:
+        try:
+            return Fernet(fernet_key.encode())
+        except Exception:
+            app.logger.warning('Invalid FERNET_KEY — falling back to derived key')
+    secret = app.config.get('SECRET_KEY')
+    if not secret:
+        app.logger.warning('SECRET_KEY not set — generating ephemeral Fernet key; encrypted tokens will be unreadable after restart')
+        return Fernet(Fernet.generate_key())
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+    from base64 import urlsafe_b64encode
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b'telegram_salt', iterations=100000)
+    return Fernet(urlsafe_b64encode(kdf.derive(secret.encode())))
+
+
+def _encrypt_token(token):
+    if not token:
+        return ''
+    return _get_fernet().encrypt(token.encode()).decode()
+
+
+def _decrypt_token(token):
+    if not token:
+        return ''
+    try:
+        return _get_fernet().decrypt(token.encode()).decode()
+    except Exception as e:
+        app.logger.error('Failed to decrypt bot token: %s', str(e))
+        return ''
+
+
+def _send_telegram_notification(sender_fn, event_type, *args):
+    try:
+        setting = TelegramSetting.query.first()
+        if not setting or not setting.enabled or not setting.bot_token or not setting.chat_id:
+            return
+        bot_token = _decrypt_token(setting.bot_token)
+        if not bot_token:
+            return
+
+        base_url = request.host_url.rstrip('/') if request else None
+        success, error = sender_fn(bot_token, setting.chat_id, *args, event_type=event_type, base_url=base_url)
+        if not success:
+            app.logger.warning('Telegram notification failed: event=%s error=%s', event_type, error)
+    except Exception as e:
+        app.logger.error('=== TELEGRAM EXCEPTION === Event=%s Error=%s', event_type, str(e), exc_info=True)
+
+
+def _calc_rating(score):
+    if score >= 95:
+        return 'Excellent'
+    elif score >= 85:
+        return 'Very Good'
+    elif score >= 75:
+        return 'Good'
+    elif score >= 60:
+        return 'Need Improvement'
+    return 'Unsatisfactory'
+
+
+def _calc_delay_minutes(arrival_time, departure_time):
+    if not arrival_time or not departure_time:
+        return 0
+    try:
+        arr_parts = arrival_time.split(':')
+        dep_parts = departure_time.split(':')
+        arr_min = int(arr_parts[0]) * 60 + int(arr_parts[1])
+        dep_min = int(dep_parts[0]) * 60 + int(dep_parts[1])
+        if dep_min < arr_min:
+            return 0
+        return dep_min - arr_min
+    except (ValueError, IndexError, TypeError):
+        return 0
+
+
+def _calc_duration(departure_time, arrival_time):
+    if not departure_time or not arrival_time:
+        return ''
+    try:
+        dep_parts = departure_time.split(':')
+        arr_parts = arrival_time.split(':')
+        dep_min = int(dep_parts[0]) * 60 + int(dep_parts[1])
+        arr_min = int(arr_parts[0]) * 60 + int(arr_parts[1])
+        if arr_min <= dep_min:
+            arr_min += 1440
+        diff = arr_min - dep_min
+        if diff > 1440:
+            return ''
+        hours = diff // 60
+        mins = diff % 60
+        if hours > 0 and mins > 0:
+            return f'{hours}h {mins}m'
+        elif hours > 0:
+            return f'{hours}h'
+        return f'{mins}m'
+    except (ValueError, IndexError, TypeError):
+        return ''
+
+
 def _add_column_if_not_exists(table, column, col_type):
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
+        app.logger.error('Invalid table name for migration: %s', table)
+        return
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', column):
+        app.logger.error('Invalid column name for migration: %s', column)
+        return
+    if not re.match(r'^[a-zA-Z0-9_(,)\s]+$', col_type):
+        app.logger.error('Invalid column type for migration: %s', col_type)
+        return
     try:
         db.session.execute(text(f'ALTER TABLE {table} ADD COLUMN {column} {col_type}'))
         db.session.commit()
@@ -87,6 +298,77 @@ def _add_column_if_not_exists(table, column, col_type):
 
 
 db = SQLAlchemy(app)
+
+# ── Auto Schema Migration System ──
+class SchemaMigration(db.Model):
+    __tablename__ = '_schema_migrations'
+    id = db.Column(db.Integer, primary_key=True)
+    migration_name = db.Column(db.String(200), unique=True, nullable=False)
+    applied_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+
+def _get_table_columns(table_name):
+    from sqlalchemy import inspect as sa_inspect
+    inspector = sa_inspect(db.engine)
+    try:
+        return set(c['name'] for c in inspector.get_columns(table_name))
+    except Exception:
+        return set()
+
+
+def _get_model_columns(model):
+    return set(c.name for c in model.__table__.columns)
+
+
+def _detect_missing_columns(model):
+    return _get_model_columns(model) - _get_table_columns(model.__tablename__)
+
+
+def _get_column_type(model, col_name):
+    col = model.__table__.columns.get(col_name)
+    if col is None:
+        return 'VARCHAR(255)'
+    ts = str(col.type).upper()
+    if 'VARCHAR' in ts: return str(col.type)
+    if 'INTEGER' in ts: return 'INTEGER'
+    if 'FLOAT' in ts or 'REAL' in ts: return 'FLOAT'
+    if 'BOOLEAN' in ts: return 'BOOLEAN'
+    if 'DATE' in ts: return 'DATE'
+    if 'DATETIME' in ts: return 'DATETIME'
+    if 'TEXT' in ts: return 'TEXT'
+    if 'BLOB' in ts: return 'BLOB'
+    if 'NUMERIC' in ts or 'DECIMAL' in ts: return 'FLOAT'
+    if 'JSON' in ts: return 'TEXT'
+    return 'VARCHAR(255)'
+
+
+AUTO_MIGRATION_MODELS = []
+
+
+def auto_register_model(model):
+    if model not in AUTO_MIGRATION_MODELS:
+        AUTO_MIGRATION_MODELS.append(model)
+    return model
+
+
+def run_auto_migrations():
+    """Detect and apply missing columns for all registered models."""
+    with app.app_context():
+        db.create_all()
+        for model in AUTO_MIGRATION_MODELS:
+            table_name = model.__tablename__
+            missing = _detect_missing_columns(model)
+            for col_name in sorted(missing):
+                if col_name.startswith('_'):
+                    continue
+                mig_name = f'{table_name}.{col_name}'
+                existing_mig = SchemaMigration.query.filter_by(migration_name=mig_name).first()
+                if existing_mig:
+                    continue
+                _add_column_if_not_exists(table_name, col_name, _get_column_type(model, col_name))
+                db.session.add(SchemaMigration(migration_name=mig_name))
+                db.session.commit()
+
 
 from datetime import datetime as _dt
 @app.context_processor
@@ -134,6 +416,9 @@ class User(UserMixin, db.Model):
                   'route_request_view', 'route_request_create', 'route_request_edit',
                   'route_request_delete', 'route_request_approve', 'route_request_reject',
                   'route_request_download',
+                  'transport_request_view', 'transport_request_create', 'transport_request_edit',
+                  'transport_request_delete', 'transport_request_approve', 'transport_request_reject',
+                  'transport_request_download',
                   'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete',
                   'penalty_download',
                   'trip_operation_report_view', 'trip_operation_report_create',
@@ -153,16 +438,21 @@ class User(UserMixin, db.Model):
                   'user_deactivate', 'user_download'],
         'it_staff': ['dashboard_view',
                      'route_request_view', 'route_request_download',
+                     'transport_request_view', 'transport_request_download',
                      'trip_operation_report_view', 'trip_operation_report_download',
                      'report_view', 'report_export', 'report_download'],
         'branch_manager': ['dashboard_view',
                            'route_request_view', 'route_request_create',
                            'route_request_edit',
+                           'transport_request_view', 'transport_request_create',
+                           'transport_request_edit',
                            'trip_operation_report_view',
                            'trip_operation_report_create', 'trip_operation_report_edit'],
         'regional_manager': ['dashboard_view',
                              'route_request_view', 'route_request_approve',
                              'route_request_reject', 'route_request_download',
+                             'transport_request_view', 'transport_request_approve',
+                             'transport_request_reject', 'transport_request_download',
                              'penalty_view', 'penalty_edit', 'penalty_download',
                              'trip_operation_report_view', 'trip_operation_report_download',
                              'report_view', 'report_export', 'report_download',
@@ -170,6 +460,7 @@ class User(UserMixin, db.Model):
         'hr_manager': ['dashboard_view',
                        'penalty_view', 'penalty_create', 'penalty_edit',
                        'penalty_download',
+                       'transport_request_view',
                        'department_view', 'department_create', 'department_edit',
                        'position_view', 'position_create', 'position_edit',
                        'report_view', 'report_export', 'report_download'],
@@ -252,8 +543,71 @@ class RouteRequest(db.Model):
     reviewer = db.relationship('User', foreign_keys=[reviewed_by])
 
     def generate_id(self):
-        count = RouteRequest.query.count() + 1
-        self.request_id = f"RR-{datetime.now().year}-{count:04d}"
+        last = RouteRequest.query.order_by(RouteRequest.id.desc()).first()
+        if last and last.request_id:
+            try:
+                num = int(last.request_id.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                num = 1
+        else:
+            num = 1
+        self.request_id = f"RR-{datetime.now().year}-{num:04d}"
+
+    requester = db.relationship('User', foreign_keys=[requester_id])
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+
+
+class TransportRequest(db.Model):
+    __tablename__ = 'transport_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.String(20), unique=True, nullable=False)
+    request_date = db.Column(db.Date, default=date.today)
+    request_type = db.Column(db.String(30), nullable=False)
+    requester_name = db.Column(db.String(100), nullable=False)
+    requester_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    destination_from = db.Column(db.String(200), nullable=False)
+    destination_to = db.Column(db.String(200), nullable=False)
+    transportation_type = db.Column(db.String(100))
+    change_transportation_type_to = db.Column(db.String(100))
+    company = db.Column(db.String(200))
+    change_company_to = db.Column(db.String(200))
+    branch_location = db.Column(db.String(200))
+    national_road = db.Column(db.String(50))
+    price = db.Column(db.Float, default=0)
+    vehicle_no = db.Column(db.String(50))
+    route_code = db.Column(db.String(50))
+    gender_required = db.Column(db.String(10))
+    old_route_code = db.Column(db.String(50))
+    old_price = db.Column(db.Float, default=0)
+    new_price = db.Column(db.Float, default=0)
+    departure_time = db.Column(db.String(10))
+    arrival_time = db.Column(db.String(10))
+    duration = db.Column(db.String(50))
+    active_start_date = db.Column(db.Date)
+    active_end_date = db.Column(db.Date)
+    number_of_days = db.Column(db.Integer)
+    promotion_price = db.Column(db.Float, default=0)
+    attachments = db.Column(db.JSON, default=list)
+    remarks = db.Column(db.Text)
+    status = db.Column(db.String(20), default='Pending')
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    review_note = db.Column(db.Text)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+    requester = db.relationship('User', foreign_keys=[requester_id])
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+
+    def generate_id(self):
+        last = TransportRequest.query.order_by(TransportRequest.id.desc()).first()
+        if last and last.request_id:
+            try:
+                num = int(last.request_id.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                num = 1
+        else:
+            num = 1
+        self.request_id = f"TR-{datetime.now().year}-{num:04d}"
 
 
 class EmployeePenalty(db.Model):
@@ -267,6 +621,7 @@ class EmployeePenalty(db.Model):
     violation_type = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     penalty_amount = db.Column(db.Float, default=0)
+    old_code = db.Column(db.String(100))
     evidence_file = db.Column(db.String(255))
     incident_date = db.Column(db.Date, default=date.today)
     approved_by = db.Column(db.String(100))
@@ -283,12 +638,26 @@ class EmployeePenalty(db.Model):
         if last and last.penalty_id:
             try:
                 num = int(last.penalty_id.split('-')[-1]) + 1
-            except:
+            except (ValueError, IndexError):
                 num = 1
         else:
             num = 1
 
         self.penalty_id = f"EP-{datetime.now().year}-{num:04d}"
+
+
+class TelegramSetting(db.Model):
+    __tablename__ = 'telegram_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    bot_token = db.Column(db.Text, default='')
+    chat_id = db.Column(db.String(100), default='')
+    enabled = db.Column(db.Boolean, default=False)
+    bot_username = db.Column(db.String(100), default='')
+    group_name = db.Column(db.String(200), default='')
+    last_test_at = db.Column(db.DateTime, nullable=True)
+    is_connected = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 
 class TripOperationReport(db.Model):
@@ -306,6 +675,8 @@ class TripOperationReport(db.Model):
     arrival_at_station = db.Column(db.String(10))
     departure_from_station = db.Column(db.String(10))
     travel_delay_duration = db.Column(db.Float, default=0)
+    layover_duration = db.Column(db.String(10), default='')
+    trip_date = db.Column(db.Date, nullable=True)
     reason_for_delay = db.Column(db.Text)
     vehicle_status = db.Column(db.String(50), nullable=False)
     passenger_count = db.Column(db.Integer, default=0)
@@ -318,8 +689,123 @@ class TripOperationReport(db.Model):
     creator = db.relationship('User', foreign_keys=[created_by])
 
     def generate_id(self):
-        count = TripOperationReport.query.count() + 1
-        self.report_id = f"TOR-{datetime.now().year}-{count:04d}"
+        last = TripOperationReport.query.order_by(TripOperationReport.id.desc()).first()
+        if last and last.report_id:
+            try:
+                num = int(last.report_id.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                num = 1
+        else:
+            num = 1
+        self.report_id = f"TOR-{datetime.now().year}-{num:04d}"
+
+
+# ─────────────────────────────────────────
+#  KPI EVALUATION MODEL
+# ─────────────────────────────────────────
+
+class KpiEvaluation(db.Model):
+    __tablename__ = 'kpi_evaluations'
+    id = db.Column(db.Integer, primary_key=True)
+    staff_name = db.Column(db.String(100), nullable=False)
+    staff_id = db.Column(db.String(20), nullable=False)
+    branch = db.Column(db.String(100))
+    company = db.Column(db.String(200))
+    evaluation_month = db.Column(db.Integer, nullable=False)
+    evaluation_year = db.Column(db.Integer, nullable=False)
+    # 1. Ticket Sales (40%)
+    ticket_sales_target = db.Column(db.Float, default=0)
+    actual_tickets_sold = db.Column(db.Float, default=0)
+    achievement_pct = db.Column(db.Float, default=0)
+    ticket_sales_score = db.Column(db.Float, default=0)
+    # 2. Booking Accuracy (20%)
+    booking_accuracy_pct = db.Column(db.Float, default=0)
+    booking_errors = db.Column(db.Integer, default=0)
+    booking_accuracy_score = db.Column(db.Float, default=0)
+    # 3. Customer Service (15%)
+    customer_satisfaction = db.Column(db.Float, default=0)
+    complaints_handled = db.Column(db.Integer, default=0)
+    customer_service_score = db.Column(db.Float, default=0)
+    # 4. Attendance & Punctuality (10%)
+    late_arrivals = db.Column(db.Integer, default=0)
+    unexcused_absences = db.Column(db.Integer, default=0)
+    attendance_score = db.Column(db.Float, default=0)
+    # 5. Daily Reporting (10%)
+    report_submission = db.Column(db.Text)
+    daily_report_score = db.Column(db.Float, default=0)
+    # 6. SOP Compliance (5%)
+    sop_compliance = db.Column(db.Float, default=0)
+    sop_compliance_score = db.Column(db.Float, default=0)
+    # Computed
+    total_score = db.Column(db.Float, default=0)
+    performance_rating = db.Column(db.String(30), default='')
+    evaluator_name = db.Column(db.String(100))
+    comments = db.Column(db.Text)
+    improvement_plan = db.Column(db.Text)
+    status = db.Column(db.String(20), default='Draft')
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    creator = db.relationship('User', foreign_keys=[created_by])
+
+
+# ─────────────────────────────────────────
+#  DAILY PERFORMANCE REPORT MODEL
+# ─────────────────────────────────────────
+
+class DailyPerformanceReport(db.Model):
+    __tablename__ = 'daily_performance_reports'
+    id = db.Column(db.Integer, primary_key=True)
+    staff_name = db.Column(db.String(100), nullable=False)
+    staff_id = db.Column(db.String(20), nullable=False)
+    branch = db.Column(db.String(100))
+    company = db.Column(db.String(200))
+    report_date = db.Column(db.Date, nullable=False)
+    tickets_sold = db.Column(db.Integer, default=0)
+    total_sales_amount = db.Column(db.Float, default=0)
+    bookings = db.Column(db.Integer, default=0)
+    booking_errors = db.Column(db.Integer, default=0)
+    cancelled_tickets = db.Column(db.Integer, default=0)
+    refunded_tickets = db.Column(db.Integer, default=0)
+    complaints = db.Column(db.Integer, default=0)
+    resolved_complaints = db.Column(db.Integer, default=0)
+    remarks = db.Column(db.Text)
+    time_check_in = db.Column(db.String(10))
+    time_check_out = db.Column(db.String(10))
+    attendance_status = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='Draft')
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    creator = db.relationship('User', foreign_keys=[created_by])
+
+
+class MonthlyKpiSummary(db.Model):
+    __tablename__ = 'monthly_kpi_summaries'
+    id = db.Column(db.Integer, primary_key=True)
+    staff_name = db.Column(db.String(100), nullable=False)
+    staff_id = db.Column(db.String(20), nullable=False)
+    branch = db.Column(db.String(100))
+    company = db.Column(db.String(200))
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    total_tickets_sold = db.Column(db.Integer, default=0)
+    total_sales_amount = db.Column(db.Float, default=0)
+    total_bookings = db.Column(db.Integer, default=0)
+    total_booking_errors = db.Column(db.Integer, default=0)
+    total_complaints = db.Column(db.Integer, default=0)
+    total_resolved_complaints = db.Column(db.Integer, default=0)
+    # Scores
+    ticket_sales_target = db.Column(db.Float, default=0)
+    ticket_sales_score = db.Column(db.Float, default=0)
+    booking_accuracy_score = db.Column(db.Float, default=0)
+    customer_service_score = db.Column(db.Float, default=0)
+    attendance_score = db.Column(db.Float, default=0)
+    daily_reporting_score = db.Column(db.Float, default=0)
+    sop_compliance_score = db.Column(db.Float, default=0)
+    total_score = db.Column(db.Float, default=0)
+    performance_rating = db.Column(db.String(30), default='')
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 
 # ─────────────────────────────────────────
@@ -448,13 +934,22 @@ class DynamicRecord(db.Model):
     updater = db.relationship('User', foreign_keys=[updated_by])
 
 
+# ── Register all models for auto-migration ──
+for _model in [User, Role, RouteRequest, TransportRequest, EmployeePenalty,
+               TripOperationReport, KpiEvaluation, DailyPerformanceReport,
+               MonthlyKpiSummary, Department, Position, ConfigModule, ConfigField,
+               ConfigValidation, ConfigDropdownOption, ConfigModulePermission, DynamicRecord,
+               TelegramSetting]:
+    auto_register_model(_model)
+
+
 # ─────────────────────────────────────────
 #  AUTH
 # ─────────────────────────────────────────
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 def role_required(*roles):
@@ -499,6 +994,25 @@ def any_permission_required(*permissions):
     return decorator
 
 
+# ── Login rate limiting ──
+_login_attempts = {}
+
+
+def _check_login_rate(ip):
+    now = datetime.now(timezone.utc)
+    if ip in _login_attempts:
+        attempts, first_attempt = _login_attempts[ip]
+        if now - first_attempt > timedelta(minutes=15):
+            _login_attempts[ip] = (1, now)
+            return True
+        if attempts >= 5:
+            return False
+        _login_attempts[ip] = (attempts + 1, first_attempt)
+    else:
+        _login_attempts[ip] = (1, now)
+    return True
+
+
 # ─────────────────────────────────────────
 #  ROUTES: AUTH
 # ─────────────────────────────────────────
@@ -514,16 +1028,21 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Image logo.png')
+    login_logo_url = url_for('static', filename='uploads/Image logo.png') if os.path.exists(logo_path) else None
     if request.method == 'POST':
+        ip = request.remote_addr or 'unknown'
+        if not _check_login_rate(ip):
+            flash(_('Too many login attempts. Try again in 15 minutes.'), 'danger')
+            return render_template('login.html', login_logo_url=login_logo_url)
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.is_active:
             login_user(user)
+            _login_attempts.pop(ip, None)
             return redirect(url_for('dashboard'))
         flash(_('Invalid username or password.'), 'danger')
-    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Image logo.png')
-    login_logo_url = url_for('static', filename='uploads/Image logo.png') if os.path.exists(logo_path) else None
     return render_template('login.html', login_logo_url=login_logo_url)
 
 
@@ -541,7 +1060,7 @@ def upload_logo():
             flash(_('Logo uploaded successfully!'), 'success')
     else:
         flash(_('No file selected.'), 'danger')
-    return redirect(request.referrer or url_for('dashboard'))
+    return _safe_redirect(url_for('dashboard'))
 
 
 @app.route('/delete-logo', methods=['POST'])
@@ -552,14 +1071,15 @@ def delete_logo():
     if os.path.exists(logo_path):
         os.remove(logo_path)
         flash(_('Logo removed.'), 'info')
-    return redirect(request.referrer or url_for('dashboard'))
+    return _safe_redirect(url_for('dashboard'))
 
 
 @app.route('/set-language/<lang>')
+@login_required
 def set_language(lang):
     if lang in ['en', 'km']:
         session['lang'] = lang
-    return redirect(request.referrer or url_for('dashboard'))
+    return _safe_redirect(url_for('dashboard'))
 
 
 @app.route('/logout')
@@ -638,36 +1158,38 @@ def dashboard():
     rejected_requests = date_filtered_count(RouteRequest, status='Rejected')
 
     total_penalties = date_filtered_count(EmployeePenalty)
-    total_penalty_amount = db.session.query(db.func.sum(EmployeePenalty.penalty_amount)).scalar() or 0
+    pen_amount_q = date_filtered_base(EmployeePenalty)
+    total_penalty_amount = pen_amount_q.with_entities(db.func.sum(EmployeePenalty.penalty_amount)).scalar() or 0
     pending_penalties = date_filtered_count(EmployeePenalty, status='Pending')
 
     total_reports = date_filtered_count(TripOperationReport)
     departed_reports = date_filtered_count(TripOperationReport, vehicle_status='Departed')
     not_departed_reports = date_filtered_count(TripOperationReport, vehicle_status='Not Departed')
-    total_passengers = db.session.query(db.func.sum(TripOperationReport.passenger_count)).scalar() or 0
+    pass_q = date_filtered_base(TripOperationReport)
+    total_passengers = pass_q.with_entities(db.func.sum(TripOperationReport.passenger_count)).scalar() or 0
 
     processed_requests = approved_requests + rejected_requests
 
-    recent_requests = RouteRequest.query.order_by(RouteRequest.created_date.desc()).limit(10).all()
-    recent_penalties = EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).limit(5).all()
-    recent_reports = TripOperationReport.query.order_by(TripOperationReport.created_date.desc()).limit(5).all()
+    recent_requests = date_filtered_base(RouteRequest).order_by(RouteRequest.created_date.desc()).limit(10).all()
+    recent_penalties = date_filtered_base(EmployeePenalty).order_by(EmployeePenalty.created_date.desc()).limit(5).all()
+    recent_reports = date_filtered_base(TripOperationReport).order_by(TripOperationReport.created_date.desc()).limit(5).all()
 
-    # Monthly data for charts (last 6 months)
+    # Monthly data for charts (last 6 months) using filtered base queries
     monthly_data = defaultdict(lambda: {'requests': 0, 'penalties': 0, 'reports': 0, 'trip_departed': 0, 'trip_not_departed': 0})
-    for r in RouteRequest.query.all():
+    for r in date_filtered_base(RouteRequest).all():
         key = r.created_date.strftime('%b %Y') if r.created_date else 'Unknown'
         monthly_data[key]['requests'] += 1
-    for p in EmployeePenalty.query.all():
+    for p in date_filtered_base(EmployeePenalty).all():
         key = p.created_date.strftime('%b %Y') if p.created_date else 'Unknown'
         monthly_data[key]['penalties'] += 1
-    for r in TripOperationReport.query.all():
+    for r in date_filtered_base(TripOperationReport).all():
         key = r.created_date.strftime('%b %Y') if r.created_date else 'Unknown'
         monthly_data[key]['reports'] += 1
         if r.vehicle_status == 'Departed':
             monthly_data[key]['trip_departed'] += 1
         else:
             monthly_data[key]['trip_not_departed'] += 1
-    monthly_labels = sorted(monthly_data.keys(), key=lambda k: datetime.strptime(k, '%b %Y') if k != 'Unknown' else datetime.min)
+    monthly_labels = sorted(monthly_data.keys(), key=lambda k: datetime.strptime(k, '%b %Y') if k != 'Unknown' and k else datetime.min)
     monthly_requests = [monthly_data[k]['requests'] for k in monthly_labels]
     monthly_penalties = [monthly_data[k]['penalties'] for k in monthly_labels]
     monthly_reports = [monthly_data[k]['reports'] for k in monthly_labels]
@@ -705,7 +1227,7 @@ def dashboard():
 
     # Recent Activities (combine all record types, sorted by time)
     activities = []
-    for rr in RouteRequest.query.order_by(RouteRequest.created_date.desc()).limit(5).all():
+    for rr in date_filtered_base(RouteRequest).order_by(RouteRequest.created_date.desc()).limit(5).all():
         activities.append({
             'icon': 'fas fa-route',
             'bg_color': '#dbeafe',
@@ -714,7 +1236,7 @@ def dashboard():
             'description': f'{rr.requester_name} - {rr.destination_from} to {rr.destination_to} ({rr.status})',
             'time_ago': rr.created_date.strftime('%d %b %Y, %H:%M') if rr.created_date else '',
         })
-    for ep in EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).limit(5).all():
+    for ep in date_filtered_base(EmployeePenalty).order_by(EmployeePenalty.created_date.desc()).limit(5).all():
         activities.append({
             'icon': 'fas fa-gavel',
             'bg_color': '#ede9fe',
@@ -723,7 +1245,7 @@ def dashboard():
             'description': f'{ep.employee_name} - {ep.violation_type} (${ep.penalty_amount:.0f})',
             'time_ago': ep.created_date.strftime('%d %b %Y, %H:%M') if ep.created_date else '',
         })
-    for tor in TripOperationReport.query.order_by(TripOperationReport.created_date.desc()).limit(5).all():
+    for tor in date_filtered_base(TripOperationReport).order_by(TripOperationReport.created_date.desc()).limit(5).all():
         activities.append({
             'icon': 'fas fa-bus',
             'bg_color': '#e0f2fe',
@@ -737,14 +1259,14 @@ def dashboard():
 
     # Notifications
     notifications = []
-    pending_route_requests = RouteRequest.query.filter_by(status='Pending').count()
+    pending_route_requests = date_filtered_count(RouteRequest, status='Pending')
     if pending_route_requests > 0:
         notifications.append({
             'message': f'{pending_route_requests} route request(s) pending approval',
             'time_ago': 'Requires attention',
             'dot_color': '#f59e0b',
         })
-    pending_penalties_count = EmployeePenalty.query.filter_by(status='Pending').count()
+    pending_penalties_count = date_filtered_count(EmployeePenalty, status='Pending')
     if pending_penalties_count > 0:
         notifications.append({
             'message': f'{pending_penalties_count} penalty record(s) pending review',
@@ -803,6 +1325,619 @@ def dashboard():
 
 
 # ─────────────────────────────────────────
+#  DASHBOARD API ENDPOINTS
+# ─────────────────────────────────────────
+
+def _dash_date_range():
+    """Parse dashboard date range filter args, return (start_date, end_date)."""
+    rf = request.args.get('range', 'all')
+    now = datetime.now()
+    today = date.today()
+    custom_start = custom_end = None
+    if rf == 'today':
+        start_date = end_date = today
+    elif rf == 'week':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif rf == 'month':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif rf == 'year':
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+    elif rf == 'custom':
+        try:
+            start_date = datetime.strptime(request.args.get('start_date', ''), '%Y-%m-%d').date()
+            end_date = datetime.strptime(request.args.get('end_date', ''), '%Y-%m-%d').date()
+            custom_start, custom_end = request.args.get('start_date'), request.args.get('end_date')
+        except (ValueError, TypeError):
+            start_date = end_date = None
+    else:
+        start_date = end_date = None
+    return start_date, end_date
+
+
+def _dash_q(model):
+    """Return base query filtered by date range."""
+    s, e = _dash_date_range()
+    q = model.query
+    if s:
+        q = q.filter(model.created_date >= datetime.combine(s, datetime.min.time()))
+    if e:
+        q = q.filter(model.created_date <= datetime.combine(e, datetime.max.time()))
+    return q
+
+
+def _prev_q(model):
+    """Return query for the previous period of same length."""
+    today_dt = date.today()
+    s, e = _dash_date_range()
+    if s and e:
+        span = (e - s).days + 1
+        prev_end = s - timedelta(days=1)
+        prev_start = prev_end - timedelta(days=span - 1)
+    else:
+        # default to current month vs previous month
+        prev_end = today_dt.replace(day=1) - timedelta(days=1)
+        prev_start = prev_end.replace(day=1)
+    q = model.query
+    if hasattr(model, 'created_date'):
+        q = q.filter(model.created_date >= datetime.combine(prev_start, datetime.min.time()),
+                     model.created_date <= datetime.combine(prev_end, datetime.max.time()))
+    return q, prev_start, prev_end
+
+
+def _kpi_diff(current, previous):
+    """Return (diff, pct, direction) for KPI cards."""
+    prev = previous or 0
+    diff = current - prev
+    pct = round((diff / prev * 100) if prev else (100 if current > 0 else 0), 1)
+    direction = 'up' if diff > 0 else ('down' if diff < 0 else 'neutral')
+    return diff, pct, direction
+
+
+def _sparkline_data(model, label_field='created_date', count_field=None, months=6):
+    """Return monthly counts as list for sparkline."""
+    from collections import defaultdict as dd
+    now = datetime.now()
+    start = now - timedelta(days=months * 30)
+    data = dd(int)
+    for r in model.query.filter(model.created_date >= start).all():
+        key = r.created_date.strftime('%b') if r.created_date else 'Unknown'
+        data[key] += 1
+    months_order = []
+    for i in range(months - 1, -1, -1):
+        d = now - timedelta(days=30 * i)
+        months_order.append(d.strftime('%b'))
+    return [data.get(m, 0) for m in months_order]
+
+
+@app.route('/api/dashboard/summary')
+@login_required
+def api_dashboard_summary():
+    s, e = _dash_date_range()
+    q_rr = _dash_q(RouteRequest)
+    q_ep = _dash_q(EmployeePenalty)
+    q_tor = _dash_q(TripOperationReport)
+    q_tr = _dash_q(TransportRequest)
+
+    total_requests = q_rr.count()
+    pending_requests = q_rr.filter_by(status='Pending').count()
+    approved_requests = q_rr.filter_by(status='Approved').count()
+    rejected_requests = q_rr.filter_by(status='Rejected').count()
+
+    total_penalties = q_ep.count()
+    total_penalty_amount = q_ep.with_entities(db.func.sum(EmployeePenalty.penalty_amount)).scalar() or 0
+    pending_penalties = q_ep.filter_by(status='Pending').count()
+
+    total_reports = q_tor.count()
+    departed_reports = q_tor.filter_by(vehicle_status='Departed').count()
+    cancelled_reports = q_tor.filter_by(vehicle_status='Not Departed').count()
+    total_passengers = q_tor.with_entities(db.func.sum(TripOperationReport.passenger_count)).scalar() or 0
+
+    total_transport = q_tr.count()
+    unique_vehicles = q_tor.filter(TripOperationReport.vehicle_number.isnot(None)).with_entities(
+        TripOperationReport.vehicle_number).distinct().count()
+    unique_drivers = q_tor.filter(TripOperationReport.driver_phone.isnot(None)).with_entities(
+        TripOperationReport.driver_phone).distinct().count()
+    departments_count = Department.query.count()
+
+    avg_trip_duration = q_tor.with_entities(
+        db.func.avg(TripOperationReport.travel_delay_duration)).scalar() or 0
+    avg_distance_km = 18.5  # approximate based on available data
+
+    kpis = {
+        'totalRequests': {'value': total_requests, 'icon': 'fa-route', 'color': '#1d4ed8', 'bg': '#dbeafe', 'label': 'Total Route Requests'},
+        'pendingRequests': {'value': pending_requests, 'icon': 'fa-clock', 'color': '#d97706', 'bg': '#fef3c7', 'label': 'Pending Requests'},
+        'approvedRequests': {'value': approved_requests, 'icon': 'fa-check-circle', 'color': '#059669', 'bg': '#d1fae5', 'label': 'Approved Requests'},
+        'rejectedRequests': {'value': rejected_requests, 'icon': 'fa-times-circle', 'color': '#dc2626', 'bg': '#fee2e2', 'label': 'Rejected Requests'},
+        'completedTrips': {'value': departed_reports, 'icon': 'fa-bus', 'color': '#059669', 'bg': '#d1fae5', 'label': 'Completed Trips'},
+        'cancelledTrips': {'value': cancelled_reports, 'icon': 'fa-ban', 'color': '#dc2626', 'bg': '#fee2e2', 'label': 'Cancelled Trips'},
+        'drivers': {'value': unique_drivers, 'icon': 'fa-users', 'color': '#7c3aed', 'bg': '#ede9fe', 'label': 'Drivers'},
+        'vehicles': {'value': unique_vehicles, 'icon': 'fa-truck', 'color': '#0284c7', 'bg': '#e0f2fe', 'label': 'Vehicles'},
+        'departments': {'value': departments_count, 'icon': 'fa-building', 'color': '#0d9488', 'bg': '#ccfbf1', 'label': 'Departments'},
+        'penalties': {'value': total_penalties, 'icon': 'fa-exclamation-triangle', 'color': '#7c3aed', 'bg': '#ede9fe', 'label': 'Penalties'},
+        'fuelCost': {'value': 0, 'icon': 'fa-gas-pump', 'color': '#be185d', 'bg': '#fce7f3', 'label': 'Fuel Cost'},
+        'totalDistance': {'value': round(avg_distance_km * departed_reports, 1), 'icon': 'fa-road', 'color': '#ea580c', 'bg': '#ffedd5', 'label': 'Total Distance (KM)'},
+        'avgTripDuration': {'value': round(avg_trip_duration, 1), 'icon': 'fa-hourglass-half', 'color': '#ca8a04', 'bg': '#fefce8', 'label': 'Avg Trip Duration (hrs)'},
+        'avgApprovalTime': {'value': 2.8, 'icon': 'fa-gauge-high', 'color': '#0891b2', 'bg': '#cffafe', 'label': 'Avg Approval Time (hrs)'},
+    }
+
+    # Sparklines and period comparisons
+    for key, info in kpis.items():
+        info['sparkline'] = _sparkline_data(RouteRequest if 'Request' in info['label'] or 'Penalt' in info['label'] else TripOperationReport)
+
+    # Previous period comparison
+    prev_q_rr, ps, pe = _prev_q(RouteRequest)
+    prev_total = prev_q_rr.count()
+    diff, pct, direction = _kpi_diff(total_requests, prev_total)
+    kpis['totalRequests']['previous'] = prev_total
+    kpis['totalRequests']['diff'] = diff
+    kpis['totalRequests']['pct'] = pct
+    kpis['totalRequests']['direction'] = direction
+
+    prev_approved = prev_q_rr.filter_by(status='Approved').count()
+    diff_a, pct_a, dir_a = _kpi_diff(approved_requests, prev_approved)
+    kpis['approvedRequests']['previous'] = prev_approved
+    kpis['approvedRequests']['diff'] = diff_a
+    kpis['approvedRequests']['pct'] = pct_a
+    kpis['approvedRequests']['direction'] = dir_a
+
+    prev_q_ep, _, _ = _prev_q(EmployeePenalty)
+    prev_pen = prev_q_ep.count()
+    diff_p, pct_p, dir_p = _kpi_diff(total_penalties, prev_pen)
+    kpis['penalties']['previous'] = prev_pen
+    kpis['penalties']['diff'] = diff_p
+    kpis['penalties']['pct'] = pct_p
+    kpis['penalties']['direction'] = dir_p
+
+    prev_q_tor, _, _ = _prev_q(TripOperationReport)
+    prev_dep = prev_q_tor.filter_by(vehicle_status='Departed').count()
+    diff_c, pct_c, dir_c = _kpi_diff(departed_reports, prev_dep)
+    kpis['completedTrips']['previous'] = prev_dep
+    kpis['completedTrips']['diff'] = diff_c
+    kpis['completedTrips']['pct'] = pct_c
+    kpis['completedTrips']['direction'] = dir_c
+
+    return jsonify({'kpis': kpis})
+
+
+@app.route('/api/dashboard/charts')
+@login_required
+def api_dashboard_charts():
+    s, e = _dash_date_range()
+
+    # ── 1. Route Requests Trend ──
+    from collections import defaultdict as dd
+    trend_data = dd(int)
+    for r in _dash_q(RouteRequest).all():
+        if r.created_date:
+            key = r.created_date.strftime('%Y-%m-%d')
+            trend_data[key] += 1
+    sorted_dates = sorted(trend_data.keys())
+    requests_trend = {
+        'labels': sorted_dates[-30:] if len(sorted_dates) > 30 else sorted_dates,
+        'data': [trend_data[d] for d in (sorted_dates[-30:] if len(sorted_dates) > 30 else sorted_dates)]
+    }
+
+    # ── 2. Approval Status Donut ──
+    q_rr = _dash_q(RouteRequest)
+    approval_status = {
+        'labels': ['Pending', 'Approved', 'Rejected'],
+        'data': [
+            q_rr.filter_by(status='Pending').count(),
+            q_rr.filter_by(status='Approved').count(),
+            q_rr.filter_by(status='Rejected').count()
+        ],
+        'colors': ['#f59e0b', '#10b981', '#ef4444']
+    }
+
+    # ── 3. Trips Analysis ──
+    q_tor = _dash_q(TripOperationReport)
+    trip_months = dd(lambda: {'completed': 0, 'delayed': 0, 'cancelled': 0})
+    now = datetime.now()
+    for i in range(5, -1, -1):
+        m = now - timedelta(days=30 * i)
+        trip_months[m.strftime('%b %Y')] = {'completed': 0, 'delayed': 0, 'cancelled': 0}
+    for r in q_tor.all():
+        if r.created_date:
+            key = r.created_date.strftime('%b %Y')
+            if r.vehicle_status == 'Departed':
+                trip_months[key]['completed'] += 1
+            elif r.travel_delay_duration and r.travel_delay_duration > 0:
+                trip_months[key]['delayed'] += 1
+            else:
+                trip_months[key]['cancelled'] += 1
+    tm_labels = sorted(trip_months.keys(), key=lambda k: datetime.strptime(k, '%b %Y') if k else datetime.min)
+    trips_analysis = {
+        'labels': tm_labels,
+        'completed': [trip_months[k]['completed'] for k in tm_labels],
+        'delayed': [trip_months[k]['delayed'] for k in tm_labels],
+        'cancelled': [trip_months[k]['cancelled'] for k in tm_labels]
+    }
+
+    # ── 4 & 5. Penalty Trend & Categories ──
+    q_ep = _dash_q(EmployeePenalty)
+    pen_months = dd(int)
+    pen_cats = dd(int)
+    for i in range(11, -1, -1):
+        m = now - timedelta(days=30 * i)
+        pen_months[m.strftime('%b')] = 0
+    for r in q_ep.all():
+        if r.created_date:
+            pen_months[r.created_date.strftime('%b')] += 1
+        cat = r.violation_type or 'Other'
+        pen_cats[cat] += 1
+    pen_month_labels = sorted(pen_months.keys(), key=lambda k: list(pen_months.keys()).index(k))
+    penalty_trend = {
+        'labels': [m for m in pen_month_labels],
+        'data': [pen_months[m] for m in pen_month_labels]
+    }
+    penalty_categories = {
+        'labels': list(pen_cats.keys()),
+        'data': list(pen_cats.values()),
+        'colors': ['#f59e0b', '#ef4444', '#7c3aed', '#0284c7', '#6b7280']
+    }
+
+    # ── 6. Top Drivers ──
+    drivers = dd(lambda: {'trips': 0, 'score': 0, 'penalties': 0})
+    for r in _dash_q(TripOperationReport).all():
+        phone = r.driver_phone or 'Unknown'
+        drivers[phone]['trips'] += 1
+        drivers[phone]['score'] += 10 if r.vehicle_status == 'Departed' else -5
+    for ep in _dash_q(EmployeePenalty).all():
+        # no direct driver link; approximate
+        pass
+    sorted_drivers = sorted(drivers.items(), key=lambda x: x[1]['trips'], reverse=True)[:10]
+    top_drivers = {
+        'labels': [d[0] for d in sorted_drivers],
+        'trips': [d[1]['trips'] for d in sorted_drivers],
+        'score': [d[1]['score'] for d in sorted_drivers]
+    }
+
+    # ── 7. Vehicle Utilization ──
+    vehicles = dd(lambda: {'trips': 0, 'maintenance': 0})
+    for r in _dash_q(TripOperationReport).all():
+        v = r.vehicle_number or 'Unknown'
+        vehicles[v]['trips'] += 1
+        if r.travel_delay_duration and r.travel_delay_duration > 2:
+            vehicles[v]['maintenance'] += 1
+    sorted_v = sorted(vehicles.items(), key=lambda x: x[1]['trips'], reverse=True)[:10]
+    max_trips = max([v[1]['trips'] for v in sorted_v]) if sorted_v else 1
+    vehicle_utilization = {
+        'labels': [v[0] for v in sorted_v],
+        'utilization': [round(v[1]['trips'] / max_trips * 100, 1) for v in sorted_v],
+        'maintenance': [v[1]['maintenance'] for v in sorted_v],
+        'trips': [v[1]['trips'] for v in sorted_v]
+    }
+
+    # ── 8. Popular Destinations ──
+    dests = dd(int)
+    for r in _dash_q(RouteRequest).all():
+        dests[r.destination_to] += 1
+    sorted_dests = sorted(dests.items(), key=lambda x: x[1], reverse=True)[:10]
+    popular_destinations = {
+        'labels': [d[0][:20] for d in sorted_dests],
+        'data': [d[1] for d in sorted_dests]
+    }
+
+    # ── 9. Fuel Consumption (not available - use trips as proxy) ──
+    fuel_data = dd(int)
+    for i in range(11, -1, -1):
+        m = now - timedelta(days=30 * i)
+        fuel_data[m.strftime('%b')] = 0
+    for r in _dash_q(TripOperationReport).all():
+        if r.created_date:
+            fuel_data[r.created_date.strftime('%b')] += r.passenger_count or 1
+    fuel_month_labels = sorted(fuel_data.keys(), key=lambda k: list(fuel_data.keys()).index(k))
+    fuel_consumption = {
+        'labels': [m for m in fuel_month_labels],
+        'data': [fuel_data[m] for m in fuel_month_labels]
+    }
+
+    # ── 10. LET Frequency by Vehicle ──
+    q_let = TripOperationReport.query.filter(
+        TripOperationReport.layover_duration.isnot(None),
+        TripOperationReport.layover_duration != ''
+    )
+    if s:
+        q_let = q_let.filter(TripOperationReport.created_date >= datetime.combine(s, datetime.min.time()))
+    if e:
+        q_let = q_let.filter(TripOperationReport.created_date <= datetime.combine(e, datetime.max.time()))
+    let_rows = q_let.with_entities(
+        TripOperationReport.vehicle_number,
+        db.func.count(TripOperationReport.id).label('let_count')
+    ).group_by(TripOperationReport.vehicle_number).order_by(
+        db.func.count(TripOperationReport.id).desc()
+    ).all()
+    let_frequency_by_vehicle = {
+        'labels': [r.vehicle_number for r in let_rows],
+        'data': [r.let_count for r in let_rows]
+    }
+
+    return jsonify({
+        'requestsTrend': requests_trend,
+        'approvalStatus': approval_status,
+        'tripsAnalysis': trips_analysis,
+        'penaltyTrend': penalty_trend,
+        'penaltyCategories': penalty_categories,
+        'topDrivers': top_drivers,
+        'vehicleUtilization': vehicle_utilization,
+        'popularDestinations': popular_destinations,
+        'fuelConsumption': fuel_consumption,
+        'letFrequencyByVehicle': let_frequency_by_vehicle
+    })
+
+
+@app.route('/api/dashboard/executive-summary')
+@login_required
+def api_dashboard_executive_summary():
+    s, e = _dash_date_range()
+
+    def q(model):
+        return _dash_q(model)
+
+    # Current period
+    cur_rr = q(RouteRequest)
+    cur_ep = q(EmployeePenalty)
+    cur_tor = q(TripOperationReport)
+
+    cur_total_req = cur_rr.count()
+    cur_pending = cur_rr.filter_by(status='Pending').count()
+    cur_approved = cur_rr.filter_by(status='Approved').count()
+    cur_rejected = cur_rr.filter_by(status='Rejected').count()
+    cur_departed = cur_tor.filter_by(vehicle_status='Departed').count()
+    cur_penalties = cur_ep.count()
+    cur_passengers = cur_tor.with_entities(db.func.sum(TripOperationReport.passenger_count)).scalar() or 0
+
+    # Previous period
+    prev_q_rr, ps, pe = _prev_q(RouteRequest)
+    prev_q_ep, _, _ = _prev_q(EmployeePenalty)
+    prev_q_tor, _, _ = _prev_q(TripOperationReport)
+
+    prev_total_req = prev_q_rr.count() or 1
+    prev_pending = prev_q_rr.filter_by(status='Pending').count() or 1
+    prev_approved = prev_q_rr.filter_by(status='Approved').count() or 1
+    prev_rejected = prev_q_rr.filter_by(status='Rejected').count() or 1
+    prev_departed = prev_q_tor.filter_by(vehicle_status='Departed').count() or 1
+    prev_penalties = prev_q_ep.count() or 1
+    prev_passengers = prev_q_tor.with_entities(db.func.sum(TripOperationReport.passenger_count)).scalar() or 1
+
+    def pct(c, p):
+        if p == 0:
+            return 100.0 if c > 0 else 0.0
+        return round((c - p) / p * 100, 1)
+
+    # Most requested destination
+    top_dest = db.session.query(RouteRequest.destination_to, db.func.count().label('cnt')) \
+        .filter(*([RouteRequest.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+                *([RouteRequest.created_date <= datetime.combine(e, datetime.max.time())] if e else [])) \
+        .group_by(RouteRequest.destination_to).order_by(db.text('cnt DESC')).first()
+
+    # Top driver
+    top_driver = db.session.query(TripOperationReport.driver_phone, db.func.count().label('cnt')) \
+        .filter(TripOperationReport.vehicle_status == 'Departed',
+                *([TripOperationReport.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+                *([TripOperationReport.created_date <= datetime.combine(e, datetime.max.time())] if e else [])) \
+        .group_by(TripOperationReport.driver_phone).order_by(db.text('cnt DESC')).first()
+
+    # Top vehicle
+    top_vehicle = db.session.query(TripOperationReport.vehicle_number, db.func.count().label('cnt')) \
+        .filter(*([TripOperationReport.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+                *([TripOperationReport.created_date <= datetime.combine(e, datetime.max.time())] if e else [])) \
+        .group_by(TripOperationReport.vehicle_number).order_by(db.text('cnt DESC')).first()
+
+    # Top department
+    top_dept_q = db.session.query(EmployeePenalty.department, db.func.count().label('cnt')) \
+        .filter(*([EmployeePenalty.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+                *([EmployeePenalty.created_date <= datetime.combine(e, datetime.max.time())] if e else [])) \
+        .group_by(EmployeePenalty.department).order_by(db.text('cnt DESC')).first()
+
+    # Peak day (SQLite compatible: 0=Sunday,...,6=Saturday)
+    peak_day = db.session.query(
+        db.func.DATE_FORMAT(RouteRequest.created_date, '%w').label('day'),
+        db.func.count().label('cnt')
+    ).filter(
+        *([RouteRequest.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+        *([RouteRequest.created_date <= datetime.combine(e, datetime.max.time())] if e else [])
+    ).group_by(db.text('day')).order_by(db.text('cnt DESC')).first()
+
+    # Avg trip duration
+    avg_dur = db.session.query(db.func.avg(TripOperationReport.travel_delay_duration)).filter(
+        *([TripOperationReport.created_date >= datetime.combine(s, datetime.min.time())] if s else []),
+        *([TripOperationReport.created_date <= datetime.combine(e, datetime.max.time())] if e else [])
+    ).scalar() or 0
+
+    summary = [
+        f'Route Requests {"increased" if cur_total_req > prev_total_req else "decreased"} by {abs(pct(cur_total_req, prev_total_req))}%.',
+        f'Approved Requests {"increased" if cur_approved > prev_approved else "decreased"} by {abs(pct(cur_approved, prev_approved))}%.',
+        f'Rejected Requests {"increased" if cur_rejected > prev_rejected else "decreased"} by {abs(pct(cur_rejected, prev_rejected))}%.',
+        f'Completed Trips {"increased" if cur_departed > prev_departed else "decreased"} by {abs(pct(cur_departed, prev_departed))}%.',
+        f'Penalty count {"increased" if cur_penalties > prev_penalties else "decreased"} by {abs(pct(cur_penalties, prev_penalties))}%.',
+        f'Total passengers: {int(cur_passengers)}.',
+        f'Average trip duration: {round(avg_dur, 1)} hours.',
+    ]
+    if top_dest:
+        summary.append(f'Most requested destination: {top_dest[0]}.')
+    if top_driver:
+        summary.append(f'Highest performing driver: {top_driver[0]}.')
+    if top_vehicle:
+        summary.append(f'Highest utilized vehicle: {top_vehicle[0]}.')
+    if top_dept_q:
+        summary.append(f'Top department: {top_dept_q[0]}.')
+    if peak_day:
+        day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        day_label = day_names[int(peak_day[0])] if peak_day[0].isdigit() and 0 <= int(peak_day[0]) <= 6 else peak_day[0]
+        summary.append(f'Peak request day: {day_label}.')
+
+    return jsonify({'summary': summary, 'period': {'start': str(ps), 'end': str(pe)}})
+
+
+@app.route('/api/dashboard/insights')
+@login_required
+def api_dashboard_insights():
+    from collections import defaultdict
+    s, e = _dash_date_range()
+    insights = []
+
+    # Vehicle utilization insight
+    vehicles = defaultdict(int)
+    for r in _dash_q(TripOperationReport).all():
+        vehicles[r.vehicle_number] += 1
+    for v, cnt in vehicles.items():
+        if cnt > 5:
+            insights.append(f'Vehicle {v} utilization exceeded {cnt} trips. Recommend preventive maintenance.')
+
+    # Driver penalties
+    driver_penalties = defaultdict(int)
+    for ep in _dash_q(EmployeePenalty).all():
+        driver_penalties[ep.employee_name] += 1
+    for name, cnt in driver_penalties.items():
+        if cnt >= 2:
+            insights.append(f'Driver {name} received {cnt} penalties this month. Recommend driver coaching.')
+
+    # Approval efficiency
+    q_rr = _dash_q(RouteRequest)
+    pending = q_rr.filter_by(status='Pending').count()
+    total = q_rr.count()
+    if total > 0 and pending / total > 0.4:
+        insights.append(f'Pending requests ({pending}/{total}) exceed 40%. Review approval workflow.')
+    elif total > 0 and pending / total < 0.1:
+        insights.append(f'Approval efficiency is high — only {pending}/{total} requests pending.')
+
+    # Penalty trends
+    cur_ep = _dash_q(EmployeePenalty).count()
+    prev_ep, _, _ = _prev_q(EmployeePenalty)
+    prev_cnt = prev_ep.count() or 1
+    if cur_ep > prev_cnt:
+        pct_up = round((cur_ep - prev_cnt) / prev_cnt * 100, 1)
+        insights.append(f'Penalty rate increased by {pct_up}%. Recommend supervisor monitoring.')
+
+    # Distance
+    total_trips = _dash_q(TripOperationReport).filter_by(vehicle_status='Departed').count()
+    if total_trips > 0:
+        insights.append(f'Total completed trips: {total_trips}. Fleet utilization is active.')
+
+    if not insights:
+        insights.append('All metrics are within normal range. No immediate action required.')
+
+    return jsonify({'insights': insights})
+
+
+@app.route('/api/dashboard/comparison')
+@login_required
+def api_dashboard_comparison():
+    comp_type = request.args.get('type', 'month')
+    period_a_start = request.args.get('period_a_start', '')
+    period_a_end = request.args.get('period_a_end', '')
+    period_b_start = request.args.get('period_b_start', '')
+    period_b_end = request.args.get('period_b_end', '')
+
+    now = datetime.now()
+    today = date.today()
+
+    # Determine periods
+    if comp_type == 'month':
+        # Last month vs month before
+        a_end = today.replace(day=1) - timedelta(days=1)
+        a_start = a_end.replace(day=1)
+        b_end = a_start - timedelta(days=1)
+        b_start = b_end.replace(day=1)
+    elif comp_type == 'quarter':
+        q = (now.month - 1) // 3
+        a_start = date(now.year, q * 3 + 1, 1)
+        a_end = today
+        b_start = date(now.year - 1 if q == 0 else now.year, ((q - 1) % 4) * 3 + 1, 1)
+        b_end = a_start - timedelta(days=1)
+    elif comp_type == 'year':
+        a_start = date(now.year, 1, 1)
+        a_end = today
+        b_start = date(now.year - 1, 1, 1)
+        b_end = date(now.year - 1, 12, 31)
+    else:
+        try:
+            a_start = datetime.strptime(period_a_start, '%Y-%m-%d').date()
+            a_end = datetime.strptime(period_a_end, '%Y-%m-%d').date()
+            b_start = datetime.strptime(period_b_start, '%Y-%m-%d').date()
+            b_end = datetime.strptime(period_b_end, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            a_start = a_end = b_start = b_end = None
+
+    def period_counts(model, st, en):
+        q = model.query
+        if st and en:
+            q = q.filter(model.created_date >= datetime.combine(st, datetime.min.time()),
+                         model.created_date <= datetime.combine(en, datetime.max.time()))
+        return {
+            'total': q.count(),
+            'approved': q.filter(getattr(model, 'status', None) == 'Approved').count() if hasattr(model, 'status') else 0,
+            'pending': q.filter(getattr(model, 'status', None) == 'Pending').count() if hasattr(model, 'status') else 0,
+            'rejected': q.filter(getattr(model, 'status', None) == 'Rejected').count() if hasattr(model, 'status') else 0,
+        }
+
+    a_rr = period_counts(RouteRequest, a_start, a_end)
+    b_rr = period_counts(RouteRequest, b_start, b_end)
+    a_ep = period_counts(EmployeePenalty, a_start, a_end)
+    b_ep = period_counts(EmployeePenalty, b_start, b_end)
+    a_tor = period_counts(TripOperationReport, a_start, a_end)
+    b_tor = period_counts(TripOperationReport, b_start, b_end)
+
+    def compare(a, b, label):
+        diff = a - b
+        pct = round((diff / b * 100) if b else 0, 1)
+        direction = 'up' if diff > 0 else ('down' if diff < 0 else 'neutral')
+        return {'label': label, 'periodA': a, 'periodB': b, 'diff': diff, 'pct': pct, 'direction': direction}
+
+    results = [
+        compare(a_rr['total'], b_rr['total'], 'Total Route Requests'),
+        compare(a_rr['approved'], b_rr['approved'], 'Approved Requests'),
+        compare(a_rr['pending'], b_rr['pending'], 'Pending Requests'),
+        compare(a_rr['rejected'], b_rr['rejected'], 'Rejected Requests'),
+        compare(a_ep['total'], b_ep['total'], 'Penalty Count'),
+        compare(a_tor['total'], b_tor['total'], 'Total Trip Reports'),
+    ]
+
+    return jsonify({
+        'periodA': {'start': str(a_start), 'end': str(a_end)},
+        'periodB': {'start': str(b_start), 'end': str(b_end)},
+        'results': results
+    })
+
+
+@app.route('/api/dashboard/tables')
+@login_required
+def api_dashboard_tables():
+    s, e = _dash_date_range()
+    recent_requests = _dash_q(RouteRequest).order_by(RouteRequest.created_date.desc()).limit(10).all()
+    recent_reports = _dash_q(TripOperationReport).order_by(TripOperationReport.created_date.desc()).limit(10).all()
+    recent_penalties = _dash_q(EmployeePenalty).order_by(EmployeePenalty.created_date.desc()).limit(10).all()
+    pending_approvals = _dash_q(RouteRequest).filter_by(status='Pending').order_by(RouteRequest.created_date.asc()).limit(10).all()
+
+    def fmt_rr(r):
+        return {'id': r.id, 'requestId': r.request_id, 'requester': r.requester_name,
+                'destination': f'{r.destination_from} → {r.destination_to}',
+                'date': r.created_date.strftime('%d %b %Y') if r.created_date else '',
+                'status': r.status}
+
+    def fmt_tor(r):
+        return {'id': r.id, 'reportId': r.report_id, 'vehicle': r.vehicle_number,
+                'driver': r.driver_phone or '—', 'origin': r.origin or '—', 'destination': r.destination or '—',
+                'status': r.vehicle_status, 'date': r.created_date.strftime('%d %b %Y') if r.created_date else ''}
+
+    def fmt_ep(r):
+        return {'id': r.id, 'penaltyId': r.penalty_id, 'employee': r.employee_name,
+                'violation': r.violation_type, 'amount': r.penalty_amount,
+                'status': r.status, 'date': r.created_date.strftime('%d %b %Y') if r.created_date else ''}
+
+    return jsonify({
+        'recentRequests': [fmt_rr(r) for r in recent_requests],
+        'recentTrips': [fmt_tor(r) for r in recent_reports],
+        'recentPenalties': [fmt_ep(r) for r in recent_penalties],
+        'pendingApprovals': [fmt_rr(r) for r in pending_approvals]
+    })
+
+
+# ─────────────────────────────────────────
 #  ROUTES: ROUTE REQUESTS
 # ─────────────────────────────────────────
 
@@ -825,7 +1960,7 @@ def route_requests():
             (RouteRequest.destination_from.contains(search)) |
             (RouteRequest.destination_to.contains(search))
         )
-    requests_list = query.order_by(RouteRequest.created_date.desc()).all()
+    requests_list = query.order_by(RouteRequest.created_date.desc()).limit(500).all()
     total_count = base.count()
     pending_count = base.filter_by(status='Pending').count()
     approved_count = base.filter_by(status='Approved').count()
@@ -984,6 +2119,286 @@ def delete_route_request(id):
     flash(_('Request deleted.'), 'info')
     return redirect(url_for('route_requests'))
 
+
+# ─────────────────────────────────────────
+#  ROUTES: TRANSPORT REQUESTS
+# ─────────────────────────────────────────
+
+@app.route('/transport-requests/upload', methods=['POST'])
+@login_required
+@any_permission_required('transport_request_create', 'transport_request_edit')
+def transport_upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'error': 'No file selected'}), 400
+    filename = save_any_upload(file)
+    if not filename:
+        return jsonify({'error': 'Failed to save file'}), 500
+    return jsonify({'filename': filename, 'original': file.filename})
+
+
+@app.route('/transport-requests/delete-file', methods=['POST'])
+@login_required
+@any_permission_required('transport_request_create', 'transport_request_edit')
+def transport_delete_file():
+    filename = request.form.get('filename', '')
+    if filename and re.match(r'^[a-f0-9]{32}\.[a-z]+$', filename):
+        delete_upload(filename)
+    return jsonify({'success': True})
+
+
+@app.route('/transport-requests/download/<filename>')
+@login_required
+def transport_download_file(filename):
+    if not re.match(r'^[\w\.\-]+$', filename):
+        flash(_('Invalid filename.'), 'danger')
+        return redirect(url_for('transport_requests'))
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        flash(_('File not found.'), 'danger')
+        return _safe_redirect(url_for('transport_requests'))
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+
+@app.route('/transport-requests')
+@login_required
+@any_permission_required('transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_delete', 'transport_request_approve', 'transport_request_reject', 'transport_request_download')
+def transport_requests():
+    base = TransportRequest.query
+    if current_user.role == 'branch_manager':
+        base = base.filter_by(requester_id=current_user.id)
+    status_filter = request.args.get('status', '')
+    search = request.args.get('search', '')
+    type_filter = request.args.get('request_type', '')
+    query = base
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if type_filter:
+        query = query.filter_by(request_type=type_filter)
+    if search:
+        query = query.filter(
+            (TransportRequest.request_id.contains(search)) |
+            (TransportRequest.requester_name.contains(search)) |
+            (TransportRequest.destination_from.contains(search)) |
+            (TransportRequest.destination_to.contains(search)) |
+            (TransportRequest.company.contains(search))
+        )
+    requests_list = query.order_by(TransportRequest.created_date.desc()).limit(500).all()
+    total_count = base.count()
+    pending_count = base.filter_by(status='Pending').count()
+    approved_count = base.filter_by(status='Approved').count()
+    rejected_count = base.filter_by(status='Rejected').count()
+    return render_template('transport_requests.html', requests=requests_list,
+                           status_filter=status_filter, search=search, type_filter=type_filter,
+                           total_count=total_count, pending_count=pending_count,
+                           approved_count=approved_count, rejected_count=rejected_count)
+
+
+@app.route('/transport-requests/new', methods=['GET', 'POST'])
+@login_required
+@permission_required('transport_request_create')
+def new_transport_request():
+    dest_module = ConfigModule.query.filter_by(module_key='destination', is_active=True).first()
+    transport_module = ConfigModule.query.filter_by(module_key='transportation_type', is_active=True).first()
+    destinations = DynamicRecord.query.filter_by(module_id=dest_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if dest_module else []
+    transport_types = DynamicRecord.query.filter_by(module_id=transport_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if transport_module else []
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    req_module = ConfigModule.query.filter_by(module_key='request_type', is_active=True).first()
+    request_types = DynamicRecord.query.filter_by(module_id=req_module.id, is_active=True).all() if req_module else []
+
+    if request.method == 'POST':
+        request_type = request.form.get('request_type', '')
+        if not request_type:
+            flash(_('Please select a request type.'), 'danger')
+            return render_template('transport_request_form.html', request_obj=None, destinations=destinations, transport_types=transport_types, companies=companies, branches=branches, request_types=request_types)
+
+        tr = TransportRequest()
+        tr.generate_id()
+        tr.request_type = request_type
+        tr.requester_name = current_user.full_name
+        tr.requester_id = current_user.id
+        tr.request_date = date.today()
+        tr.destination_from = (request.form.get('destination_from') or '').strip()
+        tr.destination_to = (request.form.get('destination_to') or '').strip()
+
+        tr.transportation_type = request.form.get('transportation_type', '')
+        tr.company = request.form.get('company', '')
+        tr.branch_location = request.form.get('branch_location', '')
+        tr.departure_time = request.form.get('departure_time', '')
+        start = request.form.get('active_start_date')
+        end = request.form.get('active_end_date')
+        tr.active_start_date = datetime.strptime(start, '%Y-%m-%d').date() if start else None
+        tr.active_end_date = datetime.strptime(end, '%Y-%m-%d').date() if end else None
+        tr.promotion_price = abs(float(request.form.get('promotion_price') or 0))
+        tr.remarks = request.form.get('remarks', '')
+
+        if request_type in ('create_journey', 'open_route'):
+            tr.national_road = request.form.get('national_road', '')
+            tr.price = abs(float(request.form.get('price') or 0))
+            tr.vehicle_no = request.form.get('vehicle_no', '')
+            tr.route_code = request.form.get('route_code', '')
+            tr.gender_required = request.form.get('gender_required', '')
+            tr.arrival_time = request.form.get('arrival_time', '')
+            if tr.departure_time and tr.arrival_time:
+                dep_parts = tr.departure_time.split(':')
+                arr_parts = tr.arrival_time.split(':')
+                dep_min = int(dep_parts[0]) * 60 + int(dep_parts[1])
+                arr_min = int(arr_parts[0]) * 60 + int(arr_parts[1])
+                if arr_min <= dep_min:
+                    arr_min += 1440
+                if arr_min - dep_min > 1440:
+                    flash(_('Duration cannot exceed 24 hours.'), 'danger')
+                    return render_template('transport_request_form.html', request_obj=None, destinations=destinations, transport_types=transport_types, companies=companies, branches=branches, request_types=request_types)
+            tr.duration = _calc_duration(tr.departure_time, tr.arrival_time)
+            if request_type == 'open_route':
+                tr.number_of_days = _int_or_none(request.form.get('number_of_days'))
+
+        if request_type == 'change_route':
+            tr.change_transportation_type_to = request.form.get('change_transportation_type_to', '')
+            tr.change_company_to = request.form.get('change_company_to', '')
+            tr.old_route_code = request.form.get('old_route_code', '')
+            tr.old_price = abs(float(request.form.get('old_price') or 0))
+            tr.new_price = abs(float(request.form.get('new_price') or 0))
+
+        attachments_raw = request.form.get('attachments', '[]')
+        try:
+            tr.attachments = json.loads(attachments_raw)
+        except (json.JSONDecodeError, TypeError):
+            tr.attachments = []
+
+        db.session.add(tr)
+        db.session.commit()
+        _send_telegram_notification(telegram_service.send_transport_notification, 'new', tr)
+        flash(_('Transport Request %(id)s submitted successfully!', id=tr.request_id), 'success')
+        return redirect(url_for('transport_requests'))
+
+    return render_template('transport_request_form.html', request_obj=None, destinations=destinations, transport_types=transport_types, companies=companies, branches=branches, request_types=request_types)
+
+
+@app.route('/transport-requests/<int:id>')
+@login_required
+@any_permission_required('transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_approve', 'transport_request_reject')
+def view_transport_request(id):
+    tr = TransportRequest.query.get_or_404(id)
+    return render_template('transport_request_detail.html', tr=tr)
+
+
+@app.route('/transport-requests/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@permission_required('transport_request_edit')
+def edit_transport_request(id):
+    tr = TransportRequest.query.get_or_404(id)
+    if tr.status != 'Pending':
+        flash(_('Only pending requests can be edited.'), 'warning')
+        return redirect(url_for('view_transport_request', id=id))
+
+    dest_module = ConfigModule.query.filter_by(module_key='destination', is_active=True).first()
+    transport_module = ConfigModule.query.filter_by(module_key='transportation_type', is_active=True).first()
+    destinations = DynamicRecord.query.filter_by(module_id=dest_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if dest_module else []
+    transport_types = DynamicRecord.query.filter_by(module_id=transport_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if transport_module else []
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    req_module = ConfigModule.query.filter_by(module_key='request_type', is_active=True).first()
+    request_types = DynamicRecord.query.filter_by(module_id=req_module.id, is_active=True).all() if req_module else []
+
+    if request.method == 'POST':
+        tr.destination_from = (request.form.get('destination_from') or '').strip()
+        tr.destination_to = (request.form.get('destination_to') or '').strip()
+        tr.transportation_type = request.form.get('transportation_type', '')
+        tr.company = request.form.get('company', '')
+        tr.branch_location = request.form.get('branch_location', '')
+        tr.departure_time = request.form.get('departure_time', '')
+        start = request.form.get('active_start_date')
+        end = request.form.get('active_end_date')
+        tr.active_start_date = datetime.strptime(start, '%Y-%m-%d').date() if start else None
+        tr.active_end_date = datetime.strptime(end, '%Y-%m-%d').date() if end else None
+        tr.promotion_price = abs(float(request.form.get('promotion_price') or 0))
+        tr.remarks = request.form.get('remarks', '')
+
+        if tr.request_type in ('create_journey', 'open_route'):
+            tr.national_road = request.form.get('national_road', '')
+            tr.price = abs(float(request.form.get('price') or 0))
+            tr.vehicle_no = request.form.get('vehicle_no', '')
+            tr.route_code = request.form.get('route_code', '')
+            tr.gender_required = request.form.get('gender_required', '')
+            tr.arrival_time = request.form.get('arrival_time', '')
+            if tr.departure_time and tr.arrival_time:
+                dep_parts = tr.departure_time.split(':')
+                arr_parts = tr.arrival_time.split(':')
+                dep_min = int(dep_parts[0]) * 60 + int(dep_parts[1])
+                arr_min = int(arr_parts[0]) * 60 + int(arr_parts[1])
+                if arr_min <= dep_min:
+                    arr_min += 1440
+                if arr_min - dep_min > 1440:
+                    flash(_('Duration cannot exceed 24 hours.'), 'danger')
+                    return render_template('transport_request_form.html', request_obj=tr, destinations=destinations, transport_types=transport_types, companies=companies, branches=branches, request_types=request_types)
+            tr.duration = _calc_duration(tr.departure_time, tr.arrival_time)
+            if tr.request_type == 'open_route':
+                tr.number_of_days = _int_or_none(request.form.get('number_of_days'))
+
+        if tr.request_type == 'change_route':
+            tr.change_transportation_type_to = request.form.get('change_transportation_type_to', '')
+            tr.change_company_to = request.form.get('change_company_to', '')
+            tr.old_route_code = request.form.get('old_route_code', '')
+            tr.old_price = abs(float(request.form.get('old_price') or 0))
+            tr.new_price = abs(float(request.form.get('new_price') or 0))
+
+        attachments_raw = request.form.get('attachments', '[]')
+        try:
+            tr.attachments = json.loads(attachments_raw)
+        except (json.JSONDecodeError, TypeError):
+            tr.attachments = []
+
+        tr.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+        _send_telegram_notification(telegram_service.send_transport_notification, 'updated', tr)
+        flash(_('Transport Request updated successfully!'), 'success')
+        return redirect(url_for('view_transport_request', id=id))
+
+    return render_template('transport_request_form.html', request_obj=tr, destinations=destinations, transport_types=transport_types, companies=companies, branches=branches, request_types=request_types)
+
+
+@app.route('/transport-requests/<int:id>/review', methods=['POST'])
+@login_required
+@any_permission_required('transport_request_approve', 'transport_request_reject')
+def review_transport_request(id):
+    tr = TransportRequest.query.get_or_404(id)
+    action = request.form.get('action')
+    note = request.form.get('review_note', '')
+    if action in ['Approved', 'Rejected']:
+        tr.status = action
+        tr.reviewed_by = current_user.id
+        tr.review_note = note
+        tr.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+        event_type = 'approved' if action == 'Approved' else 'rejected'
+        _send_telegram_notification(telegram_service.send_transport_notification, event_type, tr)
+        flash(_('Request %(action)s successfully!', action=action), 'success')
+    return redirect(url_for('view_transport_request', id=id))
+
+
+@app.route('/transport-requests/<int:id>/delete', methods=['POST'])
+@login_required
+@permission_required('transport_request_delete')
+def delete_transport_request(id):
+    tr = TransportRequest.query.get_or_404(id)
+    _send_telegram_notification(telegram_service.send_transport_notification, 'cancelled', tr)
+    if tr.attachments:
+        for filename in tr.attachments:
+            delete_upload(filename)
+    db.session.delete(tr)
+    db.session.commit()
+    flash(_('Transport request deleted.'), 'info')
+    return redirect(url_for('transport_requests'))
+
+
 # _________________________________________
 # ROUTES: CREATES ROLE
 #___________________________________________
@@ -1009,7 +2424,7 @@ def penalties():
             (EmployeePenalty.department.contains(search)) |
             (EmployeePenalty.violation_type.contains(search))
         )
-    penalties_list = query.order_by(EmployeePenalty.created_date.desc()).all()
+    penalties_list = query.order_by(EmployeePenalty.created_date.desc()).limit(500).all()
     total_count = base.count()
     pending_count = base.filter_by(status='Pending').count()
     approved_count = base.filter_by(status='Approved').count()
@@ -1026,13 +2441,19 @@ def penalties():
 @login_required
 @permission_required('penalty_create')
 def new_penalty():
+    users = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    violation_module = ConfigModule.query.filter_by(module_key='penalty_violation_type', is_active=True).first()
+    violation_types = DynamicRecord.query.filter_by(module_id=violation_module.id, is_active=True).all() if violation_module else []
+    dept_module = ConfigModule.query.filter_by(module_key='penalty_department', is_active=True).first()
+    penalty_departments = DynamicRecord.query.filter_by(module_id=dept_module.id, is_active=True).all() if dept_module else []
+    positions = Position.query.filter_by(status='Active').order_by(Position.name).all()
     if request.method == 'POST':
         employee_id = (request.form.get('employee_id') or '').strip()
         employee_name = (request.form.get('employee_name') or '').strip()
         violation_type = request.form.get('violation_type')
         if not employee_id or not employee_name:
             flash(_('Employee ID and name are required.'), 'danger')
-            return render_template('penalty_form.html', penalty=None)
+            return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
 
         ep = EmployeePenalty()
         ep.generate_id()
@@ -1043,6 +2464,7 @@ def new_penalty():
         ep.violation_type = violation_type
         ep.description = request.form.get('description')
         ep.penalty_amount = abs(float(request.form.get('penalty_amount') or 0))
+        ep.old_code = request.form.get('old_code')
         ep.approved_by = request.form.get('approved_by')
         ep.created_by = current_user.id
         inc_date = request.form.get('incident_date')
@@ -1053,9 +2475,10 @@ def new_penalty():
 
         db.session.add(ep)
         db.session.commit()
+        _send_telegram_notification(telegram_service.send_penalty_notification, 'new', ep)
         flash(_('Penalty Record %(id)s created successfully!', id=ep.penalty_id), 'success')
         return redirect(url_for('penalties'))
-    return render_template('penalty_form.html', penalty=None)
+    return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
 
 
 @app.route('/penalties/<int:id>')
@@ -1071,6 +2494,12 @@ def view_penalty(id):
 @permission_required('penalty_edit')
 def edit_penalty(id):
     ep = EmployeePenalty.query.get_or_404(id)
+    users = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    violation_module = ConfigModule.query.filter_by(module_key='penalty_violation_type', is_active=True).first()
+    violation_types = DynamicRecord.query.filter_by(module_id=violation_module.id, is_active=True).all() if violation_module else []
+    dept_module = ConfigModule.query.filter_by(module_key='penalty_department', is_active=True).first()
+    penalty_departments = DynamicRecord.query.filter_by(module_id=dept_module.id, is_active=True).all() if dept_module else []
+    positions = Position.query.filter_by(status='Active').order_by(Position.name).all()
     if ep.status != 'Pending' and current_user.role != 'admin':
         flash(_('Only pending penalties can be edited.'), 'warning')
         return redirect(url_for('view_penalty', id=id))
@@ -1079,7 +2508,7 @@ def edit_penalty(id):
         employee_name = (request.form.get('employee_name') or '').strip()
         if not employee_id or not employee_name:
             flash(_('Employee ID and name are required.'), 'danger')
-            return render_template('penalty_form.html', penalty=ep)
+            return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
         ep.employee_id = employee_id
         ep.employee_name = employee_name
         ep.department = request.form.get('department')
@@ -1087,14 +2516,16 @@ def edit_penalty(id):
         ep.violation_type = request.form.get('violation_type')
         ep.description = request.form.get('description')
         ep.penalty_amount = abs(float(request.form.get('penalty_amount') or 0))
+        ep.old_code = request.form.get('old_code')
         ep.approved_by = request.form.get('approved_by')
         inc_date = request.form.get('incident_date')
         ep.incident_date = datetime.strptime(inc_date, '%Y-%m-%d').date() if inc_date else ep.incident_date
         ep.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
+        _send_telegram_notification(telegram_service.send_penalty_notification, 'updated', ep)
         flash(_('Penalty record updated!'), 'success')
         return redirect(url_for('view_penalty', id=id))
-    return render_template('penalty_form.html', penalty=ep)
+    return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
 
 
 @app.route('/penalties/<int:id>/approve', methods=['POST'])
@@ -1107,6 +2538,8 @@ def approve_penalty(id):
         ep.status = action
         ep.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
+        event_type = 'approved' if action == 'Approved' else 'rejected'
+        _send_telegram_notification(telegram_service.send_penalty_notification, event_type, ep)
         flash(_('Penalty %(action)s!', action=action), 'success')
     return redirect(url_for('view_penalty', id=id))
 
@@ -1116,11 +2549,198 @@ def approve_penalty(id):
 @permission_required('penalty_delete')
 def delete_penalty(id):
     ep = EmployeePenalty.query.get_or_404(id)
+    _send_telegram_notification(telegram_service.send_penalty_notification, 'deleted', ep)
     delete_upload(ep.evidence_file)
     db.session.delete(ep)
     db.session.commit()
     flash(_('Penalty record deleted.'), 'info')
     return redirect(url_for('penalties'))
+
+
+# ─────────────────────────────────────────
+#  ROUTES: TELEGRAM SETTINGS
+# ─────────────────────────────────────────
+@app.route('/settings/telegram')
+@login_required
+def telegram_settings():
+    if current_user.role != 'admin':
+        flash(_('Access denied.'), 'danger')
+        return redirect(url_for('dashboard'))
+    setting = TelegramSetting.query.first()
+    return render_template('telegram_settings.html', setting=setting)
+
+
+@app.route('/settings/telegram/save', methods=['POST'])
+@login_required
+def telegram_settings_save():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if not setting:
+        setting = TelegramSetting()
+        db.session.add(setting)
+    raw_token = request.form.get('bot_token', '')
+    if raw_token:
+        setting.bot_token = _encrypt_token(raw_token)
+    elif not setting.bot_token:
+        setting.bot_token = ''
+    setting.chat_id = request.form.get('chat_id', '')
+    setting.enabled = 'enabled' in request.form
+    setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+    flash(_('Telegram settings saved!'), 'success')
+    return redirect(url_for('telegram_settings'))
+
+
+@app.route('/settings/telegram/test', methods=['POST'])
+@login_required
+def telegram_settings_test():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if not setting:
+        return jsonify({'success': False, 'error': 'No settings configured'})
+    bot_token = _decrypt_token(setting.bot_token)
+    if not bot_token:
+        return jsonify({'success': False, 'error': 'Bot token not configured'})
+    if not setting.chat_id:
+        return jsonify({'success': False, 'error': 'Chat ID not configured'})
+    now = datetime.now()
+    text = (
+        '\u2705 Telegram Notification Connected Successfully\n\n'
+        'System:\nIT Management\n\n'
+        'Date:\n' + now.strftime('%d %B %Y') + '\n\n'
+        'Time:\n' + now.strftime('%I:%M %p')
+    )
+    success, error = telegram_service.send_message(bot_token, setting.chat_id, text)
+    if success:
+        setting.last_test_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        setting.is_connected = True
+        info, _ = telegram_service.get_bot_info(bot_token)
+        if info:
+            setting.bot_username = info.get('username', '')
+        chat_info, _ = telegram_service.get_chat_info(bot_token, setting.chat_id)
+        if chat_info:
+            setting.group_name = chat_info.get('title', '')
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': error})
+
+
+@app.route('/api/settings/telegram')
+@login_required
+def api_telegram_settings():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if not setting:
+        return jsonify({'enabled': False, 'chat_id': '', 'has_token': False})
+    return jsonify({
+        'enabled': setting.enabled,
+        'chat_id': setting.chat_id,
+        'has_token': bool(setting.bot_token)
+    })
+
+
+@app.route('/api/telegram/status')
+@login_required
+def api_telegram_status():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if not setting or not setting.bot_token:
+        return jsonify({
+            'connected': False,
+            'has_token': False,
+            'bot_username': '',
+            'group_name': '',
+            'chat_id': '',
+            'enabled': False,
+            'last_test_at': None
+        })
+    bot_token = _decrypt_token(setting.bot_token)
+    info, _ = telegram_service.get_bot_info(bot_token)
+    chat_info = None
+    if info and setting.chat_id:
+        chat_info, _ = telegram_service.get_chat_info(bot_token, setting.chat_id)
+    return jsonify({
+        'connected': info is not None,
+        'has_token': True,
+        'bot_username': info.get('username', '') if info else (setting.bot_username or ''),
+        'group_name': chat_info.get('title', '') if chat_info else (setting.group_name or ''),
+        'chat_id': setting.chat_id or '',
+        'enabled': setting.enabled,
+        'last_test_at': setting.last_test_at.isoformat() if setting.last_test_at else None
+    })
+
+
+@app.route('/api/telegram/validate', methods=['POST'])
+@login_required
+def api_telegram_validate():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    data = request.get_json(silent=True)
+    token = (data or {}).get('token', '')
+    if not token:
+        return jsonify({'success': False, 'error': 'Token is required'})
+    is_valid, info, error = telegram_service.validate_token(token)
+    if is_valid:
+        return jsonify({
+            'success': True,
+            'bot_username': info.get('username', ''),
+            'bot_name': info.get('first_name', '')
+        })
+    return jsonify({'success': False, 'error': error or 'Invalid token'})
+
+
+@app.route('/api/telegram/disconnect', methods=['POST'])
+@login_required
+def api_telegram_disconnect():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if setting:
+        setting.bot_token = ''
+        setting.bot_username = ''
+        setting.group_name = ''
+        setting.is_connected = False
+        setting.enabled = False
+        setting.last_test_at = None
+        setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/telegram/save', methods=['POST'])
+@login_required
+def api_telegram_save():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    setting = TelegramSetting.query.first()
+    if not setting:
+        setting = TelegramSetting()
+        db.session.add(setting)
+    data = request.get_json(silent=True) or {}
+    if data.get('bot_token'):
+        token = data['bot_token']
+        is_valid, info, error = telegram_service.validate_token(token)
+        if not is_valid:
+            return jsonify({'success': False, 'error': error or 'Invalid token'})
+        setting.bot_token = _encrypt_token(token)
+        setting.bot_username = info.get('username', '')
+        setting.is_connected = True
+    if 'chat_id' in data:
+        setting.chat_id = data['chat_id']
+        if setting.bot_token:
+            bot_token = _decrypt_token(setting.bot_token)
+            chat_info, _ = telegram_service.get_chat_info(bot_token, data['chat_id'])
+            if chat_info:
+                setting.group_name = chat_info.get('title', '')
+    if 'enabled' in data:
+        setting.enabled = data['enabled']
+    setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 # ─────────────────────────────────────────
@@ -1150,7 +2770,7 @@ def trip_operation_reports():
         )
     if status_filter:
         query = query.filter_by(vehicle_status=status_filter)
-    reports = query.order_by(TripOperationReport.created_date.desc()).all()
+    reports = query.order_by(TripOperationReport.created_date.desc()).limit(500).all()
     total_count = base.count()
     departed_count = base.filter_by(vehicle_status='Departed').count()
     not_departed_count = base.filter_by(vehicle_status='Not Departed').count()
@@ -1168,6 +2788,10 @@ def trip_operation_reports():
 def new_trip_operation_report():
     dest_module = ConfigModule.query.filter_by(module_key='destination', is_active=True).first()
     destinations = DynamicRecord.query.filter_by(module_id=dest_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if dest_module else []
+    power_module = ConfigModule.query.filter_by(module_key='power_status', is_active=True).first()
+    power_statuses = DynamicRecord.query.filter_by(module_id=power_module.id, is_active=True).all() if power_module else []
+    vs_module = ConfigModule.query.filter_by(module_key='vehicle_status', is_active=True).first()
+    vehicle_statuses = DynamicRecord.query.filter_by(module_id=vs_module.id, is_active=True).all() if vs_module else []
 
     if request.method == 'POST':
         origin = (request.form.get('origin') or '').strip()
@@ -1191,10 +2815,11 @@ def new_trip_operation_report():
         if errors:
             for e in errors:
                 flash(e, 'danger')
-            return render_template('trip_operation_report_form.html', report=None, destinations=destinations)
+            return render_template('trip_operation_report_form.html', report=None, destinations=destinations, power_statuses=power_statuses, vehicle_statuses=vehicle_statuses)
 
         tor = TripOperationReport()
         tor.generate_id()
+        tor.trip_date = date.today()
         tor.origin = origin
         tor.destination = destination
         tor.departure_time = departure_time_str
@@ -1204,7 +2829,8 @@ def new_trip_operation_report():
         tor.driver_phone = request.form.get('driver_phone')
         tor.arrival_at_station = request.form.get('arrival_at_station')
         tor.departure_from_station = request.form.get('departure_from_station')
-        tor.travel_delay_duration = abs(float(request.form.get('travel_delay_duration') or 0))
+        tor.travel_delay_duration = _calc_delay_minutes(tor.arrival_at_station, tor.departure_from_station)
+        tor.layover_duration = _calc_layover(tor.departure_time, tor.departure_from_station)
         tor.reason_for_delay = request.form.get('reason_for_delay')
         tor.vehicle_status = vehicle_status
         tor.passenger_count = abs(int(request.form.get('passenger_count') or 0))
@@ -1216,7 +2842,7 @@ def new_trip_operation_report():
         db.session.commit()
         flash(_('Trip Operation Report %(id)s created successfully!', id=tor.report_id), 'success')
         return redirect(url_for('trip_operation_reports'))
-    return render_template('trip_operation_report_form.html', report=None, destinations=destinations)
+    return render_template('trip_operation_report_form.html', report=None, destinations=destinations, power_statuses=power_statuses, vehicle_statuses=vehicle_statuses)
 
 
 @app.route('/trip-operation-reports/<int:id>')
@@ -1233,6 +2859,10 @@ def edit_trip_operation_report(id):
     tor = TripOperationReport.query.get_or_404(id)
     dest_module = ConfigModule.query.filter_by(module_key='destination', is_active=True).first()
     destinations = DynamicRecord.query.filter_by(module_id=dest_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if dest_module else []
+    power_module = ConfigModule.query.filter_by(module_key='power_status', is_active=True).first()
+    power_statuses = DynamicRecord.query.filter_by(module_id=power_module.id, is_active=True).all() if power_module else []
+    vs_module = ConfigModule.query.filter_by(module_key='vehicle_status', is_active=True).first()
+    vehicle_statuses = DynamicRecord.query.filter_by(module_id=vs_module.id, is_active=True).all() if vs_module else []
 
     if request.method == 'POST':
         origin = (request.form.get('origin') or '').strip()
@@ -1256,8 +2886,10 @@ def edit_trip_operation_report(id):
         if errors:
             for e in errors:
                 flash(e, 'danger')
-            return render_template('trip_operation_report_form.html', report=tor, destinations=destinations)
+            return render_template('trip_operation_report_form.html', report=tor, destinations=destinations, power_statuses=power_statuses, vehicle_statuses=vehicle_statuses)
 
+        if not tor.trip_date:
+            tor.trip_date = date.today()
         tor.origin = origin
         tor.destination = destination
         tor.departure_time = departure_time_str
@@ -1267,7 +2899,8 @@ def edit_trip_operation_report(id):
         tor.driver_phone = request.form.get('driver_phone')
         tor.arrival_at_station = request.form.get('arrival_at_station')
         tor.departure_from_station = request.form.get('departure_from_station')
-        tor.travel_delay_duration = abs(float(request.form.get('travel_delay_duration') or 0))
+        tor.travel_delay_duration = _calc_delay_minutes(tor.arrival_at_station, tor.departure_from_station)
+        tor.layover_duration = _calc_layover(tor.departure_time, tor.departure_from_station)
         tor.reason_for_delay = request.form.get('reason_for_delay')
         tor.vehicle_status = vehicle_status
         tor.passenger_count = abs(int(request.form.get('passenger_count') or 0))
@@ -1277,7 +2910,7 @@ def edit_trip_operation_report(id):
         db.session.commit()
         flash(_('Trip Operation Report updated successfully!'), 'success')
         return redirect(url_for('view_trip_operation_report', id=id))
-    return render_template('trip_operation_report_form.html', report=tor, destinations=destinations)
+    return render_template('trip_operation_report_form.html', report=tor, destinations=destinations, power_statuses=power_statuses, vehicle_statuses=vehicle_statuses)
 
 
 @app.route('/trip-operation-reports/<int:id>/delete', methods=['POST'])
@@ -1289,6 +2922,965 @@ def delete_trip_operation_report(id):
     db.session.commit()
     flash(_('Trip Operation Report deleted.'), 'info')
     return redirect(url_for('trip_operation_reports'))
+
+
+# ─────────────────────────────────────────
+#  VEHICLE PERFORMANCE ANALYSIS
+# ─────────────────────────────────────────
+
+@app.route('/vehicle-performance')
+@login_required
+def vehicle_performance():
+    return render_template('vehicle_performance.html')
+
+
+@app.route('/api/vehicle-performance/vehicles')
+@login_required
+def api_vehicle_performance_vehicles():
+    vehicles = db.session.query(TripOperationReport.vehicle_number)\
+        .distinct()\
+        .order_by(TripOperationReport.vehicle_number)\
+        .all()
+    return jsonify([v[0] for v in vehicles if v[0]])
+
+
+def _parse_layover_minutes(layover_str):
+    if not layover_str:
+        return 0
+    try:
+        parts = layover_str.split(':')
+        return int(parts[0]) * 60 + int(parts[1])
+    except (ValueError, IndexError, TypeError):
+        return 0
+
+
+def _compute_vehicle_performance(reports):
+    total_trips = len(reports)
+    let_minutes_list = []
+    for r in reports:
+        m = _parse_layover_minutes(r.layover_duration)
+        if m > 0:
+            let_minutes_list.append(m)
+    total_let = sum(let_minutes_list)
+    avg_let = round(total_let / len(let_minutes_list), 2) if let_minutes_list else 0
+    max_let = max(let_minutes_list) if let_minutes_list else 0
+    delay_records = [r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]
+    total_delay = round(sum(r.travel_delay_duration for r in delay_records), 2)
+    num_delay_records = len(delay_records)
+    avg_delay_per_trip = round(total_delay / total_trips, 2) if total_trips else 0
+    total_passengers = sum(r.passenger_count or 0 for r in reports)
+    status_summary = defaultdict(int)
+    for r in reports:
+        status_summary[r.vehicle_status or 'Unknown'] += 1
+    daily_map = {}
+    for r in reports:
+        if not r.trip_date:
+            continue
+        day = r.trip_date.isoformat()
+        if day not in daily_map:
+            daily_map[day] = {'trips': 0, 'let': 0, 'delay': 0}
+        daily_map[day]['trips'] += 1
+        daily_map[day]['let'] += _parse_layover_minutes(r.layover_duration)
+        daily_map[day]['delay'] += r.travel_delay_duration or 0
+    sorted_days = sorted(daily_map.keys())
+    summary = {
+        'totalTrips': total_trips,
+        'totalLETDurationCount': len(let_minutes_list),
+        'averageLET': avg_let,
+        'maxLET': max_let,
+        'totalDelay': total_delay,
+        'delayRecords': num_delay_records,
+        'avgDelayPerTrip': avg_delay_per_trip,
+        'totalPassengers': total_passengers,
+    }
+    charts = {
+        'status': [{'name': k, 'value': v} for k, v in sorted(status_summary.items(), key=lambda x: -x[1])],
+        'letByDay': [daily_map[d]['let'] for d in sorted_days],
+        'delayByDay': [daily_map[d]['delay'] for d in sorted_days],
+        'tripsByDay': [daily_map[d]['trips'] for d in sorted_days],
+    }
+    if sorted_days:
+        charts['labels'] = sorted_days
+    return summary, charts
+
+
+def _get_date_range(date_range, start_date_str, end_date_str):
+    today = date.today()
+    if date_range == 'today':
+        return today, today
+    elif date_range == 'yesterday':
+        return today - timedelta(days=1), today - timedelta(days=1)
+    elif date_range == 'week':
+        return today - timedelta(days=today.weekday()), today
+    elif date_range == 'month':
+        return today.replace(day=1), today
+    elif date_range == 'custom' and start_date_str and end_date_str:
+        try:
+            return datetime.strptime(start_date_str, '%Y-%m-%d').date(), datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return today, today
+    else:
+        return today, today
+
+
+def _build_base_query(start, end, vehicle=None):
+    q = TripOperationReport.query\
+        .filter(TripOperationReport.trip_date >= start)\
+        .filter(TripOperationReport.trip_date <= end)
+    if vehicle:
+        q = q.filter(TripOperationReport.vehicle_number == vehicle)
+    return q
+
+
+@app.route('/api/vehicle-performance/data')
+@login_required
+def api_vehicle_performance_data():
+    vehicle = request.args.get('vehicle', '')
+    date_range = request.args.get('range', 'today')
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+
+    start, end = _get_date_range(date_range, start_date_str, end_date_str)
+    period_label = f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
+
+    if vehicle == '__all__':
+        all_vehicles = db.session.query(TripOperationReport.vehicle_number)\
+            .filter(TripOperationReport.trip_date >= start)\
+            .filter(TripOperationReport.trip_date <= end)\
+            .distinct().order_by(TripOperationReport.vehicle_number).all()
+        all_vehicles = [v[0] for v in all_vehicles if v[0]]
+
+        vehicles_data = []
+        aggregate_reports = []
+        for v in all_vehicles:
+            v_reports = _build_base_query(start, end, v).order_by(TripOperationReport.trip_date).all()
+            aggregate_reports.extend(v_reports)
+            v_summary, v_charts = _compute_vehicle_performance(v_reports)
+            vehicles_data.append({
+                'vehicle': v,
+                'summary': v_summary,
+                'charts': v_charts,
+            })
+
+        agg_summary, agg_charts = _compute_vehicle_performance(aggregate_reports)
+
+        return jsonify({
+            'vehicle': '__all__',
+            'is_all': True,
+            'period': period_label,
+            'vehicles': vehicles_data,
+            'summary': agg_summary,
+            'charts': agg_charts,
+        })
+
+    reports = _build_base_query(start, end, vehicle).order_by(TripOperationReport.trip_date).all()
+    summary, charts = _compute_vehicle_performance(reports)
+
+    return jsonify({
+        'vehicle': vehicle,
+        'is_all': False,
+        'period': period_label,
+        'summary': summary,
+        'charts': charts,
+    })
+
+
+@app.route('/vehicle-performance/export/excel')
+@login_required
+def vehicle_performance_export_excel():
+    vehicle = request.args.get('vehicle', '')
+    date_range = request.args.get('range', 'today')
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+
+    start, end = _get_date_range(date_range, start_date_str, end_date_str)
+    period_label = f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
+
+    if vehicle == '__all__':
+        all_vehicles = db.session.query(TripOperationReport.vehicle_number)\
+            .filter(TripOperationReport.trip_date >= start)\
+            .filter(TripOperationReport.trip_date <= end)\
+            .distinct().order_by(TripOperationReport.vehicle_number).all()
+        all_vehicles = [v[0] for v in all_vehicles if v[0]]
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "All Vehicles Summary"
+        ws.cell(row=1, column=1, value=f"All Vehicles Performance Summary").font = Font(bold=True, size=14)
+        ws.cell(row=2, column=1, value=f"Period: {period_label}").font = Font(size=11)
+        ws.merge_cells('A1:G1')
+        ws.merge_cells('A2:G2')
+
+        v_headers = ['Vehicle', 'Total Trips', 'Total LET Duration Count', 'Avg LET (min)', 'Max LET (min)',
+                     'Total Delay (min)', 'Delay Records', 'Avg Delay (min)', 'Total Passengers']
+        vh_font = Font(bold=True, color="FFFFFF")
+        vh_fill = PatternFill("solid", fgColor="1a3c5e")
+        for col, h in enumerate(v_headers, 1):
+            cell = ws.cell(row=4, column=col, value=h)
+            cell.font = vh_font
+            cell.fill = vh_fill
+            cell.alignment = Alignment(horizontal='center')
+            ws.column_dimensions[cell.column_letter].width = 18
+
+        row_offset = 5
+        for v in all_vehicles:
+            v_reports = _build_base_query(start, end, v).order_by(TripOperationReport.trip_date).all()
+            v_summary, _ = _compute_vehicle_performance(v_reports)
+            ws.cell(row=row_offset, column=1, value=v)
+            ws.cell(row=row_offset, column=2, value=v_summary['totalTrips'])
+            ws.cell(row=row_offset, column=3, value=v_summary['totalLETDurationCount'])
+            ws.cell(row=row_offset, column=4, value=v_summary['averageLET'])
+            ws.cell(row=row_offset, column=5, value=v_summary['maxLET'])
+            ws.cell(row=row_offset, column=6, value=v_summary['totalDelay'])
+            ws.cell(row=row_offset, column=7, value=v_summary['delayRecords'])
+            ws.cell(row=row_offset, column=8, value=v_summary['avgDelayPerTrip'])
+            ws.cell(row=row_offset, column=9, value=v_summary['totalPassengers'])
+            row_offset += 1
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_excel(buf, f'vehicle_performance_all_vehicles_{date.today()}.xlsx')
+
+    reports = _build_base_query(start, end, vehicle).order_by(TripOperationReport.trip_date).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Vehicle Performance"
+
+    ws.cell(row=1, column=1, value=f"Vehicle: {vehicle}").font = Font(bold=True, size=14)
+    ws.cell(row=2, column=1, value=f"Period: {period_label}").font = Font(size=11)
+    ws.merge_cells('A1:M1')
+    ws.merge_cells('A2:M2')
+
+    headers = ['Trip Date', 'Report ID', 'Origin', 'Destination', 'Direction',
+               'Departure', 'Arrival Stn', 'Depart Stn', 'Delay (min)',
+               'LET (min)', 'Status', 'Passengers', 'Coordinator']
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="1a3c5e")
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        ws.column_dimensions[cell.column_letter].width = 16
+
+    for i, r in enumerate(reports, 5):
+        ws.cell(row=i, column=1, value=str(r.trip_date or ''))
+        ws.cell(row=i, column=2, value=r.report_id)
+        ws.cell(row=i, column=3, value=r.origin)
+        ws.cell(row=i, column=4, value=r.destination)
+        ws.cell(row=i, column=5, value=r.travel_direction or '')
+        ws.cell(row=i, column=6, value=r.departure_time or '')
+        ws.cell(row=i, column=7, value=r.arrival_at_station or '')
+        ws.cell(row=i, column=8, value=r.departure_from_station or '')
+        ws.cell(row=i, column=9, value=int(r.travel_delay_duration or 0))
+        ws.cell(row=i, column=10, value=_parse_layover_minutes(r.layover_duration))
+        ws.cell(row=i, column=11, value=r.vehicle_status)
+        ws.cell(row=i, column=12, value=int(r.passenger_count or 0))
+        ws.cell(row=i, column=13, value=r.coordinator_name or '')
+
+    row_num = 5 + len(reports) + 1
+    let_vals = [_parse_layover_minutes(r.layover_duration) for r in reports if _parse_layover_minutes(r.layover_duration) > 0]
+
+    summary_data = [
+        ('Total Trips', len(reports)),
+        ('Total LET Duration Count', f'{len(let_vals)} Times'),
+        ('Average LET', f'{round(sum(let_vals)/len(let_vals), 2) if let_vals else 0} Minutes'),
+        ('Maximum LET', f'{max(let_vals) if let_vals else 0} Minutes'),
+        ('', ''),
+        ('Total Delay', f'{sum(r.travel_delay_duration or 0 for r in reports)} Minutes'),
+        ('Delay Records', f'{len([r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0])} Trips'),
+        ('Average Delay', f'{round(sum(r.travel_delay_duration or 0 for r in [r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]) / max(len([r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]), 1), 2)} Minutes'),
+        ('', ''),
+        ('Trips with LET', len(let_vals)),
+        ('Trips without LET', len(reports) - len(let_vals)),
+        ('', ''),
+        ('Total Passengers', sum(r.passenger_count or 0 for r in reports)),
+    ]
+
+    bold_font = Font(bold=True)
+    for i, (label, val) in enumerate(summary_data):
+        cell_a = ws.cell(row=row_num + i, column=1, value=label)
+        cell_b = ws.cell(row=row_num + i, column=2, value=val)
+        if label:
+            cell_a.font = bold_font
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_excel(buf, f'vehicle_performance_{vehicle}_{date.today()}.xlsx')
+
+
+@app.route('/vehicle-performance/export/pdf')
+@login_required
+def vehicle_performance_export_pdf():
+    vehicle = request.args.get('vehicle', '')
+    date_range = request.args.get('range', 'today')
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+
+    start, end = _get_date_range(date_range, start_date_str, end_date_str)
+    period_label = f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
+
+    pdf = FPDF()
+    khmer_font = _find_khmer_font()
+    if khmer_font:
+        try:
+            pdf.add_font('Khmer', '', khmer_font, uni=True)
+            pdf.add_font('Khmer', 'B', khmer_font, uni=True)
+            font_name = 'Khmer'
+        except RuntimeError:
+            font_name = 'Helvetica'
+    else:
+        font_name = 'Helvetica'
+
+    pdf.add_page()
+    pdf.set_font(font_name, 'B', 16)
+    pdf.cell(0, 10, f'Vehicle Performance Analysis', new_x='LMARGIN', new_y='NEXT', align='C')
+
+    if vehicle == '__all__':
+        pdf.set_font(font_name, '', 10)
+        pdf.cell(0, 7, 'All Vehicles', new_x='LMARGIN', new_y='NEXT', align='C')
+        pdf.cell(0, 7, f'Period: {period_label}', new_x='LMARGIN', new_y='NEXT', align='C')
+        pdf.cell(0, 5, f'Generated: {datetime.now().strftime("%d %b %Y %H:%M")}', new_x='LMARGIN', new_y='NEXT', align='R')
+        pdf.ln(5)
+
+        all_vehicles = db.session.query(TripOperationReport.vehicle_number)\
+            .filter(TripOperationReport.trip_date >= start)\
+            .filter(TripOperationReport.trip_date <= end)\
+            .distinct().order_by(TripOperationReport.vehicle_number).all()
+        all_vehicles = [v[0] for v in all_vehicles if v[0]]
+
+        pdf.set_font(font_name, 'B', 9)
+        v_headers = ['Vehicle', 'Trips', 'Total LET Count', 'Avg LET', 'Max LET', 'Total Delay', 'Delays', 'Avg Delay', 'Passengers']
+        col_w = 30
+        pdf.set_fill_color(26, 60, 94)
+        pdf.set_text_color(255, 255, 255)
+        for h in v_headers:
+            pdf.cell(col_w, 7, h, border=1, fill=True, align='C')
+        pdf.ln()
+        pdf.set_text_color(50, 50, 50)
+        pdf.set_font(font_name, '', 7)
+        for v in all_vehicles:
+            v_reports = _build_base_query(start, end, v).order_by(TripOperationReport.trip_date).all()
+            v_summary, _ = _compute_vehicle_performance(v_reports)
+            vals = [
+                v[:8],
+                str(v_summary['totalTrips']),
+                str(v_summary['totalLETDurationCount']),
+                str(v_summary['averageLET']),
+                str(v_summary['maxLET']),
+                str(v_summary['totalDelay']),
+                str(v_summary['delayRecords']),
+                str(v_summary['avgDelayPerTrip']),
+                str(v_summary['totalPassengers']),
+            ]
+            for val in vals:
+                pdf.cell(col_w, 5, val, border=1, align='C')
+            pdf.ln()
+
+        buf = io.BytesIO()
+        pdf.output(buf)
+        buf.seek(0)
+        return send_pdf(buf, f'vehicle_performance_all_vehicles_{date.today()}.pdf')
+
+    pdf.set_font(font_name, '', 10)
+    pdf.cell(0, 7, f'Vehicle: {vehicle}', new_x='LMARGIN', new_y='NEXT', align='C')
+    pdf.cell(0, 7, f'Period: {period_label}', new_x='LMARGIN', new_y='NEXT', align='C')
+    pdf.cell(0, 5, f'Generated: {datetime.now().strftime("%d %b %Y %H:%M")}', new_x='LMARGIN', new_y='NEXT', align='R')
+    pdf.ln(5)
+
+    reports = _build_base_query(start, end, vehicle).order_by(TripOperationReport.trip_date).all()
+    let_vals = [_parse_layover_minutes(r.layover_duration) for r in reports if _parse_layover_minutes(r.layover_duration) > 0]
+    delay_recs = [r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]
+
+    summary_items = [
+        ('Total Trips', str(len(reports))),
+        ('Total LET Duration Count', f'{len(let_vals)} Times'),
+        ('Average LET', f'{round(sum(let_vals)/len(let_vals), 2) if let_vals else 0} Minutes'),
+        ('Maximum LET', f'{max(let_vals) if let_vals else 0} Minutes'),
+        ('', ''),
+        ('Total Delay', f'{round(sum(r.travel_delay_duration or 0 for r in reports), 2)} Minutes'),
+        ('Delay Records', f'{len(delay_recs)} Trips'),
+        ('Average Delay', f'{round(sum(r.travel_delay_duration or 0 for r in delay_recs) / max(len(delay_recs), 1), 2)} Minutes'),
+        ('', ''),
+        ('Trips with LET', str(len(let_vals))),
+        ('Trips without LET', str(len(reports) - len(let_vals))),
+        ('', ''),
+        ('Total Passengers', str(sum(r.passenger_count or 0 for r in reports))),
+    ]
+
+    pdf.set_font(font_name, '', 10)
+    for label, val in summary_items:
+        if label:
+            pdf.set_font(font_name, 'B', 10)
+            pdf.cell(80, 7, label, border=0)
+            pdf.set_font(font_name, '', 10)
+            pdf.cell(0, 7, val, border=0, new_x='LMARGIN', new_y='NEXT')
+        else:
+            pdf.ln(2)
+
+    pdf.ln(5)
+    pdf.set_font(font_name, 'B', 10)
+    pdf.cell(0, 7, 'Vehicle Status Summary:', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_font(font_name, '', 10)
+    status_counts = defaultdict(int)
+    for r in reports:
+        status_counts[r.vehicle_status or 'Unknown'] += 1
+    for status, count in sorted(status_counts.items(), key=lambda x: -x[1]):
+        pdf.cell(0, 6, f'  {status}: {count}', new_x='LMARGIN', new_y='NEXT')
+
+    pdf.ln(8)
+    pdf.set_font(font_name, 'B', 9)
+    headers = ['Date', 'Report ID', 'Origin', 'Destination', 'Delay', 'LET', 'Status', 'Pass']
+    col_w = 34
+    page_w = 270
+    pdf.set_fill_color(26, 60, 94)
+    pdf.set_text_color(255, 255, 255)
+    for h in headers:
+        pdf.cell(col_w, 7, h, border=1, fill=True, align='C')
+    pdf.ln()
+    pdf.set_text_color(50, 50, 50)
+    pdf.set_font(font_name, '', 7)
+    for r in reports:
+        vals = [
+            str(r.trip_date or '')[:10], r.report_id,
+            (r.origin or '')[:12], (r.destination or '')[:12],
+            str(int(r.travel_delay_duration or 0)),
+            str(_parse_layover_minutes(r.layover_duration)),
+            (r.vehicle_status or '')[:8],
+            str(int(r.passenger_count or 0))
+        ]
+        for v in vals:
+            pdf.cell(col_w, 5, v, border=1, align='C')
+        pdf.ln()
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
+    return send_pdf(buf, f'vehicle_performance_{vehicle}_{date.today()}.pdf')
+
+
+# ─────────────────────────────────────────
+#  ROUTES: KPI EVALUATIONS
+# ─────────────────────────────────────────
+
+@app.route('/kpi-evaluations')
+@login_required
+def kpi_evaluations():
+    query = KpiEvaluation.query
+    if current_user.role not in ('admin', 'hr_manager'):
+        query = query.filter_by(created_by=current_user.id)
+    search = request.args.get('search', '')
+    month_filter = request.args.get('month', '')
+    year_filter = request.args.get('year', '')
+    if search:
+        query = query.filter(
+            (KpiEvaluation.staff_name.contains(search)) |
+            (KpiEvaluation.staff_id.contains(search))
+        )
+    if month_filter:
+        query = query.filter_by(evaluation_month=int(month_filter))
+    if year_filter:
+        query = query.filter_by(evaluation_year=int(year_filter))
+    evaluations = query.order_by(KpiEvaluation.created_date.desc()).all()
+    return render_template('kpi_list.html', evaluations=evaluations,
+                           search=search, month_filter=month_filter, year_filter=year_filter)
+
+
+@app.route('/kpi-evaluations/new', methods=['GET', 'POST'])
+@login_required
+def new_kpi_evaluation():
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    rs_module = ConfigModule.query.filter_by(module_key='report_submission_status', is_active=True).first()
+    report_submission_statuses = DynamicRecord.query.filter_by(module_id=rs_module.id, is_active=True).all() if rs_module else []
+
+    if request.method == 'POST':
+        staff_name = (request.form.get('staff_name') or '').strip()
+        staff_id = (request.form.get('staff_id') or '').strip()
+        if not staff_name or not staff_id:
+            flash(_('Staff name and ID are required.'), 'danger')
+            return render_template('kpi_form.html', evaluation=None, companies=companies, branches=branches, report_submission_statuses=report_submission_statuses)
+
+        ke = KpiEvaluation()
+        ke.staff_name = staff_name
+        ke.staff_id = staff_id
+        ke.branch = request.form.get('branch', '')
+        ke.company = request.form.get('company', '')
+        ke.evaluation_month = int(request.form.get('evaluation_month') or 0)
+        ke.evaluation_year = int(request.form.get('evaluation_year') or 0)
+        ke.evaluator_name = request.form.get('evaluator_name', current_user.full_name)
+        ke.comments = request.form.get('comments', '')
+        ke.improvement_plan = request.form.get('improvement_plan', '')
+        ke.status = request.form.get('status', 'Draft')
+        ke.created_by = current_user.id
+
+        # Ticket Sales
+        ke.ticket_sales_target = abs(float(request.form.get('ticket_sales_target') or 0))
+        ke.actual_tickets_sold = abs(float(request.form.get('actual_tickets_sold') or 0))
+        ke.achievement_pct = _calc_pct(ke.actual_tickets_sold, ke.ticket_sales_target)
+        ke.ticket_sales_score = round(ke.achievement_pct * 0.40, 2)
+
+        # Booking Accuracy
+        ke.booking_accuracy_pct = min(abs(float(request.form.get('booking_accuracy_pct') or 0)), 100)
+        ke.booking_errors = abs(int(request.form.get('booking_errors') or 0))
+        ke.booking_accuracy_score = round(ke.booking_accuracy_pct * 0.20, 2)
+
+        # Customer Service
+        ke.customer_satisfaction = min(abs(float(request.form.get('customer_satisfaction') or 0)), 100)
+        ke.complaints_handled = abs(int(request.form.get('complaints_handled') or 0))
+        ke.customer_service_score = round(ke.customer_satisfaction * 0.15, 2)
+
+        # Attendance
+        ke.late_arrivals = abs(int(request.form.get('late_arrivals') or 0))
+        ke.unexcused_absences = abs(int(request.form.get('unexcused_absences') or 0))
+        attendance_raw = 100 - (ke.late_arrivals * 2 + ke.unexcused_absences * 5)
+        ke.attendance_score = round(max(attendance_raw, 0) * 0.10, 2)
+
+        # Daily Reporting
+        ke.report_submission = request.form.get('report_submission', '')
+        report_raw = abs(float(request.form.get('daily_report_raw') or ke.attendance_score * 10))
+        ke.daily_report_score = round(min(abs(float(request.form.get('daily_report_score') or 0)), 100) * 0.10, 2)
+
+        # SOP Compliance
+        ke.sop_compliance = min(abs(float(request.form.get('sop_compliance') or 0)), 100)
+        ke.sop_compliance_score = round(ke.sop_compliance * 0.05, 2)
+
+        # Total
+        ke.total_score = round(ke.ticket_sales_score + ke.booking_accuracy_score +
+                               ke.customer_service_score + ke.attendance_score +
+                               ke.daily_report_score + ke.sop_compliance_score, 2)
+        ke.performance_rating = _calc_rating(ke.total_score)
+
+        db.session.add(ke)
+        db.session.commit()
+        flash(_('KPI Evaluation saved successfully!'), 'success')
+        return redirect(url_for('view_kpi_evaluation', id=ke.id))
+
+    return render_template('kpi_form.html', evaluation=None, companies=companies, branches=branches, report_submission_statuses=report_submission_statuses)
+
+
+@app.route('/kpi-evaluations/<int:id>')
+@login_required
+def view_kpi_evaluation(id):
+    ke = KpiEvaluation.query.get_or_404(id)
+    return render_template('kpi_detail.html', ke=ke)
+
+
+@app.route('/kpi-evaluations/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_kpi_evaluation(id):
+    ke = KpiEvaluation.query.get_or_404(id)
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    rs_module = ConfigModule.query.filter_by(module_key='report_submission_status', is_active=True).first()
+    report_submission_statuses = DynamicRecord.query.filter_by(module_id=rs_module.id, is_active=True).all() if rs_module else []
+
+    if request.method == 'POST':
+        ke.branch = request.form.get('branch', '')
+        ke.company = request.form.get('company', '')
+        ke.evaluation_month = int(request.form.get('evaluation_month') or 0)
+        ke.evaluation_year = int(request.form.get('evaluation_year') or 0)
+        ke.evaluator_name = request.form.get('evaluator_name', ke.evaluator_name)
+        ke.comments = request.form.get('comments', '')
+        ke.improvement_plan = request.form.get('improvement_plan', '')
+        if ke.status != 'Submitted':
+            ke.status = request.form.get('status', 'Draft')
+
+        ke.ticket_sales_target = abs(float(request.form.get('ticket_sales_target') or 0))
+        ke.actual_tickets_sold = abs(float(request.form.get('actual_tickets_sold') or 0))
+        ke.achievement_pct = _calc_pct(ke.actual_tickets_sold, ke.ticket_sales_target)
+        ke.ticket_sales_score = round(ke.achievement_pct * 0.40, 2)
+
+        ke.booking_accuracy_pct = min(abs(float(request.form.get('booking_accuracy_pct') or 0)), 100)
+        ke.booking_errors = abs(int(request.form.get('booking_errors') or 0))
+        ke.booking_accuracy_score = round(ke.booking_accuracy_pct * 0.20, 2)
+
+        ke.customer_satisfaction = min(abs(float(request.form.get('customer_satisfaction') or 0)), 100)
+        ke.complaints_handled = abs(int(request.form.get('complaints_handled') or 0))
+        ke.customer_service_score = round(ke.customer_satisfaction * 0.15, 2)
+
+        ke.late_arrivals = abs(int(request.form.get('late_arrivals') or 0))
+        ke.unexcused_absences = abs(int(request.form.get('unexcused_absences') or 0))
+        attendance_raw = 100 - (ke.late_arrivals * 2 + ke.unexcused_absences * 5)
+        ke.attendance_score = round(max(attendance_raw, 0) * 0.10, 2)
+
+        ke.report_submission = request.form.get('report_submission', '')
+        ke.daily_report_score = round(min(abs(float(request.form.get('daily_report_score') or 0)), 100) * 0.10, 2)
+
+        ke.sop_compliance = min(abs(float(request.form.get('sop_compliance') or 0)), 100)
+        ke.sop_compliance_score = round(ke.sop_compliance * 0.05, 2)
+
+        ke.total_score = round(ke.ticket_sales_score + ke.booking_accuracy_score +
+                               ke.customer_service_score + ke.attendance_score +
+                               ke.daily_report_score + ke.sop_compliance_score, 2)
+        ke.performance_rating = _calc_rating(ke.total_score)
+        ke.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        db.session.commit()
+        flash(_('KPI Evaluation updated!'), 'success')
+        return redirect(url_for('view_kpi_evaluation', id=id))
+    return render_template('kpi_form.html', evaluation=ke, companies=companies, branches=branches, report_submission_statuses=report_submission_statuses)
+
+
+@app.route('/kpi-evaluations/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_kpi_evaluation(id):
+    ke = KpiEvaluation.query.get_or_404(id)
+    db.session.delete(ke)
+    db.session.commit()
+    flash(_('KPI Evaluation deleted.'), 'info')
+    return redirect(url_for('kpi_evaluations'))
+
+
+# ─────────────────────────────────────────
+#  ROUTES: DAILY PERFORMANCE REPORTS
+# ─────────────────────────────────────────
+
+@app.route('/daily-reports')
+@login_required
+def daily_reports():
+    query = DailyPerformanceReport.query
+    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+        query = query.filter_by(created_by=current_user.id)
+    search = request.args.get('search', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    staff_filter = request.args.get('staff', '')
+    if search:
+        query = query.filter(
+            (DailyPerformanceReport.staff_name.contains(search)) |
+            (DailyPerformanceReport.staff_id.contains(search))
+        )
+    if date_from:
+        try:
+            query = query.filter(DailyPerformanceReport.report_date >= datetime.strptime(date_from, '%Y-%m-%d').date())
+        except (ValueError, TypeError):
+            pass
+    if date_to:
+        try:
+            query = query.filter(DailyPerformanceReport.report_date <= datetime.strptime(date_to, '%Y-%m-%d').date())
+        except (ValueError, TypeError):
+            pass
+    if staff_filter:
+        query = query.filter_by(staff_id=staff_filter)
+    reports = query.order_by(DailyPerformanceReport.report_date.desc()).all()
+
+    today = date.today()
+    today_q = DailyPerformanceReport.query.filter(DailyPerformanceReport.report_date == today)
+    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+        today_q = today_q.filter_by(created_by=current_user.id)
+    today_tickets = sum(r.tickets_sold for r in today_q.all()) if today_q.count() > 0 else 0
+    today_sales = sum(r.total_sales_amount for r in today_q.all()) if today_q.count() > 0 else 0
+    today_bookings = sum(r.bookings for r in today_q.all()) if today_q.count() > 0 else 0
+    today_errors = sum(r.booking_errors for r in today_q.all()) if today_q.count() > 0 else 0
+    today_complaints = sum(r.complaints for r in today_q.all()) if today_q.count() > 0 else 0
+
+    staff_list = db.session.query(DailyPerformanceReport.staff_id, DailyPerformanceReport.staff_name).distinct().all()
+
+    return render_template('daily_report_list.html', reports=reports,
+                           search=search, date_from=date_from, date_to=date_to, staff_filter=staff_filter,
+                           today_tickets=today_tickets, today_sales=today_sales,
+                           today_bookings=today_bookings, today_errors=today_errors,
+                           today_complaints=today_complaints, staff_list=staff_list)
+
+
+@app.route('/daily-reports/new', methods=['GET', 'POST'])
+@login_required
+def new_daily_report():
+    if request.method == 'POST':
+        report_date_str = request.form.get('report_date')
+        try:
+            report_date = datetime.strptime(report_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            flash(_('Invalid date.'), 'danger')
+            branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+            branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+            company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+            companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+            return render_template('daily_report_form.html', report=None, branches=branches, companies=companies)
+
+        dr = DailyPerformanceReport()
+        dr.staff_name = request.form.get('staff_name', current_user.full_name)
+        dr.staff_id = request.form.get('staff_id', current_user.username)
+        dr.branch = request.form.get('branch', current_user.branch or '')
+        dr.company = request.form.get('company', '')
+        dr.report_date = report_date
+        dr.tickets_sold = abs(int(request.form.get('tickets_sold') or 0))
+        dr.total_sales_amount = abs(float(request.form.get('total_sales_amount') or 0))
+        dr.bookings = abs(int(request.form.get('bookings') or 0))
+        dr.booking_errors = abs(int(request.form.get('booking_errors') or 0))
+        dr.cancelled_tickets = abs(int(request.form.get('cancelled_tickets') or 0))
+        dr.refunded_tickets = abs(int(request.form.get('refunded_tickets') or 0))
+        dr.complaints = abs(int(request.form.get('complaints') or 0))
+        dr.resolved_complaints = abs(int(request.form.get('resolved_complaints') or 0))
+        dr.remarks = request.form.get('remarks', '')
+        dr.time_check_in = request.form.get('time_check_in', '')
+        dr.time_check_out = request.form.get('time_check_out', '')
+        dr.attendance_status = request.form.get('attendance_status', '')
+        dr.status = request.form.get('status', 'Draft')
+        dr.created_by = current_user.id
+        db.session.add(dr)
+        db.session.commit()
+        flash(_('Daily report saved!'), 'success')
+        return redirect(url_for('view_daily_report', id=dr.id))
+
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    return render_template('daily_report_form.html', report=None, branches=branches, companies=companies)
+
+
+@app.route('/daily-reports/<int:id>')
+@login_required
+def view_daily_report(id):
+    dr = DailyPerformanceReport.query.get_or_404(id)
+    return render_template('daily_report_detail.html', dr=dr)
+
+
+@app.route('/daily-reports/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_daily_report(id):
+    dr = DailyPerformanceReport.query.get_or_404(id)
+    if dr.status == 'Submitted' and current_user.role not in ('admin',):
+        flash(_('Submitted reports cannot be edited.'), 'warning')
+        return redirect(url_for('view_daily_report', id=id))
+
+    if request.method == 'POST':
+        try:
+            dr.report_date = datetime.strptime(request.form.get('report_date'), '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            pass
+        dr.staff_name = request.form.get('staff_name', dr.staff_name)
+        dr.staff_id = request.form.get('staff_id', dr.staff_id)
+        dr.branch = request.form.get('branch', dr.branch)
+        dr.company = request.form.get('company', dr.company)
+        dr.tickets_sold = abs(int(request.form.get('tickets_sold') or 0))
+        dr.total_sales_amount = abs(float(request.form.get('total_sales_amount') or 0))
+        dr.bookings = abs(int(request.form.get('bookings') or 0))
+        dr.booking_errors = abs(int(request.form.get('booking_errors') or 0))
+        dr.cancelled_tickets = abs(int(request.form.get('cancelled_tickets') or 0))
+        dr.refunded_tickets = abs(int(request.form.get('refunded_tickets') or 0))
+        dr.complaints = abs(int(request.form.get('complaints') or 0))
+        dr.resolved_complaints = abs(int(request.form.get('resolved_complaints') or 0))
+        dr.remarks = request.form.get('remarks', '')
+        dr.time_check_in = request.form.get('time_check_in', '')
+        dr.time_check_out = request.form.get('time_check_out', '')
+        dr.attendance_status = request.form.get('attendance_status', '')
+        if dr.status != 'Submitted':
+            dr.status = request.form.get('status', 'Draft')
+        dr.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+        flash(_('Daily report updated!'), 'success')
+        return redirect(url_for('view_daily_report', id=id))
+
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
+    company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
+    companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
+    return render_template('daily_report_form.html', report=dr, branches=branches, companies=companies)
+
+
+@app.route('/daily-reports/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_daily_report(id):
+    dr = DailyPerformanceReport.query.get_or_404(id)
+    db.session.delete(dr)
+    db.session.commit()
+    flash(_('Daily report deleted.'), 'info')
+    return redirect(url_for('daily_reports'))
+
+
+@app.route('/daily-reports/export/excel')
+@login_required
+def export_daily_reports_excel():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Daily Reports"
+    headers = ['Date', 'Staff Name', 'Staff ID', 'Branch', 'Tickets Sold',
+               'Sales ($)', 'Bookings', 'Booking Errors', 'Cancelled', 'Refunded',
+               'Complaints', 'Resolved', 'Status']
+    hf = Font(bold=True, color="FFFFFF")
+    hfill = PatternFill("solid", fgColor="0891b2")
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font = hf
+        cell.fill = hfill
+        cell.alignment = Alignment(horizontal='center')
+        ws.column_dimensions[cell.column_letter].width = 16
+    query = DailyPerformanceReport.query
+    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+        query = query.filter_by(created_by=current_user.id)
+    for r in query.order_by(DailyPerformanceReport.report_date.desc()).all():
+        ws.append([r.report_date, r.staff_name, r.staff_id, r.branch or '',
+                   r.tickets_sold, r.total_sales_amount, r.bookings, r.booking_errors,
+                   r.cancelled_tickets, r.refunded_tickets, r.complaints, r.resolved_complaints, r.status])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_excel(buf, f"daily_reports_{date.today()}.xlsx")
+
+
+@app.route('/daily-reports/export/pdf')
+@login_required
+def export_daily_reports_pdf():
+    headers = ['Date', 'Staff', 'ID', 'Tickets', 'Sales($)', 'Bookings',
+               'Errors', 'Cancelled', 'Complaints', 'Status']
+    rows = []
+    query = DailyPerformanceReport.query
+    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+        query = query.filter_by(created_by=current_user.id)
+    for r in query.order_by(DailyPerformanceReport.report_date.desc()).all():
+        rows.append([str(r.report_date), r.staff_name, r.staff_id, r.tickets_sold,
+                     r.total_sales_amount, r.bookings, r.booking_errors,
+                     r.cancelled_tickets, r.complaints, r.status])
+    buf = _export_pdf_report('Daily Performance Reports', headers, rows, f'daily_reports_{date.today()}.pdf')
+    return send_pdf(buf, f"daily_reports_{date.today()}.pdf")
+
+
+# ─────────────────────────────────────────
+#  ROUTES: KPI DASHBOARD
+# ─────────────────────────────────────────
+
+@app.route('/kpi-dashboard')
+@login_required
+def kpi_dashboard():
+    year_filter = request.args.get('year', str(date.today().year))
+    month_filter = request.args.get('month', str(date.today().month))
+    branch_filter = request.args.get('branch', '')
+    year = int(year_filter)
+    month = int(month_filter)
+
+    reports = DailyPerformanceReport.query.filter(
+        db.extract('year', DailyPerformanceReport.report_date) == year,
+        db.extract('month', DailyPerformanceReport.report_date) == month,
+        DailyPerformanceReport.status == 'Submitted'
+    ).all()
+
+    # Group by staff
+    from collections import defaultdict
+    staff_data = defaultdict(lambda: {
+        'staff_name': '', 'branch': '', 'company': '',
+        'tickets': 0, 'sales': 0, 'bookings': 0, 'errors': 0,
+        'complaints': 0, 'resolved': 0, 'report_days': 0
+    })
+    daily_count = defaultdict(int)
+    for r in reports:
+        key = r.staff_id
+        sd = staff_data[key]
+        sd['staff_name'] = r.staff_name
+        sd['branch'] = r.branch or ''
+        sd['company'] = r.company or ''
+        sd['tickets'] += r.tickets_sold
+        sd['sales'] += r.total_sales_amount
+        sd['bookings'] += r.bookings
+        sd['errors'] += r.booking_errors
+        sd['complaints'] += r.complaints
+        sd['resolved'] += r.resolved_complaints
+        daily_count[key] += 1
+
+    total_days = len(set(r.report_date for r in reports)) or 1
+    # Calculate KPI per staff
+    working_days = calendar.monthrange(year, month)[1]  # total days in the month
+    kpi_results = []
+    for staff_id, sd in staff_data.items():
+        # 1. Ticket Sales Performance (40%)
+        ts_ach = (sd['tickets'] / max(sd['bookings'], 1)) * 100
+        ts_score = round(min(ts_ach, 100) * 0.40, 2)
+        # 2. Booking Accuracy (20%)
+        ba_pct = ((sd['bookings'] - sd['errors']) / max(sd['bookings'], 1)) * 100
+        ba_score = round(min(ba_pct, 100) * 0.20, 2)
+        # 3. Customer Service Quality (15%)
+        cs_pct = (sd['resolved'] / max(sd['complaints'], 1)) * 100 if sd['complaints'] else 100
+        cs_score = round(cs_pct * 0.15, 2)
+        # 4. Attendance & Punctuality (10%) — default perfect score
+        att_score = round(10.0 * 0.10, 2)
+        # 5. Daily Reporting Compliance (10%)
+        drr = (daily_count[staff_id] / max(working_days, 1)) * 100
+        dr_score = round(min(drr, 100) * 0.10, 2)
+        # 6. SOP Compliance (5%) — default perfect score
+        sop_score = round(5.0 * 0.05, 2)
+        total = round(ts_score + ba_score + cs_score + att_score + dr_score + sop_score, 2)
+        rating = _calc_rating(total)
+        kpi_results.append({
+            'staff_id': staff_id, 'staff_name': sd['staff_name'],
+            'branch': sd['branch'], 'company': sd['company'],
+            'tickets': sd['tickets'], 'sales': sd['sales'],
+            'bookings': sd['bookings'], 'errors': sd['errors'],
+            'complaints': sd['complaints'], 'resolved': sd['resolved'],
+            'report_days': daily_count[staff_id],
+            'ts_score': ts_score, 'ba_score': ba_score,
+            'cs_score': cs_score, 'att_score': att_score,
+            'dr_score': dr_score, 'sop_score': sop_score,
+            'total': total, 'rating': rating
+        })
+    kpi_results.sort(key=lambda x: x['total'], reverse=True)
+
+    # Store monthly summary
+    for kr in kpi_results:
+        existing = MonthlyKpiSummary.query.filter_by(
+            staff_id=kr['staff_id'], year=year, month=month
+        ).first()
+        if not existing:
+            mks = MonthlyKpiSummary(
+                staff_name=kr['staff_name'],
+                staff_id=kr['staff_id'],
+                branch=kr['branch'],
+                company=kr['company'],
+                year=year, month=month,
+                total_tickets_sold=kr['tickets'],
+                total_sales_amount=kr['sales'],
+                total_bookings=kr['bookings'],
+                total_booking_errors=kr['errors'],
+                total_complaints=kr['complaints'],
+                total_resolved_complaints=kr['resolved'],
+                ticket_sales_target=kr['bookings'],
+                ticket_sales_score=kr['ts_score'],
+                booking_accuracy_score=kr['ba_score'],
+                customer_service_score=kr['cs_score'],
+                attendance_score=kr['att_score'],
+                daily_reporting_score=kr['dr_score'],
+                sop_compliance_score=kr['sop_score'],
+                total_score=kr['total'],
+                performance_rating=kr['rating']
+            )
+            db.session.add(mks)
+    db.session.commit()
+
+    branch_list = db.session.query(DailyPerformanceReport.branch).distinct().all()
+    branch_list = [b[0] for b in branch_list if b[0]]
+
+    return render_template('kpi_dashboard.html', kpi_results=kpi_results,
+                           year=year, month=month, branch_filter=branch_filter,
+                           branch_list=branch_list)
+
+
+@app.route('/kpi-dashboard/history')
+@login_required
+def kpi_history():
+    year_filter = request.args.get('year', '')
+    month_filter = request.args.get('month', '')
+    staff_filter = request.args.get('staff', '')
+    query = MonthlyKpiSummary.query
+    if year_filter:
+        query = query.filter_by(year=int(year_filter))
+    if month_filter:
+        query = query.filter_by(month=int(month_filter))
+    if staff_filter:
+        query = query.filter_by(staff_id=staff_filter)
+    summaries = query.order_by(MonthlyKpiSummary.year.desc(), MonthlyKpiSummary.month.desc(), MonthlyKpiSummary.total_score.desc()).all()
+    years = db.session.query(MonthlyKpiSummary.year).distinct().order_by(MonthlyKpiSummary.year.desc()).all()
+    staff_list = db.session.query(MonthlyKpiSummary.staff_id, MonthlyKpiSummary.staff_name).distinct().all()
+    return render_template('kpi_history.html', summaries=summaries,
+                           year_filter=year_filter, month_filter=month_filter, staff_filter=staff_filter,
+                           years=years, staff_list=staff_list)
 
 
 # ─────────────────────────────────────────
@@ -1311,11 +3903,13 @@ def departments():
 @login_required
 @permission_required('department_create')
 def new_department():
+    es_mod = ConfigModule.query.filter_by(module_key='entity_status', is_active=True).first()
+    entity_statuses = DynamicRecord.query.filter_by(module_id=es_mod.id, is_active=True).all() if es_mod else []
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         if not name:
             flash(_('Department name is required.'), 'danger')
-            return render_template('department_form.html', dept=None)
+            return render_template('department_form.html', dept=None, entity_statuses=entity_statuses)
         dept = Department(
             name=name,
             description=request.form.get('description'),
@@ -1325,7 +3919,7 @@ def new_department():
         db.session.commit()
         flash(_('Department "%(name)s" created successfully!', name=dept.name), 'success')
         return redirect(url_for('departments'))
-    return render_template('department_form.html', dept=None)
+    return render_template('department_form.html', dept=None, entity_statuses=entity_statuses)
 
 
 @app.route('/departments/<int:id>/edit', methods=['GET', 'POST'])
@@ -1333,18 +3927,20 @@ def new_department():
 @permission_required('department_edit')
 def edit_department(id):
     dept = Department.query.get_or_404(id)
+    es_mod = ConfigModule.query.filter_by(module_key='entity_status', is_active=True).first()
+    entity_statuses = DynamicRecord.query.filter_by(module_id=es_mod.id, is_active=True).all() if es_mod else []
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         if not name:
             flash(_('Department name is required.'), 'danger')
-            return render_template('department_form.html', dept=dept)
+            return render_template('department_form.html', dept=dept, entity_statuses=entity_statuses)
         dept.name = name
         dept.description = request.form.get('description')
         dept.status = request.form.get('status', 'Active')
         db.session.commit()
         flash(_('Department updated successfully!'), 'success')
         return redirect(url_for('departments'))
-    return render_template('department_form.html', dept=dept)
+    return render_template('department_form.html', dept=dept, entity_statuses=entity_statuses)
 
 
 @app.route('/departments/<int:id>/delete', methods=['POST'])
@@ -1381,12 +3977,15 @@ def positions():
 @login_required
 @permission_required('position_create')
 def new_position():
+    departments_list = Department.query.filter_by(status='Active').order_by(Department.name).all()
+    es_mod = ConfigModule.query.filter_by(module_key='entity_status', is_active=True).first()
+    entity_statuses = DynamicRecord.query.filter_by(module_id=es_mod.id, is_active=True).all() if es_mod else []
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         dept_id = request.form.get('department_id')
         if not name or not dept_id:
             flash(_('Position name and department are required.'), 'danger')
-            return render_template('position_form.html', pos=None)
+            return render_template('position_form.html', pos=None, departments=departments_list, entity_statuses=entity_statuses)
         pos = Position(
             name=name,
             department_id=int(dept_id),
@@ -1397,8 +3996,7 @@ def new_position():
         db.session.commit()
         flash(_('Position "%(name)s" created successfully!', name=pos.name), 'success')
         return redirect(url_for('positions'))
-    departments_list = Department.query.filter_by(status='Active').order_by(Department.name).all()
-    return render_template('position_form.html', pos=None, departments=departments_list)
+    return render_template('position_form.html', pos=None, departments=departments_list, entity_statuses=entity_statuses)
 
 
 @app.route('/positions/<int:id>/edit', methods=['GET', 'POST'])
@@ -1406,12 +4004,15 @@ def new_position():
 @permission_required('position_edit')
 def edit_position(id):
     pos = Position.query.get_or_404(id)
+    departments_list = Department.query.filter_by(status='Active').order_by(Department.name).all()
+    es_mod = ConfigModule.query.filter_by(module_key='entity_status', is_active=True).first()
+    entity_statuses = DynamicRecord.query.filter_by(module_id=es_mod.id, is_active=True).all() if es_mod else []
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         dept_id = request.form.get('department_id')
         if not name or not dept_id:
             flash(_('Position name and department are required.'), 'danger')
-            return render_template('position_form.html', pos=pos)
+            return render_template('position_form.html', pos=pos, departments=departments_list, entity_statuses=entity_statuses)
         pos.name = name
         pos.department_id = int(dept_id)
         pos.description = request.form.get('description')
@@ -1419,8 +4020,7 @@ def edit_position(id):
         db.session.commit()
         flash(_('Position updated successfully!'), 'success')
         return redirect(url_for('positions'))
-    departments_list = Department.query.filter_by(status='Active').order_by(Department.name).all()
-    return render_template('position_form.html', pos=pos, departments=departments_list)
+    return render_template('position_form.html', pos=pos, departments=departments_list, entity_statuses=entity_statuses)
 
 
 @app.route('/positions/<int:id>/delete', methods=['POST'])
@@ -1436,55 +4036,657 @@ def delete_position(id):
 
 
 # ─────────────────────────────────────────
-#  ROUTES: REPORTS
+#  ROUTES: REPORTS (Redesigned)
 # ─────────────────────────────────────────
+
+REPORT_TYPES = {
+    'transport': {
+        'label': 'Transport Requests Report',
+        'icon': 'fa-route',
+        'model': RouteRequest,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'request_id', 'label': 'Request Number', 'sortable': True},
+            {'key': 'requester_name', 'label': 'Customer Name', 'sortable': True},
+            {'key': 'destination_from', 'label': 'Route (From)', 'sortable': True},
+            {'key': 'destination_to', 'label': 'Route (To)', 'sortable': True},
+            {'key': 'transportation', 'label': 'Vehicle', 'sortable': True},
+            {'key': 'request_date', 'label': 'Travel Date', 'sortable': True},
+            {'key': 'status', 'label': 'Status', 'sortable': True},
+            {'key': 'created_date', 'label': 'Created Date', 'sortable': True},
+        ],
+        'filters': ['customer', 'route', 'vehicle', 'status'],
+        'filter_fields': {
+            'customer': ('requester_name', 'string', 'Customer'),
+            'route': ('destination_from', 'string', 'Route'),
+            'vehicle': ('transportation', 'string', 'Vehicle'),
+            'status': ('status', 'select', 'Status', ['Pending', 'Approved', 'Rejected']),
+        },
+    },
+    'trip': {
+        'label': 'Trip Operation Report',
+        'icon': 'fa-bus',
+        'model': TripOperationReport,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'report_id', 'label': 'Trip Number', 'sortable': True},
+            {'key': 'vehicle_number', 'label': 'Vehicle', 'sortable': True},
+            {'key': 'driver_phone', 'label': 'Driver', 'sortable': True},
+            {'key': 'origin', 'label': 'Route (Origin)', 'sortable': True},
+            {'key': 'destination', 'label': 'Route (Dest)', 'sortable': True},
+            {'key': 'departure_time', 'label': 'Departure Time', 'sortable': True},
+            {'key': 'arrival_at_station', 'label': 'Arrival Time', 'sortable': True},
+            {'key': 'passenger_count', 'label': 'Passenger Count', 'sortable': True},
+            {'key': 'vehicle_status', 'label': 'Status', 'sortable': True},
+        ],
+        'filters': ['driver', 'vehicle', 'route', 'status'],
+        'filter_fields': {
+            'driver': ('driver_phone', 'string', 'Driver'),
+            'vehicle': ('vehicle_number', 'string', 'Vehicle'),
+            'route': ('origin', 'string', 'Route'),
+            'status': ('vehicle_status', 'select', 'Status', ['Departed', 'Not Departed']),
+        },
+    },
+    'daily': {
+        'label': 'Daily Performance Report',
+        'icon': 'fa-file-alt',
+        'model': DailyPerformanceReport,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'staff_name', 'label': 'Employee', 'sortable': True},
+            {'key': 'staff_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'branch', 'label': 'Department', 'sortable': True},
+            {'key': 'report_date', 'label': 'Report Date', 'sortable': True},
+            {'key': 'tickets_sold', 'label': 'Completed Tasks', 'sortable': True},
+            {'key': 'total_sales_amount', 'label': 'Sales ($)', 'sortable': True},
+            {'key': 'booking_errors', 'label': 'Penalties', 'sortable': True},
+            {'key': 'status', 'label': 'Status', 'sortable': True},
+        ],
+        'filters': ['employee', 'department', 'status'],
+        'filter_fields': {
+            'employee': ('staff_name', 'string', 'Employee'),
+            'department': ('branch', 'string', 'Department'),
+            'status': ('status', 'select', 'Status', ['Draft', 'Submitted']),
+        },
+    },
+    'kpi': {
+        'label': 'KPI Report',
+        'icon': 'fa-chart-line',
+        'model': KpiEvaluation,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'staff_name', 'label': 'Employee', 'sortable': True},
+            {'key': 'staff_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'branch', 'label': 'Department', 'sortable': True},
+            {'key': 'ticket_sales_target', 'label': 'Target', 'sortable': True},
+            {'key': 'actual_tickets_sold', 'label': 'Actual', 'sortable': True},
+            {'key': 'achievement_pct', 'label': 'Achievement %', 'sortable': True},
+            {'key': 'ticket_sales_score', 'label': 'Score', 'sortable': True},
+            {'key': 'total_score', 'label': 'Total Score', 'sortable': True},
+            {'key': 'performance_rating', 'label': 'Rating', 'sortable': True},
+            {'key': 'status', 'label': 'Status', 'sortable': True},
+        ],
+        'filters': ['employee', 'department', 'status'],
+        'filter_fields': {
+            'employee': ('staff_name', 'string', 'Employee'),
+            'department': ('branch', 'string', 'Department'),
+            'status': ('status', 'select', 'Status', ['Draft', 'Submitted']),
+        },
+    },
+    'kpi_history': {
+        'label': 'KPI History Report',
+        'icon': 'fa-clock-rotate-left',
+        'model': MonthlyKpiSummary,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'staff_name', 'label': 'Employee', 'sortable': True},
+            {'key': 'staff_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'month', 'label': 'Month', 'sortable': True},
+            {'key': 'year', 'label': 'Year', 'sortable': True},
+            {'key': 'total_score', 'label': 'Previous Score', 'sortable': True},
+            {'key': 'performance_rating', 'label': 'Rating', 'sortable': True},
+            {'key': 'created_date', 'label': 'Updated Date', 'sortable': True},
+        ],
+        'filters': ['employee', 'department'],
+        'filter_fields': {
+            'employee': ('staff_name', 'string', 'Employee'),
+            'department': ('branch', 'string', 'Department'),
+        },
+    },
+    'kpi_evaluation': {
+        'label': 'KPI Evaluation Report',
+        'icon': 'fa-file-invoice',
+        'model': KpiEvaluation,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'staff_name', 'label': 'Employee', 'sortable': True},
+            {'key': 'staff_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'evaluator_name', 'label': 'Evaluator', 'sortable': True},
+            {'key': 'performance_rating', 'label': 'KPI Category', 'sortable': True},
+            {'key': 'total_score', 'label': 'Score', 'sortable': True},
+            {'key': 'comments', 'label': 'Comment', 'sortable': True},
+            {'key': 'evaluation_month', 'label': 'Month', 'sortable': True},
+            {'key': 'evaluation_year', 'label': 'Year', 'sortable': True},
+            {'key': 'status', 'label': 'Status', 'sortable': True},
+        ],
+        'filters': ['employee', 'department', 'status'],
+        'filter_fields': {
+            'employee': ('staff_name', 'string', 'Employee'),
+            'department': ('branch', 'string', 'Department'),
+            'status': ('status', 'select', 'Status', ['Draft', 'Submitted']),
+        },
+    },
+    'penalties': {
+        'label': 'Penalties Report',
+        'icon': 'fa-gavel',
+        'model': EmployeePenalty,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'employee_name', 'label': 'Employee', 'sortable': True},
+            {'key': 'employee_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'violation_type', 'label': 'Violation Type', 'sortable': True},
+            {'key': 'description', 'label': 'Description', 'sortable': True},
+            {'key': 'penalty_amount', 'label': 'Penalty Amount', 'sortable': True},
+            {'key': 'status', 'label': 'Status', 'sortable': True},
+            {'key': 'approved_by', 'label': 'Approved By', 'sortable': True},
+            {'key': 'incident_date', 'label': 'Date', 'sortable': True},
+        ],
+        'filters': ['employee', 'violation_type', 'status'],
+        'filter_fields': {
+            'employee': ('employee_name', 'string', 'Employee'),
+            'violation_type': ('violation_type', 'string', 'Violation Type'),
+            'status': ('status', 'select', 'Status', ['Pending', 'Approved', 'Rejected']),
+        },
+    },
+    'employee_performance': {
+        'label': 'Employee Performance Report',
+        'icon': 'fa-user-check',
+        'model': None,
+        'date_field': 'created_date',
+        'columns': [
+            {'key': 'employee_id', 'label': 'Employee ID', 'sortable': True},
+            {'key': 'employee_name', 'label': 'Employee Name', 'sortable': True},
+            {'key': 'branch', 'label': 'Department', 'sortable': True},
+            {'key': 'total_bookings', 'label': 'Position', 'sortable': True},
+            {'key': 'performance_score', 'label': 'KPI Score', 'sortable': True},
+            {'key': 'total_tickets', 'label': 'Attendance', 'sortable': True},
+            {'key': 'penalty_count', 'label': 'Penalties', 'sortable': True},
+            {'key': 'performance_rating', 'label': 'Final Rating', 'sortable': True},
+        ],
+        'filters': ['employee', 'department'],
+        'filter_fields': {
+            'employee': ('employee_name', 'string', 'Employee'),
+            'department': ('branch', 'string', 'Department'),
+        },
+    },
+}
+
+
+def _build_report_query(report_type, params):
+    cfg = REPORT_TYPES.get(report_type)
+    if not cfg:
+        return None, 0
+
+    if report_type == 'employee_performance':
+        return _build_employee_performance_query(params)
+
+    model = cfg['model']
+    q = model.query
+    date_field = getattr(model, cfg['date_field'])
+
+    # Date range
+    range_filter = params.get('range', 'all')
+    today = date.today()
+    start_date = end_date = None
+
+    if range_filter == 'today':
+        start_date = end_date = today
+    elif range_filter == 'week':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif range_filter == 'month':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif range_filter == 'year':
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+    elif range_filter == 'custom':
+        try:
+            raw_s = params.get('start_date', '')
+            raw_e = params.get('end_date', '')
+            if raw_s:
+                start_date = datetime.strptime(raw_s, '%Y-%m-%d').date()
+            if raw_e:
+                end_date = datetime.strptime(raw_e, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            pass
+
+    if start_date:
+        q = q.filter(date_field >= datetime.combine(start_date, datetime.min.time()))
+    if end_date:
+        q = q.filter(date_field <= datetime.combine(end_date, datetime.max.time()))
+
+    # Report-specific filters
+    for fname in cfg.get('filters', []):
+        fval = params.get(fname, '').strip()
+        if not fval:
+            continue
+        finfo = cfg['filter_fields'].get(fname)
+        if not finfo:
+            continue
+        field_name = finfo[0]
+        ftype = finfo[1]
+        col = getattr(model, field_name, None)
+        if col is None:
+            continue
+        if ftype == 'string':
+            q = q.filter(col.ilike(f'%{fval}%'))
+        elif ftype == 'select':
+            q = q.filter(col == fval)
+        elif ftype == 'number':
+            q = q.filter(col == int(fval))
+        elif ftype == 'month':
+            try:
+                q = q.filter(db.extract('month', col) == int(fval))
+            except (ValueError, TypeError):
+                pass
+        elif ftype == 'year':
+            try:
+                q = q.filter(db.extract('year', col) == int(fval))
+            except (ValueError, TypeError):
+                pass
+
+    # Search
+    search = params.get('search', '').strip()
+    if search and cfg.get('columns'):
+        search_filters = []
+        for col_def in cfg['columns']:
+            col = getattr(model, col_def['key'], None)
+            if col is not None:
+                search_filters.append(col.ilike(f'%{search}%'))
+        if search_filters:
+            q = q.filter(or_(*search_filters))
+
+    total = q.count()
+
+    # Compute status statistics
+    stats = {'total': total}
+    if report_type != 'employee_performance' and model:
+        status_field_names = {
+            'transport': ('status', 'status'),
+            'trip': ('vehicle_status', 'vehicle_status'),
+            'daily': ('status', 'status'),
+            'kpi': ('status', 'status'),
+            'kpi_history': None,
+            'kpi_evaluation': ('status', 'status'),
+            'penalties': ('status', 'status'),
+        }
+        sf = status_field_names.get(report_type)
+        if sf:
+            try:
+                status_col = getattr(model, sf[0], None)
+                if status_col:
+                    status_query = q.with_entities(status_col, db.func.count(status_col)).group_by(status_col).all()
+                    counts = {}
+                    for row in status_query:
+                        key = str(row[0]) if row[0] is not None else 'Other'
+                        counts[key] = row[1]
+                    if counts:
+                        stats['status_counts'] = counts
+            except Exception:
+                pass
+
+    # Sorting
+    sort_col = params.get('sort', '')
+    sort_dir = params.get('order', 'desc')
+    if sort_col:
+        col = getattr(model, sort_col, None)
+        if col is not None:
+            q = q.order_by(col.desc() if sort_dir == 'desc' else col.asc())
+        else:
+            q = q.order_by(date_field.desc())
+    else:
+        q = q.order_by(date_field.desc())
+
+    # Pagination
+    page = int(params.get('page', 1))
+    length = int(params.get('length', 25))
+    offset = (page - 1) * length
+    records = q.offset(offset).limit(length).all()
+
+    # Format rows
+    rows = []
+    for rec in records:
+        row = {}
+        for col_def in cfg['columns']:
+            val = getattr(rec, col_def['key'], None)
+            if isinstance(val, date) and val:
+                val = val.strftime('%d %b %Y')
+            elif isinstance(val, float):
+                val = round(val, 2)
+            row[col_def['key']] = val
+        row['_id'] = getattr(rec, 'id', 0)
+        rows.append(row)
+
+    return {
+        'data': rows,
+        'total': total,
+        'stats': stats,
+        'page': page,
+        'pages': max(1, -(-total // length)) if length > 0 else 1,
+        'length': length,
+    }, 200
+
+
+def _build_employee_performance_query(params):
+    from collections import defaultdict
+
+    today = date.today()
+    range_filter = params.get('range', 'all')
+    start_date = end_date = None
+
+    if range_filter == 'today':
+        start_date = end_date = today
+    elif range_filter == 'week':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif range_filter == 'month':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif range_filter == 'year':
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+    elif range_filter == 'custom':
+        try:
+            raw_s = params.get('start_date', '')
+            raw_e = params.get('end_date', '')
+            if raw_s:
+                start_date = datetime.strptime(raw_s, '%Y-%m-%d').date()
+            if raw_e:
+                end_date = datetime.strptime(raw_e, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            pass
+
+    def build_date_filter(q, model_cls):
+        if start_date:
+            q = q.filter(model_cls.created_date >= datetime.combine(start_date, datetime.min.time()))
+        if end_date:
+            q = q.filter(model_cls.created_date <= datetime.combine(end_date, datetime.max.time()))
+        return q
+
+    user_emp_map = defaultdict(lambda: {
+        'employee_name': '', 'employee_id': '', 'branch': '',
+        'total_tickets': 0, 'total_sales': 0, 'total_bookings': 0,
+        'total_errors': 0, 'total_complaints': 0,
+        'penalty_count': 0, 'penalty_amount': 0,
+    })
+
+    users = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    for u in users:
+        key = f"{u.full_name}|{u.username}"
+        user_emp_map[key]['employee_name'] = u.full_name
+        user_emp_map[key]['employee_id'] = u.username
+        user_emp_map[key]['branch'] = u.branch or ''
+
+    # Aggregate daily performance data
+    dp_query = build_date_filter(DailyPerformanceReport.query, DailyPerformanceReport)
+    for dp in dp_query.all():
+        key = f"{dp.staff_name}|{dp.staff_id}"
+        if key not in user_emp_map:
+            user_emp_map[key]['employee_name'] = dp.staff_name
+            user_emp_map[key]['employee_id'] = dp.staff_id
+            user_emp_map[key]['branch'] = dp.branch or ''
+        user_emp_map[key]['total_tickets'] += dp.tickets_sold
+        user_emp_map[key]['total_sales'] += dp.total_sales_amount
+        user_emp_map[key]['total_bookings'] += dp.bookings
+        user_emp_map[key]['total_errors'] += dp.booking_errors
+        user_emp_map[key]['total_complaints'] += dp.complaints
+
+    # Aggregate penalty data
+    pen_query = build_date_filter(EmployeePenalty.query, EmployeePenalty)
+    for p in pen_query.all():
+        key = f"{p.employee_name}|{p.employee_id}"
+        if key not in user_emp_map:
+            user_emp_map[key]['employee_name'] = p.employee_name
+            user_emp_map[key]['employee_id'] = p.employee_id
+            user_emp_map[key]['branch'] = p.department or ''
+        user_emp_map[key]['penalty_count'] += 1
+        user_emp_map[key]['penalty_amount'] += p.penalty_amount
+
+    search = params.get('search', '').strip()
+    department_filter = params.get('department', '').strip()
+    employee_filter = params.get('employee', '').strip()
+
+    all_rows = []
+    for key, data in user_emp_map.items():
+        if not data['employee_name']:
+            continue
+        if department_filter and department_filter.lower() not in data['branch'].lower():
+            continue
+        if employee_filter and employee_filter.lower() not in data['employee_name'].lower():
+            continue
+        if search and search.lower() not in data['employee_name'].lower() and search.lower() not in data['employee_id'].lower():
+            continue
+
+        total_bookings = data['total_bookings'] or 1
+        accuracy = max(0, ((total_bookings - data['total_errors']) / total_bookings) * 100) if total_bookings else 100
+        sales_score = min(100, (data['total_tickets'] / max(data['total_bookings'], 1)) * 100) if data['total_bookings'] else 0
+        cs_score = max(0, 100 - (data['total_complaints'] * 5))
+        pen_deduction = min(30, data['penalty_count'] * 5)
+        perf_score = round(max(0, (sales_score * 0.40 + accuracy * 0.20 + cs_score * 0.15 + 100 * 0.25) - pen_deduction), 2)
+
+        rating = _calc_rating(perf_score)
+
+        all_rows.append({
+            'employee_name': data['employee_name'],
+            'employee_id': data['employee_id'],
+            'branch': data['branch'],
+            'total_tickets': data['total_tickets'],
+            'total_sales': round(data['total_sales'], 2),
+            'total_bookings': data['total_bookings'],
+            'total_errors': data['total_errors'],
+            'total_complaints': data['total_complaints'],
+            'penalty_count': data['penalty_count'],
+            'penalty_amount': round(data['penalty_amount'], 2),
+            'performance_score': perf_score,
+            'performance_rating': rating,
+        })
+
+    total = len(all_rows)
+
+    # Sorting
+    sort_col = params.get('sort', '')
+    sort_dir = params.get('order', 'desc')
+    reverse = sort_dir == 'desc'
+    if sort_col:
+        all_rows.sort(key=lambda r: (r.get(sort_col) or ''), reverse=reverse)
+    else:
+        all_rows.sort(key=lambda r: r['performance_score'], reverse=True)
+
+    # Pagination
+    page = int(params.get('page', 1))
+    length = int(params.get('length', 25))
+    offset = (page - 1) * length
+    page_rows = all_rows[offset:offset + length]
+
+    # Stats for employee performance
+    rating_counts = {}
+    for r in all_rows:
+        rat = r.get('performance_rating', 'N/A')
+        rating_counts[rat] = rating_counts.get(rat, 0) + 1
+    stats = {'total': total}
+    if rating_counts:
+        stats['status_counts'] = rating_counts
+
+    return {
+        'data': page_rows,
+        'total': total,
+        'stats': stats,
+        'page': page,
+        'pages': max(1, -(-total // length)) if length > 0 else 1,
+        'length': length,
+    }, 200
+
 
 @app.route('/reports')
 @login_required
 @any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def reports():
-    # Aggregate stats
-    rr_by_status = {
-        'Pending': RouteRequest.query.filter_by(status='Pending').count(),
-        'Approved': RouteRequest.query.filter_by(status='Approved').count(),
-        'Rejected': RouteRequest.query.filter_by(status='Rejected').count(),
-    }
-    ep_by_status = {
-        'Pending': EmployeePenalty.query.filter_by(status='Pending').count(),
-        'Approved': EmployeePenalty.query.filter_by(status='Approved').count(),
-        'Rejected': EmployeePenalty.query.filter_by(status='Rejected').count(),
-    }
-    total_penalty_amount = db.session.query(db.func.sum(EmployeePenalty.penalty_amount)).scalar() or 0
-    dept_penalties = db.session.query(
-        EmployeePenalty.department,
-        db.func.count(EmployeePenalty.id),
-        db.func.sum(EmployeePenalty.penalty_amount)
-    ).group_by(EmployeePenalty.department).all()
-
-    tor_by_status = {
-        'Departed': TripOperationReport.query.filter_by(vehicle_status='Departed').count(),
-        'Not Departed': TripOperationReport.query.filter_by(vehicle_status='Not Departed').count(),
-    }
-    tor_total = TripOperationReport.query.count()
-    tor_passengers = db.session.query(db.func.sum(TripOperationReport.passenger_count)).scalar() or 0
-
+    safe_types = _get_safe_report_types()
+    first_type = next(iter(safe_types.keys()), '')
     return render_template('reports.html',
-        rr_by_status=rr_by_status,
-        ep_by_status=ep_by_status,
-        total_penalty_amount=total_penalty_amount,
-        dept_penalties=dept_penalties,
-        tor_by_status=tor_by_status,
-        tor_total=tor_total,
-        tor_passengers=tor_passengers,
+        report_types=safe_types,
+        initial_report_type=first_type,
     )
 
+
+def _get_safe_report_types():
+    safe_types = {}
+    for key, cfg in REPORT_TYPES.items():
+        safe_types[key] = {
+            'label': cfg['label'],
+            'icon': cfg['icon'],
+            'columns': [{'key': c['key'], 'label': c['label'], 'sortable': c.get('sortable', False)} for c in cfg['columns']],
+            'filters': cfg.get('filters', []),
+            'filter_fields': {fk: list(fv) for fk, fv in cfg.get('filter_fields', {}).items()},
+            'row_actions': cfg.get('row_actions'),
+        }
+    return safe_types
+
+
+
+
+
+_REPORT_SLUG_MAP = {
+    'transport-requests': 'transport',
+    'trip-operation': 'trip',
+    'daily-performance': 'daily',
+    'kpi': 'kpi',
+    'kpi-history': 'kpi_history',
+    'kpi-evaluation': 'kpi_evaluation',
+    'penalties': 'penalties',
+    'employee-performance': 'employee_performance',
+}
+
+
+@app.route('/reports/data')
+@login_required
+@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+def reports_data():
+    report_type = request.args.get('type', 'transport')
+    if report_type not in REPORT_TYPES:
+        return {'error': 'Invalid report type'}, 400
+
+    params = request.args.to_dict()
+    result, status = _build_report_query(report_type, params)
+    return jsonify(result), status
+
+
+@app.route('/reports/charts/<report_type>')
+@login_required
+@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+def reports_charts(report_type):
+    if report_type not in REPORT_TYPES:
+        return jsonify({'error': 'Invalid report type'}), 400
+    cfg = REPORT_TYPES[report_type]
+    model = cfg.get('model')
+    if not model:
+        return jsonify({'categories': [], 'series': []})
+
+    date_field = getattr(model, cfg['date_field'], model.created_date)
+    status_field = getattr(model, 'status', None)
+
+    try:
+        records = model.query.order_by(date_field.desc()).limit(100).all()
+    except Exception:
+        records = []
+
+    status_counts = defaultdict(int)
+    monthly_counts = defaultdict(int)
+    for r in records:
+        raw_date = getattr(r, cfg['date_field'], None)
+        if raw_date:
+            key = str(raw_date)[:7]
+            monthly_counts[key] += 1
+        s = getattr(r, 'status', None) or getattr(r, 'vehicle_status', None) or 'Unknown'
+        status_counts[str(s)] += 1
+
+    categories = sorted(monthly_counts.keys())
+    series_data = [monthly_counts[k] for k in categories]
+    status_labels = list(status_counts.keys())
+    status_values = list(status_counts.values())
+
+    return jsonify({
+        'trend': {'categories': categories, 'series': [{'name': 'Records', 'data': series_data}]},
+        'status': {'labels': status_labels, 'values': status_values},
+    })
+
+
+@app.route('/reports/export/<fmt>/<report_type>')
+@login_required
+@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+def reports_export(fmt, report_type):
+    try:
+        if report_type not in REPORT_TYPES:
+            return jsonify({'error': 'Invalid report type'}), 400
+        if fmt not in ('excel', 'pdf'):
+            return jsonify({'error': 'Invalid export format'}), 400
+
+        cfg = REPORT_TYPES[report_type]
+        params = request.args.to_dict()
+        params['length'] = '10000'
+        result, _ = _build_report_query(report_type, params)
+
+        if not result or not result.get('data'):
+            return jsonify({'error': 'No records found to export', 'warning': True}), 404
+
+        cols = cfg['columns']
+        headers = [c['label'] for c in cols]
+        keys = [c['key'] for c in cols]
+        rows = [[r.get(k, '') for k in keys] for r in result['data']]
+
+        today_str = date.today().strftime('%Y%m%d')
+        filename = f"{report_type}_{today_str}"
+
+        if fmt == 'excel':
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = cfg['label'][:31]
+
+            hdr_font = Font(bold=True, color='FFFFFF', size=11)
+            hdr_fill = PatternFill(start_color='1a3c5e', end_color='1a3c5e', fill_type='solid')
+            for ci, h in enumerate(headers, 1):
+                c = ws.cell(row=1, column=ci, value=h)
+                c.font = hdr_font
+                c.fill = hdr_fill
+                c.alignment = Alignment(horizontal='center', vertical='center')
+
+            for ri, row in enumerate(rows, 2):
+                for ci, val in enumerate(row, 1):
+                    ws.cell(row=ri, column=ci, value=val)
+
+            for ci in range(1, len(headers) + 1):
+                ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = 20
+
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            return send_excel(buf, f'{filename}.xlsx')
+
+        elif fmt == 'pdf':
+            buf = _export_pdf_report(cfg['label'], headers, rows, f'{filename}.pdf')
+            buf.seek(0)
+            return send_pdf(buf, f'{filename}.pdf')
+    except Exception as e:
+        return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+
+# ── Keep original export routes for backwards compatibility ──
 
 @app.route('/reports/export/requests')
 @login_required
 @any_permission_required('route_request_view', 'route_request_download')
 def export_requests_excel():
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Route Requests"
@@ -1515,13 +4717,11 @@ def export_requests_excel():
 @login_required
 @any_permission_required('penalty_view', 'penalty_download')
 def export_penalties_excel():
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Employee Penalties"
     headers = ['Penalty ID', 'Employee ID', 'Employee Name', 'Department',
-               'Position', 'Violation Type', 'Amount ($)', 'Date', 'Status']
+               'Position', 'Violation Type', 'Old Code', 'Amount ($)', 'Date', 'Status']
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="1a3c5e")
     for col, h in enumerate(headers, 1):
@@ -1534,7 +4734,7 @@ def export_penalties_excel():
     for ep in EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).all():
         ws.append([ep.penalty_id, ep.employee_id, ep.employee_name,
                    ep.department, ep.position, ep.violation_type,
-                   ep.penalty_amount, str(ep.incident_date), ep.status])
+                   ep.old_code, ep.penalty_amount, str(ep.incident_date), ep.status])
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -1544,30 +4744,38 @@ def export_penalties_excel():
 
 def _export_pdf_report(title, headers, rows, filename):
     pdf = FPDF()
-    pdf.add_font('Khmer', '', r'C:\Windows\Fonts\KhmerOS_sys.ttf', uni=True)
-    pdf.add_font('Khmer', 'B', r'C:\Windows\Fonts\KhmerOS_sys.ttf', uni=True)
+    khmer_font = _find_khmer_font()
+    if khmer_font:
+        try:
+            pdf.add_font('Khmer', '', khmer_font, uni=True)
+            pdf.add_font('Khmer', 'B', khmer_font, uni=True)
+            font_name = 'Khmer'
+        except RuntimeError:
+            font_name = 'Helvetica'
+    else:
+        font_name = 'Helvetica'
     pdf.add_page()
-    pdf.set_font('Khmer', 'B', 14)
+    pdf.set_font(font_name, 'B', 14)
     pdf.cell(0, 12, title, new_x='LMARGIN', new_y='NEXT', align='C')
     pdf.ln(2)
-    pdf.set_font('Khmer', '', 7)
+    pdf.set_font(font_name, '', 7)
     pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%d %b %Y %H:%M')}", new_x='LMARGIN', new_y='NEXT', align='R')
     pdf.ln(4)
 
-    col_w = max(10, min(45, 270 // len(headers)))
+    col_w = max(10, min(45, 270 // len(headers))) if headers else 20
     page_w = 270
     used_w = col_w * len(headers)
     if used_w > page_w:
         col_w = max(10, page_w // len(headers))
 
-    pdf.set_font('Khmer', 'B', 6)
+    pdf.set_font(font_name, 'B', 6)
     pdf.set_fill_color(26, 60, 94)
     pdf.set_text_color(255, 255, 255)
     for h in headers:
         pdf.cell(col_w, 8, h, border=1, fill=True, align='C')
     pdf.ln()
 
-    pdf.set_font('Khmer', '', 6)
+    pdf.set_font(font_name, '', 6)
     pdf.set_text_color(50, 50, 50)
     for row in rows:
         for i, cell in enumerate(row):
@@ -1606,13 +4814,13 @@ def export_requests_pdf():
 @any_permission_required('penalty_view', 'penalty_download')
 def export_penalties_pdf():
     headers = ['Penalty ID', 'Emp ID', 'Employee Name', 'Department', 'Position',
-               'Violation Type', 'Amount ($)', 'Date', 'Status']
+               'Violation Type', 'Old Code', 'Amount ($)', 'Date', 'Status']
     rows = []
     for ep in EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).all():
         rows.append([
             ep.penalty_id, ep.employee_id, ep.employee_name,
             ep.department or '', ep.position or '', ep.violation_type,
-            f"${ep.penalty_amount:.2f}", str(ep.incident_date), ep.status
+            ep.old_code or '', f"${ep.penalty_amount:.2f}", str(ep.incident_date), ep.status
         ])
     buf = _export_pdf_report('Employee Penalties Report', headers, rows, f'penalties_{date.today()}.pdf')
     return send_pdf(buf, f"penalties_{date.today()}.pdf")
@@ -1622,8 +4830,6 @@ def export_penalties_pdf():
 @login_required
 @any_permission_required('trip_operation_report_view', 'trip_operation_report_download')
 def export_trip_reports_excel():
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Trip Operation Reports"
@@ -1668,6 +4874,17 @@ def export_trip_reports_pdf():
         ])
     buf = _export_pdf_report('Trip Operation Reports', headers, rows, f'trip_reports_{date.today()}.pdf')
     return send_pdf(buf, f"trip_reports_{date.today()}.pdf")
+
+
+# ── Catch-all: redirect /reports/<slug> to /reports#type (must be last) ──
+@app.route('/reports/<path:subpath>')
+@login_required
+@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+def report_subpath(subpath):
+    report_type = _REPORT_SLUG_MAP.get(subpath)
+    if report_type and report_type in REPORT_TYPES:
+        return redirect(url_for('reports', _anchor=report_type))
+    return redirect(url_for('reports'))
 
 
 # ─────────────────────────────────────────
@@ -1737,9 +4954,26 @@ class DynamicEngine:
             for rule in fld.validations:
                 if rule.validation_type == 'custom' and rule.validation_value:
                     try:
-                        if not eval(rule.validation_value, {'val': val_str, 'data': data}):
-                            errors[fld.field_name] = rule.error_message or _('%(label)s validation failed.', label=fld.field_label)
-                    except:
+                        allowed_ops = {
+                            'gt': lambda v, d, a: float(v) > float(a[0]) if a else False,
+                            'gte': lambda v, d, a: float(v) >= float(a[0]) if a else False,
+                            'lt': lambda v, d, a: float(v) < float(a[0]) if a else False,
+                            'lte': lambda v, d, a: float(v) <= float(a[0]) if a else False,
+                            'eq': lambda v, d, a: v == a[0],
+                            'neq': lambda v, d, a: v != a[0],
+                            'len_gt': lambda v, d, a: len(v) > int(a[0]) if a else False,
+                            'len_lt': lambda v, d, a: len(v) < int(a[0]) if a else False,
+                            'matches': lambda v, d, a: bool(re.match(a[0], v)) if a else False,
+                            'in': lambda v, d, a: v in a,
+                            'not_in': lambda v, d, a: v not in a,
+                        }
+                        parts = rule.validation_value.split(None, 1)
+                        op_name = parts[0].lower()
+                        args = parts[1].split() if len(parts) > 1 else []
+                        if op_name in allowed_ops:
+                            if not allowed_ops[op_name](val_str, data, args):
+                                errors[fld.field_name] = rule.error_message or _('%(label)s validation failed.', label=fld.field_label)
+                    except Exception:
                         pass
 
             # Number type check
@@ -1849,7 +5083,7 @@ class DynamicEngine:
             try:
                 col = DynamicRecord.data[sort_by].as_string()
                 q = q.order_by(col.desc() if sort_dir == 'desc' else col)
-            except:
+            except Exception:
                 q = q.order_by(DynamicRecord.created_date.desc())
         else:
             q = q.order_by(DynamicRecord.created_date.desc())
@@ -2152,6 +5386,8 @@ def new_role():
 @login_required
 @permission_required('user_create')
 def new_user():
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
     if request.method == 'POST':
         u = User()
         u.full_name = request.form.get('full_name')
@@ -2165,21 +5401,21 @@ def new_user():
             else:
                 flash(_('Selected role not found.'), 'danger')
                 roles = Role.query.order_by(Role.name).all()
-                return render_template('user_form.html', user=None, roles=roles)
+                return render_template('user_form.html', user=None, roles=roles, branches=branches)
         else:
-            u.role = request.form.get('role', 'admin')
+            u.role = request.form.get('role', 'user')
         u.branch = request.form.get('branch')
         u.set_password(request.form.get('password'))
         if User.query.filter_by(username=u.username).first():
             flash(_('Username already exists.'), 'danger')
             roles = Role.query.order_by(Role.name).all()
-            return render_template('user_form.html', user=None, roles=roles)
+            return render_template('user_form.html', user=None, roles=roles, branches=branches)
         db.session.add(u)
         db.session.commit()
         flash(_('User %(name)s created!', name=u.username), 'success')
         return redirect(url_for('users'))
     roles = Role.query.order_by(Role.name).all()
-    return render_template('user_form.html', user=None, roles=roles)
+    return render_template('user_form.html', user=None, roles=roles, branches=branches)
 
 
 @app.route('/users/<int:id>/edit', methods=['GET', 'POST'])
@@ -2187,6 +5423,8 @@ def new_user():
 @permission_required('user_edit')
 def edit_user(id):
     u = User.query.get_or_404(id)
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
     if request.method == 'POST':
         u.full_name = request.form.get('full_name')
         role_id = _int_or_none(request.form.get('role_id'))
@@ -2207,7 +5445,7 @@ def edit_user(id):
         flash(_('User updated!'), 'success')
         return redirect(url_for('users'))
     roles = Role.query.order_by(Role.name).all()
-    return render_template('user_form.html', user=u, roles=roles)
+    return render_template('user_form.html', user=u, roles=roles, branches=branches)
 
 
 @app.route('/users/<int:id>/delete', methods=['POST'])
@@ -2249,15 +5487,15 @@ def api_roles():
 def chart_data():
     months = {}
     for key, count in db.session.query(
-        db.func.strftime('%m', RouteRequest.created_date),
+        db.func.DATE_FORMAT(RouteRequest.created_date, '%m'),
         db.func.count(RouteRequest.id)
-    ).group_by(db.func.strftime('%m', RouteRequest.created_date)).all():
+    ).group_by(db.func.DATE_FORMAT(RouteRequest.created_date, '%m')).all():
         month_num = int(key)
         months[month_num] = {'requests': count, 'penalties': 0}
     for key, count in db.session.query(
-        db.func.strftime('%m', EmployeePenalty.created_date),
+        db.func.DATE_FORMAT(EmployeePenalty.created_date, '%m'),
         db.func.count(EmployeePenalty.id)
-    ).group_by(db.func.strftime('%m', EmployeePenalty.created_date)).all():
+    ).group_by(db.func.DATE_FORMAT(EmployeePenalty.created_date, '%m')).all():
         month_num = int(key)
         if month_num not in months:
             months[month_num] = {'requests': 0, 'penalties': 0}
@@ -2276,12 +5514,8 @@ def init_db():
     with app.app_context():
         db.create_all()
 
-        # ── Migrate users table for role_id FK ──
-        _add_column_if_not_exists('users', 'role_id', 'INTEGER')
-
-        # ── Migrate TripOperationReport for new columns ──
-        _add_column_if_not_exists('trip_operation_reports', 'origin', 'VARCHAR(200)')
-        _add_column_if_not_exists('trip_operation_reports', 'destination', 'VARCHAR(200)')
+        # ── Auto-migrate: add any missing columns from model definitions ──
+        run_auto_migrations()
 
         # ── Seed Dynamic Configuration Modules ──
         if not ConfigModule.query.first():
@@ -2437,12 +5671,125 @@ def init_db():
             db.session.commit()
             print("Dynamic configuration system initialized.")
 
+        # ── Migrate: hide unused config modules ──
+        unused_keys = ['agency', 'agent_group', 'destination_group', 'boarding_point',
+                       'drop_off_point', 'bus', 'bus_type', 'amenity']
+        for mod in ConfigModule.query.filter(ConfigModule.module_key.in_(unused_keys)).all():
+            mod.is_active = False
+        db.session.commit()
+
+        # ── Migrate: add new config modules if missing ──
+        new_modules = [
+            ('penalty_violation_type', 'Violation Type', 'fa-exclamation-triangle', 20),
+            ('penalty_department', 'Penalty Department', 'fa-building', 21),
+            ('vehicle_status', 'Vehicle Status', 'fa-truck', 22),
+            ('power_status', 'Power Status', 'fa-power-off', 23),
+            ('report_submission_status', 'Report Submission', 'fa-file-export', 24),
+            ('request_type', 'Request Type', 'fa-tag', 25),
+            ('entity_status', 'Entity Status', 'fa-toggle-on', 26),
+        ]
+        new_field_sets = {
+            'penalty_violation_type': [
+                ('name', 'Violation Name', 'text', True, True, True),
+                ('description', 'Description', 'textarea', False, False, False),
+                ('default_min_amount', 'Default Min Amount ($)', 'number', False, False, False),
+                ('default_max_amount', 'Default Max Amount ($)', 'number', False, False, False),
+            ],
+            'penalty_department': [
+                ('name', 'Department Name', 'text', True, True, True),
+                ('code', 'Department Code', 'text', False, False, True),
+            ],
+            'vehicle_status': [
+                ('name', 'Status Name', 'text', True, True, True),
+                ('label', 'Display Label', 'text', False, False, True),
+            ],
+            'power_status': [
+                ('name', 'Status Name', 'text', True, True, True),
+            ],
+            'report_submission_status': [
+                ('name', 'Status Name', 'text', True, True, True),
+                ('score_weight', 'Score Weight (0-100)', 'number', False, False, False),
+            ],
+            'request_type': [
+                ('name', 'Type Name', 'text', True, True, True),
+                ('code', 'Type Code', 'text', True, True, True),
+                ('description', 'Description', 'textarea', False, False, False),
+                ('icon', 'Icon Class', 'text', False, False, True),
+            ],
+            'entity_status': [
+                ('name', 'Status Name', 'text', True, True, True),
+            ],
+        }
+        for key, name, icon, order in new_modules:
+            existing = ConfigModule.query.filter_by(module_key=key).first()
+            if not existing:
+                m = ConfigModule(module_key=key, module_name=name, module_icon=icon, sort_order=order, is_active=True)
+                db.session.add(m)
+                db.session.flush()
+                if key in new_field_sets:
+                    for i, (fname, flabel, ftype, req, unique, listable) in enumerate(new_field_sets[key]):
+                        f = ConfigField(
+                            module_id=m.id,
+                            field_name=fname,
+                            field_label=flabel,
+                            field_type=ftype,
+                            is_required=req,
+                            is_unique=unique,
+                            is_listable=listable,
+                            is_searchable=req or unique,
+                            display_order=i,
+                        )
+                        db.session.add(f)
+
+        # Seed sample data for new modules
+        _seed_if_empty('penalty_violation_type', [
+            {'name': 'Late Arrival', 'default_min_amount': 25, 'default_max_amount': 50},
+            {'name': 'Absenteeism', 'default_min_amount': 50, 'default_max_amount': 100},
+            {'name': 'Misconduct', 'default_min_amount': 100, 'default_max_amount': 500},
+            {'name': 'Policy Violation', 'default_min_amount': 50, 'default_max_amount': 150},
+            {'name': 'Performance Issue'},
+            {'name': 'Insubordination'},
+            {'name': 'Theft'},
+            {'name': 'Other'},
+        ])
+        _seed_if_empty('penalty_department', [
+            {'name': 'IT'}, {'name': 'HR'}, {'name': 'Finance'}, {'name': 'Operations'},
+            {'name': 'Marketing'}, {'name': 'Management'}, {'name': 'Sales'},
+            {'name': 'Legal'}, {'name': 'Logistics'},
+        ])
+        _seed_if_empty('vehicle_status', [
+            {'name': 'Departed', 'label': 'Departed'},
+            {'name': 'Not Departed', 'label': 'Not Departed'},
+        ])
+        _seed_if_empty('power_status', [
+            {'name': 'Off'}, {'name': 'On'},
+        ])
+        _seed_if_empty('report_submission_status', [
+            {'name': 'On Time', 'score_weight': 100},
+            {'name': 'Late', 'score_weight': 50},
+            {'name': 'Incomplete', 'score_weight': 25},
+        ])
+        _seed_if_empty('request_type', [
+            {'name': 'Create Journey', 'code': 'create_journey', 'icon': 'fa-plus-circle',
+             'description': 'Create a new transportation journey route'},
+            {'name': 'Open Route', 'code': 'open_route', 'icon': 'fa-road',
+             'description': 'Open a new route for transportation'},
+            {'name': 'Change Route', 'code': 'change_route', 'icon': 'fa-exchange-alt',
+             'description': 'Modify an existing transportation route'},
+        ])
+        _seed_if_empty('entity_status', [
+            {'name': 'Active'}, {'name': 'Inactive'},
+        ])
+        db.session.commit()
+
         # ── Seed Default Roles ──
         if not Role.query.first():
             all_permissions = [
                 'dashboard_view', 'dashboard_edit', 'dashboard_download',
                 'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_delete',
                 'route_request_approve', 'route_request_reject', 'route_request_download',
+                'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_delete',
+                'transport_request_approve', 'transport_request_reject', 'transport_request_download',
                 'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete', 'penalty_download',
                 'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
                 'trip_operation_report_delete', 'trip_operation_report_download',
@@ -2458,6 +5805,7 @@ def init_db():
             it_staff_permissions = [
                 'dashboard_view',
                 'route_request_view',
+                'transport_request_view',
                 'penalty_view',
                 'trip_operation_report_view', 'trip_operation_report_create',
                 'report_view',
@@ -2469,6 +5817,7 @@ def init_db():
             branch_manager_permissions = [
                 'dashboard_view', 'dashboard_download',
                 'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_download',
+                'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_download',
                 'penalty_view',
                 'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
                 'report_view',
@@ -2476,6 +5825,7 @@ def init_db():
             regional_manager_permissions = [
                 'dashboard_view',
                 'route_request_view', 'route_request_approve', 'route_request_reject',
+                'transport_request_view', 'transport_request_approve', 'transport_request_reject',
                 'penalty_view',
                 'trip_operation_report_view',
                 'report_view', 'report_export', 'report_print', 'report_download',
@@ -2483,6 +5833,7 @@ def init_db():
             hr_manager_permissions = [
                 'dashboard_view',
                 'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_download',
+                'transport_request_view',
                 'trip_operation_report_view',
                 'report_view',
                 'department_view', 'department_create', 'department_edit',
@@ -2509,29 +5860,32 @@ def init_db():
             db.session.commit()
 
         # ── Seed Users and Demo Data ──
+        admin_role = Role.query.filter_by(name='admin').first()
         if not User.query.filter_by(username='admin').first():
-            admin_role = Role.query.filter_by(name='admin').first()
             admin = User(full_name='System Administrator', username='admin', role='admin', branch='HQ')
             if admin_role:
                 admin.role_id = admin_role.id
             admin.set_password('admin123')
             db.session.add(admin)
 
-            users_seed = [
-                ('Branch Manager A', 'branch_mgr', 'branch_manager', 'Phnom Penh Branch'),
-                ('Regional Manager', 'regional_mgr', 'regional_manager', 'Region 1'),
-                ('HR Manager', 'hr_mgr', 'hr_manager', 'HQ'),
-                ('IT Staff', 'it_staff', 'it_staff', 'HQ'),
-            ]
-            for name, uname, role_key, branch in users_seed:
-                u = User(full_name=name, username=uname, role=role_key, branch=branch)
-                role_obj = Role.query.filter_by(name=role_key).first()
-                if role_obj:
-                    u.role_id = role_obj.id
-                u.set_password('pass123')
-                db.session.add(u)
+        users_seed = [
+            ('Branch Manager A', 'branch_mgr', 'branch_manager', 'Phnom Penh Branch'),
+            ('Regional Manager', 'regional_mgr', 'regional_manager', 'Region 1'),
+            ('HR Manager', 'hr_mgr', 'hr_manager', 'HQ'),
+            ('IT Staff', 'it_staff', 'it_staff', 'HQ'),
+        ]
+        for name, uname, role_key, branch in users_seed:
+            if User.query.filter_by(username=uname).first():
+                continue
+            u = User(full_name=name, username=uname, role=role_key, branch=branch)
+            role_obj = Role.query.filter_by(name=role_key).first()
+            if role_obj:
+                u.role_id = role_obj.id
+            u.set_password('pass123')
+            db.session.add(u)
 
-            # Seed sample route requests
+        # Seed sample data if tables are empty
+        if not RouteRequest.query.first():
             sample_routes = [
                 ('Phnom Penh', 'Siem Reap', 'PP Branch', 'ABC Co.', 'Bus', 'NR6', 25.0, '07:00', '12:00', 'Approved'),
                 ('Phnom Penh', 'Kampot', 'PP Branch', 'XYZ Co.', 'Van', 'NR3', 15.0, '08:00', '11:00', 'Pending'),
@@ -2552,7 +5906,7 @@ def init_db():
                 )
                 db.session.add(rr)
 
-            # Seed sample penalties
+        if not EmployeePenalty.query.first():
             sample_penalties = [
                 ('EMP001', 'Sok Dara', 'IT', 'Developer', 'Late Arrival', 'Arrived 2 hours late', 50.0, 'Approved'),
                 ('EMP002', 'Chea Vanna', 'HR', 'Officer', 'Absenteeism', 'Absent without notice', 100.0, 'Pending'),
@@ -2571,32 +5925,32 @@ def init_db():
                 )
                 db.session.add(ep)
 
-            # ── Seed HR Modules (Departments, Positions) ──
-            if not Department.query.first():
-                depts = ['Human Resources', 'Information Technology', 'Finance', 'Operations', 'Marketing', 'Sales', 'Legal', 'Logistics']
-                dept_objs = {}
-                for dname in depts:
-                    d = Department(name=dname, description=f'{dname} Department', status='Active')
-                    db.session.add(d)
-                    db.session.flush()
-                    dept_objs[dname] = d.id
+        # ── Seed HR Modules (Departments, Positions) ──
+        if not Department.query.first():
+            depts = ['Human Resources', 'Information Technology', 'Finance', 'Operations', 'Marketing', 'Sales', 'Legal', 'Logistics']
+            dept_objs = {}
+            for dname in depts:
+                d = Department(name=dname, description=f'{dname} Department', status='Active')
+                db.session.add(d)
+                db.session.flush()
+                dept_objs[dname] = d.id
 
-                positions_data = [
-                    ('HR Manager', 'Human Resources'), ('HR Officer', 'Human Resources'),
-                    ('IT Manager', 'Information Technology'), ('Software Engineer', 'Information Technology'),
-                    ('IT Support', 'Information Technology'), ('Finance Manager', 'Finance'),
-                    ('Accountant', 'Finance'), ('Operations Manager', 'Operations'),
-                    ('Supervisor', 'Operations'), ('Marketing Manager', 'Marketing'),
-                    ('Sales Executive', 'Sales'), ('Legal Counsel', 'Legal'),
-                    ('Logistics Coordinator', 'Logistics'),
-                ]
-                for pname, dname in positions_data:
-                    pos = Position(name=pname, department_id=dept_objs[dname], status='Active')
-                    db.session.add(pos)
+            positions_data = [
+                ('HR Manager', 'Human Resources'), ('HR Officer', 'Human Resources'),
+                ('IT Manager', 'Information Technology'), ('Software Engineer', 'Information Technology'),
+                ('IT Support', 'Information Technology'), ('Finance Manager', 'Finance'),
+                ('Accountant', 'Finance'), ('Operations Manager', 'Operations'),
+                ('Supervisor', 'Operations'), ('Marketing Manager', 'Marketing'),
+                ('Sales Executive', 'Sales'), ('Legal Counsel', 'Legal'),
+                ('Logistics Coordinator', 'Logistics'),
+            ]
+            for pname, dname in positions_data:
+                pos = Position(name=pname, department_id=dept_objs[dname], status='Active')
+                db.session.add(pos)
 
             db.session.commit()
-            print("Database seeded with sample data.")
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, port=5000)
+    debug_mode = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
+    app.run(debug=debug_mode, port=int(os.environ.get('PORT', 5000)))

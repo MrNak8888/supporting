@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('dynamic_settings') %}
 {% block title %}{{ module.module_name }} Details{% endblock %}
 {% block page_title %}{{ module.module_name }} Details{% endblock %}
 

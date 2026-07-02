@@ -3,537 +3,788 @@
 {% block page_title %}{{ _('Dashboard') }}{% endblock %}
 
 {% block content %}
-<!-- Dashboard Header -->
-<div class="dash-header">
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+<div id="dashApp">
+  <!-- ═══ HEADER ═══ -->
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
-      <h2>{{ _('Dashboard') }}</h2>
-      <p>{{ _('Welcome back, %(name)s. Here\'s what\'s happening today.', name=current_user.full_name) }}</p>
+      <h2 class="fw-bold mb-1" style="font-size:1.6rem;color:var(--text-primary);">{{ _('Executive Dashboard') }}</h2>
+      <p class="mb-0" style="color:var(--text-secondary);font-size:.85rem;">
+        <i class="far fa-calendar-alt me-1"></i> <span id="dashDate"></span>
+        &middot; {{ _('Welcome, %(name)s', name=current_user.full_name) }}
+      </p>
     </div>
-    <div class="date-range-bar">
-      <span style="font-size:.78rem;color:var(--text-secondary);font-weight:600;margin-right:4px;"><i class="fas fa-calendar-alt me-1"></i></span>
-      <a href="?range=today" class="range-btn {% if range_filter=='today' %}active{% endif %}">{{ _('Today') }}</a>
-      <a href="?range=week" class="range-btn {% if range_filter=='week' %}active{% endif %}">{{ _('This Week') }}</a>
-      <a href="?range=month" class="range-btn {% if range_filter=='month' %}active{% endif %}">{{ _('This Month') }}</a>
-      <a href="?range=year" class="range-btn {% if range_filter=='year' %}active{% endif %}">{{ _('This Year') }}</a>
-      <a href="?range=all" class="range-btn {% if range_filter=='all' or not range_filter %}active{% endif %}">{{ _('All Time') }}</a>
-      <span class="range-btn {% if range_filter=='custom' %}active{% endif %}" id="customRangeToggle" style="cursor:pointer;">{{ _('Custom') }}</span>
-      <form id="customRangeForm" method="GET" action="{{ url_for('dashboard') }}" class="d-flex align-items-center gap-2" style="display:none;">
-        <input type="hidden" name="range" value="custom">
-        <input type="date" name="start_date" class="form-control form-control-sm" style="width:140px;font-size:.78rem;border-radius:8px;" value="{{ custom_start }}" required>
-        <span style="color:var(--text-secondary);font-size:.78rem;">{{ _('to') }}</span>
-        <input type="date" name="end_date" class="form-control form-control-sm" style="width:140px;font-size:.78rem;border-radius:8px;" value="{{ custom_end }}" required>
-        <button type="submit" class="btn btn-sm btn-primary" style="border-radius:8px;font-size:.78rem;">{{ _('Apply') }}</button>
-      </form>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <label class="toggle-switch mb-0" title="{{ _('Comparison Mode') }}">
+        <input type="checkbox" id="comparisonToggle" onchange="toggleComparison()">
+        <span class="slider"></span>
+      </label>
+      <small class="text-muted" style="font-size:.72rem;font-weight:600;">{{ _('Compare') }}</small>
+      <button class="btn btn-sm btn-outline-secondary" onclick="refreshDashboard()" title="{{ _('Refresh') }}" style="border-radius:10px;">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-primary" onclick="window.print()" style="border-radius:10px;">
+        <i class="fas fa-print"></i>
+      </button>
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-sm btn-outline-success" onclick="exportDashboard('excel')" style="border-radius:10px 0 0 10px;">
+          <i class="fas fa-file-excel"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="exportDashboard('pdf')" style="border-radius:0 10px 10px 0;">
+          <i class="fas fa-file-pdf"></i>
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- KPI Cards Row 1: Route Requests -->
-<div class="row g-3 mb-3">
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#dbeafe;"><i class="fas fa-route" style="color:#1d4ed8;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.total_requests.cls }}"><i class="fas fa-{{ kpi_trends.total_requests.icon }}"></i> {{ kpi_trends.total_requests.label }}</span>
+  <!-- ═══ FILTER PANEL ═══ -->
+  <div class="dash-filter-panel" id="filterPanel">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <div class="filter-label">{{ _('Date Range') }}</div>
+        <select class="form-select form-select-sm" id="filterRange" onchange="updateDateRange()">
+          <option value="today">{{ _('Today') }}</option>
+          <option value="week" {% if range_filter=='week' %}selected{% endif %}>{{ _('This Week') }}</option>
+          <option value="month" {% if range_filter=='month' or not range_filter %}selected{% endif %}>{{ _('This Month') }}</option>
+          <option value="year" {% if range_filter=='year' %}selected{% endif %}>{{ _('This Year') }}</option>
+          <option value="all" {% if range_filter=='all' %}selected{% endif %}>{{ _('All Time') }}</option>
+          <option value="custom" {% if range_filter=='custom' %}selected{% endif %}>{{ _('Custom') }}</option>
+        </select>
       </div>
-      <div class="kpi-value">{{ total_requests }}</div>
-      <div class="kpi-label">{{ _('Total Route Requests') }}</div>
+      <div class="col-md-2" id="customDateRange" style="display:{% if range_filter=='custom' %}flex{% else %}none{% endif %};gap:8px;">
+        <div>
+          <div class="filter-label">{{ _('From') }}</div>
+          <input type="date" class="form-control form-control-sm" id="filterStart" value="{{ custom_start }}">
+        </div>
+        <div>
+          <div class="filter-label">{{ _('To') }}</div>
+          <input type="date" class="form-control form-control-sm" id="filterEnd" value="{{ custom_end }}">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="filter-label">{{ _('Department') }}</div>
+        <select class="form-select form-select-sm" id="filterDepartment" onchange="refreshDashboard()">
+          <option value="">{{ _('All') }}</option>
+        </select>
+      </div>
+      <div class="col-md-1-5">
+        <div class="filter-label">{{ _('Status') }}</div>
+        <select class="form-select form-select-sm" id="filterStatus" onchange="refreshDashboard()">
+          <option value="">{{ _('All') }}</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <div class="filter-label">{{ _('Search') }}</div>
+        <input type="text" class="form-control form-control-sm" id="filterSearch" placeholder="Search..." onkeydown="if(event.key==='Enter')refreshDashboard()">
+      </div>
+      <div class="col-md-1">
+        <div class="filter-label">&nbsp;</div>
+        <button class="btn btn-sm btn-primary w-100" onclick="refreshDashboard()" style="border-radius:10px;">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
     </div>
   </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-clock" style="color:#d97706;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.pending_requests.cls }}"><i class="fas fa-{{ kpi_trends.pending_requests.icon }}"></i> {{ kpi_trends.pending_requests.label }}</span>
-      </div>
-      <div class="kpi-value">{{ pending_requests }}</div>
-      <div class="kpi-label">{{ _('Pending Requests') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#d1fae5;"><i class="fas fa-check-circle" style="color:#059669;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.approved_requests.cls }}"><i class="fas fa-{{ kpi_trends.approved_requests.icon }}"></i> {{ kpi_trends.approved_requests.label }}</span>
-      </div>
-      <div class="kpi-value">{{ approved_requests }}</div>
-      <div class="kpi-label">{{ _('Approved Requests') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fee2e2;"><i class="fas fa-times-circle" style="color:#dc2626;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.rejected_requests.cls }}"><i class="fas fa-{{ kpi_trends.rejected_requests.icon }}"></i> {{ kpi_trends.rejected_requests.label }}</span>
-      </div>
-      <div class="kpi-value">{{ rejected_requests }}</div>
-      <div class="kpi-label">{{ _('Rejected Requests') }}</div>
-    </div>
-  </div>
-</div>
 
-<!-- KPI Cards Row 2: Penalties + Processed -->
-<div class="row g-3 mb-3">
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#ede9fe;"><i class="fas fa-exclamation-triangle" style="color:#7c3aed;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.total_penalties.cls }}"><i class="fas fa-{{ kpi_trends.total_penalties.icon }}"></i> {{ kpi_trends.total_penalties.label }}</span>
+  <!-- ═══ COMPARISON PANEL (hidden by default) ═══ -->
+  <div class="comparison-card" id="comparisonPanel" style="display:none;">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <h6 class="fw-bold mb-0" style="color:var(--text-primary);">
+        <i class="fas fa-not-equal me-2 text-primary"></i>{{ _('Comparison Dashboard') }}
+      </h6>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <select class="form-select form-select-sm" id="compType" style="width:auto;">
+          <option value="month">{{ _('Month vs Month') }}</option>
+          <option value="quarter">{{ _('Quarter vs Quarter') }}</option>
+          <option value="year">{{ _('Year vs Year') }}</option>
+          <option value="custom">{{ _('Custom Range') }}</option>
+        </select>
+        <div id="compCustomRanges" style="display:none;gap:6px;" class="d-flex align-items-center">
+          <input type="date" class="form-control form-control-sm" id="compAStart" style="width:130px;">
+          <span class="text-muted" style="font-size:.72rem;">{{ _('to') }}</span>
+          <input type="date" class="form-control form-control-sm" id="compAEnd" style="width:130px;">
+          <span class="badge bg-primary" style="font-size:.65rem;">{{ _('A') }}</span>
+          <input type="date" class="form-control form-control-sm" id="compBStart" style="width:130px;">
+          <span class="text-muted" style="font-size:.72rem;">{{ _('to') }}</span>
+          <input type="date" class="form-control form-control-sm" id="compBEnd" style="width:130px;">
+          <span class="badge bg-danger" style="font-size:.65rem;">{{ _('B') }}</span>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="runComparison()" style="border-radius:10px;">
+          <i class="fas fa-not-equal me-1"></i>{{ _('Compare') }}
+        </button>
       </div>
-      <div class="kpi-value">{{ total_penalties }}</div>
-      <div class="kpi-label">{{ _('Total Penalty Cases') }}</div>
     </div>
+    <div id="comparisonResults"></div>
   </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fce7f3;"><i class="fas fa-dollar-sign" style="color:#be185d;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.total_penalty_amount.cls }}"><i class="fas fa-{{ kpi_trends.total_penalty_amount.icon }}"></i> {{ kpi_trends.total_penalty_amount.label }}</span>
-      </div>
-      <div class="kpi-value">${{ "%.0f"|format(total_penalty_amount) }}</div>
-      <div class="kpi-label">{{ _('Total Penalty Amount') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-hourglass-half" style="color:#d97706;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.pending_penalties.cls }}"><i class="fas fa-{{ kpi_trends.pending_penalties.icon }}"></i> {{ kpi_trends.pending_penalties.label }}</span>
-      </div>
-      <div class="kpi-value">{{ pending_penalties }}</div>
-      <div class="kpi-label">{{ _('Pending Penalties') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#dbeafe;"><i class="fas fa-check-double" style="color:#1d4ed8;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.processed_requests.cls }}"><i class="fas fa-{{ kpi_trends.processed_requests.icon }}"></i> {{ kpi_trends.processed_requests.label }}</span>
-      </div>
-      <div class="kpi-value">{{ processed_requests }}</div>
-      <div class="kpi-label">{{ _('Processed Requests') }}</div>
-    </div>
-  </div>
-</div>
 
-<!-- KPI Cards Row 3: Trip Reports -->
-<div class="row g-3 mb-4">
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#e0f2fe;"><i class="fas fa-bus" style="color:#0284c7;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.total_reports.cls }}"><i class="fas fa-{{ kpi_trends.total_reports.icon }}"></i> {{ kpi_trends.total_reports.label }}</span>
-      </div>
-      <div class="kpi-value">{{ total_reports }}</div>
-      <div class="kpi-label">{{ _('Total Trip Reports') }}</div>
+  <!-- ═══ SKELETON LOADING ═══ -->
+  <div id="dashSkeleton">
+    <div class="row g-3 mb-4">
+      {% for i in range(8) %}
+      <div class="col-xl-3 col-md-6"><div class="skeleton skeleton-kpi"></div></div>
+      {% endfor %}
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6"><div class="skeleton skeleton-chart"></div></div>
+      <div class="col-lg-6"><div class="skeleton skeleton-chart"></div></div>
     </div>
   </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#d1fae5;"><i class="fas fa-check-circle" style="color:#059669;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.departed_reports.cls }}"><i class="fas fa-{{ kpi_trends.departed_reports.icon }}"></i> {{ kpi_trends.departed_reports.label }}</span>
-      </div>
-      <div class="kpi-value">{{ departed_reports }}</div>
-      <div class="kpi-label">{{ _('Departed Trips') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fee2e2;"><i class="fas fa-times-circle" style="color:#dc2626;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.not_departed_reports.cls }}"><i class="fas fa-{{ kpi_trends.not_departed_reports.icon }}"></i> {{ kpi_trends.not_departed_reports.label }}</span>
-      </div>
-      <div class="kpi-value">{{ not_departed_reports }}</div>
-      <div class="kpi-label">{{ _('Not Departed') }}</div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-md-6">
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:#fef3c7;"><i class="fas fa-users" style="color:#d97706;"></i></div>
-        <span class="kpi-trend {{ kpi_trends.total_passengers.cls }}"><i class="fas fa-{{ kpi_trends.total_passengers.icon }}"></i> {{ kpi_trends.total_passengers.label }}</span>
-      </div>
-      <div class="kpi-value">{{ total_passengers }}</div>
-      <div class="kpi-label">{{ _('Total Passengers') }}</div>
-    </div>
-  </div>
-</div>
 
-<!-- Quick Actions -->
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="chart-card" style="padding:14px 20px;">
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <span style="font-weight:600;font-size:.85rem;color:var(--text-primary);"><i class="fas fa-bolt me-2" style="color:var(--accent);"></i>{{ _('Quick Actions') }}</span>
-        <div class="quick-actions">
-          <a href="{{ url_for('new_route_request') }}" class="qa-btn" style="background:#dbeafe;color:#1d4ed8;">
-            <i class="fas fa-plus-circle"></i> {{ _('New Request') }}
-          </a>
-          {% if has_permission('penalty_create') %}
-          <a href="{{ url_for('new_penalty') }}" class="qa-btn" style="background:#ede9fe;color:#7c3aed;">
-            <i class="fas fa-gavel"></i> {{ _('New Penalty') }}
-          </a>
-          {% endif %}
-          <a href="{{ url_for('new_trip_operation_report') }}" class="qa-btn" style="background:#e0f2fe;color:#0284c7;">
-            <i class="fas fa-bus"></i> {{ _('New Trip Report') }}
-          </a>
-          <a href="{{ url_for('export_requests_excel') }}" class="qa-btn" style="background:#d1fae5;color:#059669;">
-            <i class="fas fa-file-excel"></i> {{ _('Export Excel') }}
-          </a>
-          <a href="{{ url_for('export_requests_pdf') }}" class="qa-btn" style="background:#fee2e2;color:#dc2626;">
-            <i class="fas fa-file-pdf"></i> {{ _('Export PDF') }}
-          </a>
-          <button onclick="window.print()" class="qa-btn" style="background:#fef3c7;color:#d97706;">
-            <i class="fas fa-print"></i> {{ _('Print') }}
-          </button>
+  <!-- ═══ DASHBOARD CONTENT (hidden during load) ═══ -->
+  <div id="dashContent" style="display:none;">
+
+    <!-- ═══ KPI CARDS ═══ -->
+    <div class="row g-3 mb-4" id="kpiContainer"></div>
+
+    <!-- ═══ EXECUTIVE SUMMARY + AI INSIGHTS ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="exec-summary-card" id="execSummaryCard">
+          <h5><i class="fas fa-chart-line"></i> {{ _('Executive Summary') }}</h5>
+          <div id="execSummaryContent"><p class="text-light opacity-75" style="font-size:.85rem;">{{ _('Loading...') }}</p></div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="ai-insights-card" id="aiInsightsCard">
+          <h5><i class="fas fa-brain"></i> {{ _('AI Business Insights') }}</h5>
+          <div id="aiInsightsContent"><p class="text-muted" style="font-size:.85rem;">{{ _('Loading...') }}</p></div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Charts Row -->
-<div class="row g-3 mb-4">
-  <div class="col-lg-6">
-    <div class="chart-card" style="height:300px;">
-      <div class="chart-title"><i class="fas fa-chart-pie" style="color:#f59e0b;"></i> {{ _('Request Status Overview') }}</div>
-      <canvas id="statusChart" style="max-height:220px;"></canvas>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="chart-card" style="height:300px;">
-      <div class="chart-title"><i class="fas fa-chart-bar" style="color:#1a3c5e;"></i> {{ _('Monthly Route Requests') }}</div>
-      <canvas id="monthlyChart" style="max-height:220px;"></canvas>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="chart-card" style="height:300px;">
-      <div class="chart-title"><i class="fas fa-chart-line" style="color:#7c3aed;"></i> {{ _('Penalty Trend') }}</div>
-      <canvas id="penaltyTrendChart" style="max-height:220px;"></canvas>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="chart-card" style="height:300px;">
-      <div class="chart-title"><i class="fas fa-chart-column" style="color:#0284c7;"></i> {{ _('Trip Operations Summary') }}</div>
-      <canvas id="tripStackedChart" style="max-height:220px;"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- Recent Requests DataTable -->
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="data-table">
-      <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
-        <h6 class="mb-0 fw-bold" style="color:var(--text-primary);"><i class="fas fa-route me-2" style="color:#1d4ed8;"></i>{{ _('Recent Route Requests') }}</h6>
-        <a href="{{ url_for('route_requests') }}" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;border-radius:8px;">{{ _('View All') }}</a>
-      </div>
-      <div class="table-responsive">
-        <table class="table" id="requestsTable">
-          <thead>
-            <tr>
-              <th>{{ _('Request ID') }}</th>
-              <th>{{ _('Employee') }}</th>
-              <th>{{ _('Destination') }}</th>
-              <th>{{ _('Request Date') }}</th>
-              <th>{{ _('Status') }}</th>
-              <th>{{ _('Actions') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for rr in recent_requests %}
-            <tr>
-              <td><a href="{{ url_for('view_route_request', id=rr.id) }}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">{{ rr.request_id }}</a></td>
-              <td>{{ rr.requester_name }}</td>
-              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ rr.destination_from }} → {{ rr.destination_to }}</td>
-              <td>{{ rr.request_date.strftime('%d %b %Y') if rr.request_date else '' }}</td>
-              <td><span class="status-badge badge-{{ rr.status.lower() }}">{{ rr.status }}</span></td>
-              <td>
-                <a href="{{ url_for('view_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:.75rem;border-radius:6px;" title="View"><i class="fas fa-eye"></i></a>
-                {% if has_permission('route_request_edit') and rr.status == 'Pending' %}
-                <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-warning" style="padding:2px 8px;font-size:.75rem;border-radius:6px;" title="Edit"><i class="fas fa-edit"></i></a>
-                {% endif %}
-              </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" class="text-center text-muted py-4">{{ _('No requests found') }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Recent Activities + Notifications -->
-<div class="row g-3 mb-4">
-  <div class="col-lg-6">
-    <div class="data-table p-3">
-      <h6 class="fw-bold mb-3" style="color:var(--text-primary);"><i class="fas fa-clock-rotate me-2" style="color:#059669;"></i>{{ _('Recent Activities') }}</h6>
-      <div style="max-height:320px;overflow-y:auto;">
-        {% for activity in recent_activities %}
-        <div class="activity-item">
-          <div class="activity-icon" style="background:{{ activity.bg_color }};color:{{ activity.color }};">
-            <i class="{{ activity.icon }}"></i>
+    <!-- ═══ CHARTS ROW 1 ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-line" style="color:#1d4ed8;"></i> {{ _('Route Requests Trend') }}
+            <span style="margin-left:auto;font-weight:400;font-size:.72rem;">
+              <select class="form-select form-select-sm" id="trendPeriod" onchange="renderTrendChart()" style="width:auto;display:inline-block;">
+                <option value="daily">{{ _('Daily') }}</option>
+                <option value="weekly">{{ _('Weekly') }}</option>
+                <option value="monthly" selected>{{ _('Monthly') }}</option>
+                <option value="yearly">{{ _('Yearly') }}</option>
+              </select>
+            </span>
           </div>
-          <div class="activity-text">
-            <strong>{{ activity.title }}</strong>
-            <div>{{ activity.description }}</div>
-            <div class="activity-time"><i class="far fa-clock me-1"></i>{{ activity.time_ago }}</div>
+          <div id="trendChart"></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-pie" style="color:#f59e0b;"></i> {{ _('Approval Status') }}</div>
+          <div id="approvalChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CHARTS ROW 2 ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-bar" style="color:#059669;"></i> {{ _('Trips Analysis') }}</div>
+          <div id="tripsChart"></div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-line" style="color:#7c3aed;"></i> {{ _('Penalty Trend') }}</div>
+          <div id="penaltyTrendChart"></div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-pie" style="color:#ef4444;"></i> {{ _('Penalty Categories') }}</div>
+          <div id="penaltyCatChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CHARTS ROW 3 ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-4">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-trophy" style="color:#d97706;"></i> {{ _('Top Drivers') }}</div>
+          <div id="topDriversChart"></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-truck" style="color:#0284c7;"></i> {{ _('Vehicle Utilization') }}</div>
+          <div id="vehicleUtilChart"></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-map-marker-alt" style="color:#ea580c;"></i> {{ _('Popular Destinations') }}</div>
+          <div id="destinationsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CHARTS ROW 4 ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-12">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-chart-area" style="color:#0891b2;"></i> {{ _('Requests vs Penalties Overview') }}</div>
+          <div id="overviewChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CHARTS ROW 5 ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-12">
+        <div class="chart-card-v2">
+          <div class="chart-title"><i class="fas fa-clock" style="color:#0ea5e9;"></i> {{ _('LET Frequency by Vehicle') }}</div>
+          <div id="letFrequencyChart" style="height:300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TABLES ═══ -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="data-table">
+          <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+            <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);"><i class="fas fa-route me-2" style="color:#1d4ed8;"></i>{{ _('Recent Route Requests') }}</h6>
+            <a href="{{ url_for('route_requests') }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;border-radius:8px;">{{ _('View All') }}</a>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <thead><tr><th>{{ _('ID') }}</th><th>{{ _('Employee') }}</th><th>{{ _('Destination') }}</th><th>{{ _('Status') }}</th></tr></thead>
+              <tbody id="recentRequestsTable"></tbody>
+            </table>
           </div>
         </div>
-        {% else %}
-        <div class="text-center text-muted py-4" style="font-size:.85rem;">{{ _('No recent activities') }}</div>
-        {% endfor %}
       </div>
-    </div>
-  </div>
-  <div class="col-lg-6" id="notifications-section">
-    <div class="data-table p-3">
-      <h6 class="fw-bold mb-3" style="color:var(--text-primary);"><i class="fas fa-bell me-2" style="color:#f59e0b;"></i>{{ _('Notifications') }}</h6>
-      <div style="max-height:320px;overflow-y:auto;">
-        {% for notif in notifications %}
-        <div class="notif-item">
-          <div class="notif-dot" style="background:{{ notif.dot_color }};"></div>
-          <div style="flex:1;">
-            <div style="font-size:.85rem;color:var(--text-primary);font-weight:500;">{{ notif.message }}</div>
-            <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px;">{{ notif.time_ago }}</div>
+      <div class="col-lg-6">
+        <div class="data-table">
+          <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+            <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);"><i class="fas fa-bus me-2" style="color:#059669;"></i>{{ _('Recent Trips') }}</h6>
+            <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;border-radius:8px;">{{ _('View All') }}</a>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <thead><tr><th>{{ _('Report ID') }}</th><th>{{ _('Vehicle') }}</th><th>{{ _('Route') }}</th><th>{{ _('Status') }}</th></tr></thead>
+              <tbody id="recentTripsTable"></tbody>
+            </table>
           </div>
         </div>
-        {% else %}
-        <div class="text-center text-muted py-4" style="font-size:.85rem;">{{ _('No pending notifications') }}</div>
-        {% endfor %}
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Logo Upload (Admin Only) -->
-{% if current_user.role == 'admin' or has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="chart-card">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <div style="width:48px;height:48px;border-radius:12px;background:#f0f9ff;display:flex;align-items:center;justify-content:center;">
-            <i class="fas fa-image text-primary" style="font-size:1.2rem;"></i>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="data-table">
+          <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+            <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);"><i class="fas fa-gavel me-2" style="color:#7c3aed;"></i>{{ _('Recent Penalties') }}</h6>
+            <a href="{{ url_for('penalties') }}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;border-radius:8px;">{{ _('View All') }}</a>
           </div>
-          <div>
-            <h6 class="fw-bold mb-0" style="color:var(--text-primary);">{{ _('Login Logo') }}</h6>
-            <small style="color:var(--text-secondary);">{% if login_logo_url %}{{ _('Current logo displayed on login page') }}{% else %}{{ _('No logo uploaded yet') }}{% endif %}</small>
+          <div class="dash-table-wrap">
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <thead><tr><th>{{ _('Penalty ID') }}</th><th>{{ _('Employee') }}</th><th>{{ _('Violation') }}</th><th>{{ _('Amount') }}</th><th>{{ _('Status') }}</th></tr></thead>
+              <tbody id="recentPenaltiesTable"></tbody>
+            </table>
           </div>
         </div>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
-          {% if login_logo_url %}
-          <img src="{{ login_logo_url }}?t={{ range(99999, 999999) | random }}" style="height:48px;border-radius:8px;border:1px solid var(--card-border);padding:4px;background:var(--card-bg);">
-          {% endif %}
-          <form method="POST" action="{{ url_for('upload_logo') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
-            <input type="file" name="logo" accept="image/*" class="form-control form-control-sm" style="max-width:200px;" required>
-            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-upload me-1"></i>{{ _('Upload') }}</button>
-          </form>
-          {% if login_logo_url %}
-          <form method="POST" action="{{ url_for('delete_logo') }}" onsubmit="return confirm('{{ _('Remove logo?') }}');">
-            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
-          </form>
-          {% endif %}
+      </div>
+      <div class="col-lg-6">
+        <div class="data-table">
+          <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+            <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);"><i class="fas fa-clock me-2" style="color:#d97706;"></i>{{ _('Pending Approvals') }}</h6>
+            <a href="{{ url_for('route_requests') }}?status=Pending" class="btn btn-sm btn-outline-warning" style="font-size:.72rem;border-radius:8px;">{{ _('Review') }}</a>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <thead><tr><th>{{ _('Request ID') }}</th><th>{{ _('Employee') }}</th><th>{{ _('Destination') }}</th><th>{{ _('Date') }}</th></tr></thead>
+              <tbody id="pendingApprovalsTable"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+
+  </div><!-- /dashContent -->
+</div><!-- /dashApp -->
+
+<!-- ═══ ERROR STATE ═══ -->
+<div id="dashError" style="display:none;">
+  <div class="text-center py-5">
+    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+    <h5>{{ _('Failed to load dashboard data') }}</h5>
+    <p class="text-muted">{{ _('Please try refreshing the page.') }}</p>
+    <button class="btn btn-primary" onclick="location.reload()">{{ _('Refresh') }}</button>
   </div>
 </div>
-{% endif %}
-
-<!-- Export Section -->
-<div class="row g-3">
-  <div class="col-12">
-    <div class="chart-card">
-      <h6 class="chart-title"><i class="fas fa-download me-2" style="color:#059669;"></i>{{ _('Export & Reports') }}</h6>
-      <div class="row g-2">
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Requests Excel') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Requests PDF') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Penalties Excel') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Penalties PDF') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Trip Reports Excel') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Trip Reports PDF') }}</small>
-          </a>
-        </div>
-        <div class="col-6 col-md-3 col-lg">
-          <button onclick="window.print()" class="btn btn-outline-warning w-100 py-3" style="border-radius:12px;">
-            <i class="fas fa-print d-block mb-1" style="font-size:1.3rem;"></i>
-            <small>{{ _('Print Page') }}</small>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // ── Status Donut Chart ──
-  new Chart(document.getElementById('statusChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Pending', 'Approved', 'Rejected'],
-      datasets: [{
-        data: [{{ pending_requests }}, {{ approved_requests }}, {{ rejected_requests }}],
-        backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
-        borderWidth: 0,
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '70%',
-      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } }
-    }
-  });
+// ═══════════════════════════════════════════════
+//  DASHBOARD CONTROLLER
+// ═══════════════════════════════════════════════
 
-  // ── Monthly Bar Chart ──
-  new Chart(document.getElementById('monthlyChart'), {
-    type: 'bar',
-    data: {
-      labels: {{ monthly_labels|tojson }},
-      datasets: [
-        { label: 'Route Requests', data: {{ monthly_requests|tojson }}, backgroundColor: '#1a3c5e', borderRadius: 6 },
-        { label: 'Penalties', data: {{ monthly_penalties|tojson }}, backgroundColor: '#f59e0b', borderRadius: 6 },
-        { label: 'Trip Reports', data: {{ monthly_reports|tojson }}, backgroundColor: '#0284c7', borderRadius: 6 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
-      }
-    }
-  });
+let chartInstances = {};
 
-  // ── Penalty Trend Line Chart ──
-  new Chart(document.getElementById('penaltyTrendChart'), {
-    type: 'line',
-    data: {
-      labels: {{ monthly_labels|tojson }},
-      datasets: [{
-        label: 'Penalties',
-        data: {{ monthly_penalties|tojson }},
-        borderColor: '#7c3aed',
-        backgroundColor: 'rgba(124,58,237,0.1)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#7c3aed',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
-      }
-    }
-  });
-
-  // ── Trip Stacked Bar Chart ──
-  new Chart(document.getElementById('tripStackedChart'), {
-    type: 'bar',
-    data: {
-      labels: {{ monthly_labels|tojson }},
-      datasets: [
-        { label: 'Departed', data: {{ monthly_trip_departed|tojson }}, backgroundColor: '#10b981', borderRadius: 4 },
-        { label: 'Not Departed', data: {{ monthly_trip_not_departed|tojson }}, backgroundColor: '#ef4444', borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } } },
-      scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { stacked: true, grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } }, beginAtZero: true }
-      }
-    }
-  });
-
-  // ── DataTable initialization ──
-  $(document).ready(function() {
-    if ($.fn.DataTable && document.getElementById('requestsTable')) {
-      $('#requestsTable').DataTable({
-        pageLength: 5,
-        lengthMenu: [[5, 10, 25, -1], [5, 10, 25, 'All']],
-        order: [[3, 'desc']],
-        language: { search: '', searchPlaceholder: 'Search requests...' },
-        dom: '<"d-flex justify-content-between align-items-center mb-2"lf>tip',
-        paging: true,
-        info: true,
-      });
-      // Style the DataTable search
-      $('.dataTables_filter input').addClass('form-control form-control-sm').css({
-        'border-radius': '8px', 'padding': '6px 12px', 'font-size': '.82rem',
-        'border': '1px solid var(--input-border)', 'background': 'var(--input-bg)', 'color': 'var(--text-primary)'
-      });
-      $('.dataTables_length select').addClass('form-select form-select-sm').css({
-        'border-radius': '8px', 'padding': '4px 24px 4px 8px', 'font-size': '.78rem',
-        'border': '1px solid var(--input-border)', 'background': 'var(--input-bg)', 'color': 'var(--text-primary)'
-      });
-    }
-  });
-
-  // ── Custom date range toggle ──
-  const toggleBtn = document.getElementById('customRangeToggle');
-  const customForm = document.getElementById('customRangeForm');
-  if (toggleBtn && customForm) {
-    function toggleForm(show) {
-      customForm.style.display = show ? 'inline-flex' : 'none';
-      toggleBtn.style.display = show ? 'none' : '';
-    }
-    toggleBtn.addEventListener('click', () => toggleForm(true));
-    {% if range_filter == 'custom' %}
-      toggleForm(true);
-    {% endif %}
+function getFilters() {
+  const p = new URLSearchParams();
+  const r = document.getElementById('filterRange').value;
+  p.set('range', r);
+  if (r === 'custom') {
+    p.set('start_date', document.getElementById('filterStart').value);
+    p.set('end_date', document.getElementById('filterEnd').value);
   }
+  return p.toString();
+}
 
-  // ── Global search ──
-  document.getElementById('globalSearch')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && this.value.trim()) {
-      const q = this.value.trim();
-      const currentUrl = window.location.pathname;
-      if (currentUrl.includes('dashboard')) {
-        // On dashboard, search is limited; could navigate to search page
-        // For now, do nothing special
+async function apiFetch(endpoint) {
+  const resp = await fetch(endpoint + '?' + getFilters());
+  if (!resp.ok) throw new Error('API error');
+  return resp.json();
+}
+
+// ── Initialize dashboard ──
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('dashDate').textContent = new Date().toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  refreshDashboard();
+});
+
+async function refreshDashboard() {
+  const skel = document.getElementById('dashSkeleton');
+  const content = document.getElementById('dashContent');
+  const errEl = document.getElementById('dashError');
+  skel.style.display = '';
+  content.style.display = 'none';
+  errEl.style.display = 'none';
+
+  try {
+    const [summary, charts, execSummary, insights, tables] = await Promise.all([
+      apiFetch('/api/dashboard/summary'),
+      apiFetch('/api/dashboard/charts'),
+      apiFetch('/api/dashboard/executive-summary'),
+      apiFetch('/api/dashboard/insights'),
+      apiFetch('/api/dashboard/tables')
+    ]);
+    renderKpis(summary.kpis);
+    renderExecutiveSummary(execSummary);
+    renderInsights(insights);
+    renderCharts(charts);
+    renderTables(tables);
+    skel.style.display = 'none';
+    content.style.display = '';
+  } catch (e) {
+    skel.style.display = 'none';
+    errEl.style.display = '';
+    console.error('Dashboard load error:', e);
+  }
+}
+
+// ── KPI Cards ──
+function renderKpis(kpis) {
+  const container = document.getElementById('kpiContainer');
+  const order = ['totalRequests','pendingRequests','approvedRequests','rejectedRequests','completedTrips','cancelledTrips','drivers','vehicles','departments','penalties','fuelCost','totalDistance','avgTripDuration','avgApprovalTime'];
+  let html = '';
+  order.forEach(key => {
+    const k = kpis[key];
+    if (!k) return;
+    const arrow = k.direction === 'up' ? 'fa-arrow-up' : (k.direction === 'down' ? 'fa-arrow-down' : 'fa-minus');
+    const trendCls = k.direction === 'up' ? (key.includes('ejected') || key.includes('enalt') || key.includes('Cancelled') || key.includes('pending') ? 'down' : 'up') : (k.direction === 'down' ? (key.includes('ejected') || key.includes('enalt') || key.includes('Cancelled') ? 'up' : 'down') : 'neutral');
+    // For negative KPIs, inverse the color logic
+    const isNegative = key.includes('Rejected') || key.includes('Penalt') || key.includes('Cancelled') || key.includes('pending');
+    const displayDir = isNegative ? (k.direction === 'up' ? 'down' : (k.direction === 'down' ? 'up' : 'neutral')) : k.direction;
+    const displayPct = isNegative ? (k.pct > 0 ? -k.pct : Math.abs(k.pct)) : k.pct;
+    const pctLabel = displayPct > 0 ? '+' + displayPct + '%' : displayPct + '%';
+
+    html += '<div class="col-xl-2 col-md-4 col-sm-6"><div class="kpi-card-v2">' +
+      '<div class="kpi-v2-glow" style="background:' + k.color + ';"></div>' +
+      '<div class="kpi-v2-header">' +
+        '<div class="kpi-v2-icon" style="background:' + k.bg + ';color:' + k.color + ';"><i class="fas ' + k.icon + '"></i></div>' +
+        '<span class="kpi-v2-trend ' + displayDir + '"><i class="fas ' + arrow + '"></i> ' + pctLabel + '</span>' +
+      '</div>' +
+      '<div class="kpi-v2-value">' + (key === 'penalties' || key === 'totalRequests' || key === 'totalDistance' || key === 'avgTripDuration' || key === 'avgApprovalTime' ? k.value : k.value.toLocaleString()) + '</div>' +
+      '<div class="kpi-v2-label">' + k.label + '</div>' +
+      '<div class="kpi-v2-footer">' +
+        '<span class="prev-label">' + (k.previous !== undefined ? '{{ _("Prev") }}: ' + k.previous : '') + '</span>' +
+        '<span style="font-size:.7rem;color:' + (displayDir === 'up' ? '#059669' : (displayDir === 'down' ? '#dc2626' : '#64748b')) + ';font-weight:600;">' +
+          (k.diff !== undefined ? (k.diff > 0 ? '+' + k.diff : k.diff) : '') +
+        '</span>' +
+      '</div>' +
+    '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+// ── Executive Summary ──
+function renderExecutiveSummary(data) {
+  const el = document.getElementById('execSummaryContent');
+  if (!data.summary || !data.summary.length) {
+    el.innerHTML = '<p class="text-light opacity-75" style="font-size:.85rem;">{{ _("No data available for the selected period.") }}</p>';
+    return;
+  }
+  el.innerHTML = data.summary.map(s => '<div class="summary-item"><span class="summary-dot"></span>' + s + '</div>').join('');
+}
+
+// ── AI Insights ──
+function renderInsights(data) {
+  const el = document.getElementById('aiInsightsContent');
+  if (!data.insights || !data.insights.length) {
+    el.innerHTML = '<p class="text-muted" style="font-size:.85rem;">{{ _("No insights available.") }}</p>';
+    return;
+  }
+  el.innerHTML = data.insights.map(s => '<div class="insight-item"><i class="fas fa-lightbulb insight-icon"></i>' + s + '</div>').join('');
+}
+
+// ── Charts ──
+function renderCharts(data) {
+  if (!data) return;
+  renderTrendChart(data);
+  renderApprovalChart(data);
+  renderTripsChart(data);
+  renderPenaltyTrendChart(data);
+  renderPenaltyCatChart(data);
+  renderTopDriversChart(data);
+  renderVehicleUtilChart(data);
+  renderDestinationsChart(data);
+  renderOverviewChart(data);
+  renderLetFrequencyChart(data);
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function renderTrendChart(data) {
+  destroyChart('trendChart');
+  const d = data.requestsTrend || {labels:[], data:[]};
+  const period = document.getElementById('trendPeriod')?.value || 'monthly';
+  let labels = d.labels, values = d.data;
+  if (period === 'monthly' && labels.length > 31) { labels = labels.slice(-30); values = values.slice(-30); }
+  chartInstances['trendChart'] = new ApexCharts(document.getElementById('trendChart'), {
+    chart: { type: 'line', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
+    series: [{ name: 'Requests', data: values, color: '#1d4ed8' }],
+    xaxis: { categories: labels, labels: { style: { fontSize: '10px' }, rotate: -45 } },
+    yaxis: { labels: { style: { fontSize: '10px' } }, min: 0 },
+    stroke: { curve: 'smooth', width: 3 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0 } },
+    markers: { size: 4, hover: { size: 6 } },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+    tooltip: { enabled: true, theme: 'light' }
+  });
+  chartInstances['trendChart'].render();
+}
+
+function renderApprovalChart(data) {
+  destroyChart('approvalChart');
+  const d = data.approvalStatus || {labels:[], data:[], colors:['#f59e0b','#10b981','#ef4444']};
+  chartInstances['approvalChart'] = new ApexCharts(document.getElementById('approvalChart'), {
+    chart: { type: 'donut', height: 260, toolbar: { show: false } },
+    series: d.data,
+    labels: d.labels,
+    colors: d.colors || ['#f59e0b','#10b981','#ef4444'],
+    legend: { position: 'bottom', fontSize: '11px', markers: { width: 10, height: 10 } },
+    dataLabels: { enabled: true, formatter: v => Math.round(v) + '%', style: { fontSize: '11px', fontWeight: 600 } },
+    plotOptions: { pie: { donut: { size: '65%' } } },
+    responsive: [{ breakpoint: 480, options: { chart: { height: 220 } } }]
+  });
+  chartInstances['approvalChart'].render();
+}
+
+function renderTripsChart(data) {
+  destroyChart('tripsChart');
+  const d = data.tripsAnalysis || {labels:[], completed:[], delayed:[], cancelled:[]};
+  chartInstances['tripsChart'] = new ApexCharts(document.getElementById('tripsChart'), {
+    chart: { type: 'bar', height: 260, stacked: true, toolbar: { show: false } },
+    series: [
+      { name: 'Completed', data: d.completed, color: '#10b981' },
+      { name: 'Delayed', data: d.delayed, color: '#f59e0b' },
+      { name: 'Cancelled', data: d.cancelled, color: '#ef4444' }
+    ],
+    xaxis: { categories: d.labels, labels: { style: { fontSize: '10px' }, rotate: -45 } },
+    yaxis: { labels: { style: { fontSize: '10px' } }, min: 0 },
+    legend: { position: 'bottom', fontSize: '11px', markers: { width: 10, height: 10 } },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '70%' } }
+  });
+  chartInstances['tripsChart'].render();
+}
+
+function renderPenaltyTrendChart(data) {
+  destroyChart('penaltyTrendChart');
+  const d = data.penaltyTrend || {labels:[], data:[]};
+  chartInstances['penaltyTrendChart'] = new ApexCharts(document.getElementById('penaltyTrendChart'), {
+    chart: { type: 'line', height: 200, toolbar: { show: false }, sparkline: { enabled: false } },
+    series: [{ name: 'Penalties', data: d.data, color: '#7c3aed' }],
+    xaxis: { categories: d.labels, labels: { style: { fontSize: '9px' } } },
+    yaxis: { labels: { style: { fontSize: '9px' } }, min: 0, max: Math.max(...d.data, 1) + 2 },
+    stroke: { curve: 'smooth', width: 2 },
+    markers: { size: 3 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 3 }
+  });
+  chartInstances['penaltyTrendChart'].render();
+}
+
+function renderPenaltyCatChart(data) {
+  destroyChart('penaltyCatChart');
+  const d = data.penaltyCategories || {labels:[], data:[], colors:['#f59e0b','#ef4444','#7c3aed','#0284c7','#6b7280']};
+  chartInstances['penaltyCatChart'] = new ApexCharts(document.getElementById('penaltyCatChart'), {
+    chart: { type: 'pie', height: 200, toolbar: { show: false } },
+    series: d.data,
+    labels: d.labels,
+    colors: d.colors,
+    legend: { position: 'bottom', fontSize: '9px', markers: { width: 8, height: 8 } },
+    dataLabels: { enabled: true, style: { fontSize: '9px' }, formatter: (v, o) => o.w.config.series[o.seriesIndex] }
+  });
+  chartInstances['penaltyCatChart'].render();
+}
+
+function renderTopDriversChart(data) {
+  destroyChart('topDriversChart');
+  const d = data.topDrivers || {labels:[], trips:[], score:[]};
+  const labels = d.labels.slice(0, 8).map(l => l.length > 12 ? l.slice(0,12)+'...' : l);
+  const trips = d.trips.slice(0, 8);
+  chartInstances['topDriversChart'] = new ApexCharts(document.getElementById('topDriversChart'), {
+    chart: { type: 'bar', height: 250, toolbar: { show: false } },
+    series: [{ name: 'Trips', data: trips, color: '#d97706' }],
+    xaxis: { categories: labels, labels: { style: { fontSize: '9px' } } },
+    yaxis: { labels: { style: { fontSize: '9px' } }, min: 0 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 3 },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true } }
+  });
+  chartInstances['topDriversChart'].render();
+}
+
+function renderVehicleUtilChart(data) {
+  destroyChart('vehicleUtilChart');
+  const d = data.vehicleUtilization || {labels:[], utilization:[], maintenance:[], trips:[]};
+  const labels = d.labels.slice(0, 8).map(l => l.length > 10 ? l.slice(0,10)+'...' : l);
+  const util = d.utilization.slice(0, 8);
+  chartInstances['vehicleUtilChart'] = new ApexCharts(document.getElementById('vehicleUtilChart'), {
+    chart: { type: 'bar', height: 250, toolbar: { show: false } },
+    series: [{ name: 'Utilization %', data: util, color: '#0284c7' }],
+    xaxis: { categories: labels, labels: { style: { fontSize: '9px' } } },
+    yaxis: { labels: { style: { fontSize: '9px' } }, min: 0, max: 100 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 3 },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true } }
+  });
+  chartInstances['vehicleUtilChart'].render();
+}
+
+function renderDestinationsChart(data) {
+  destroyChart('destinationsChart');
+  const d = data.popularDestinations || {labels:[], data:[]};
+  const labels = d.labels.slice(0, 10).map(l => l.length > 14 ? l.slice(0,14)+'...' : l);
+  const vals = d.data.slice(0, 10);
+  chartInstances['destinationsChart'] = new ApexCharts(document.getElementById('destinationsChart'), {
+    chart: { type: 'bar', height: 250, toolbar: { show: false } },
+    series: [{ name: 'Requests', data: vals, color: '#ea580c' }],
+    xaxis: { categories: labels, labels: { style: { fontSize: '9px' }, rotate: -45 } },
+    yaxis: { labels: { style: { fontSize: '9px' } }, min: 0 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 3 },
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } }
+  });
+  chartInstances['destinationsChart'].render();
+}
+
+function renderOverviewChart(data) {
+  destroyChart('overviewChart');
+  const rt = data.requestsTrend || {labels:[], data:[]};
+  const pt = data.penaltyTrend || {labels:[], data:[]};
+  // align labels
+  const labels = rt.labels.slice(-20);
+  const requests = rt.data.slice(-20);
+  const penalties = new Array(labels.length).fill(0);
+  pt.labels.forEach((l, i) => {
+    const idx = labels.indexOf(l);
+    if (idx >= 0) penalties[idx] = pt.data[i] || 0;
+  });
+  chartInstances['overviewChart'] = new ApexCharts(document.getElementById('overviewChart'), {
+    chart: { type: 'line', height: 250, toolbar: { show: false } },
+    series: [
+      { name: 'Requests', data: requests, color: '#1d4ed8' },
+      { name: 'Penalties', data: penalties, color: '#7c3aed' }
+    ],
+    xaxis: { categories: labels, labels: { style: { fontSize: '9px' }, rotate: -45 } },
+    yaxis: { labels: { style: { fontSize: '9px' } }, min: 0 },
+    stroke: { curve: 'smooth', width: 2 },
+    markers: { size: 3 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 3 },
+    legend: { position: 'bottom', fontSize: '10px', markers: { width: 8, height: 8 } }
+  });
+  chartInstances['overviewChart'].render();
+}
+
+// ── LET Frequency by Vehicle (Chart.js Bar Chart) ──
+function renderLetFrequencyChart(data) {
+  destroyChart('letFrequencyChart');
+  const container = document.getElementById('letFrequencyChart');
+  const d = data.letFrequencyByVehicle || {labels:[], data:[]};
+  container.innerHTML = '';
+  if (!d.labels.length) {
+    container.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-info-circle me-2"></i>{{ _("No Data Available") }}</div>';
+    return;
+  }
+  const c = document.createElement('canvas');
+  container.appendChild(c);
+  const colors = ['#0ea5e9','#06b6d4','#0891b2','#0284c7','#0369a1','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe'];
+  const bgColors = d.labels.map((_, i) => colors[i % colors.length]);
+  chartInstances['letFrequencyChart'] = new Chart(c, {
+    type: 'bar',
+    data: {
+      labels: d.labels,
+      datasets: [{
+        label: 'LET Count',
+        data: d.data,
+        backgroundColor: bgColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          callbacks: {
+            label: function(ctx) { return 'LET Count: ' + ctx.raw; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, precision: 0, font: { size: 11 } },
+          grid: { color: '#e2e8f0' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        }
       }
     }
   });
+}
+
+// ── Tables ──
+function renderTables(data) {
+  if (!data) return;
+  // Recent Requests
+  const rrEl = document.getElementById('recentRequestsTable');
+  rrEl.innerHTML = (data.recentRequests || []).map(r =>
+    '<tr><td><a href="/route-requests/' + r.id + '" style="color:#1d4ed8;text-decoration:none;font-weight:600;">' + r.requestId + '</a></td>' +
+    '<td>' + r.requester + '</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.destination + '</td>' +
+    '<td><span class="status-badge badge-' + r.status.toLowerCase() + '">' + r.status + '</span></td></tr>'
+  ).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">{{ _("No requests found") }}</td></tr>';
+
+  // Recent Trips
+  const rtEl = document.getElementById('recentTripsTable');
+  rtEl.innerHTML = (data.recentTrips || []).map(r =>
+    '<tr><td><a href="/trip-operation-reports/' + r.id + '" style="color:#059669;text-decoration:none;font-weight:600;">' + r.reportId + '</a></td>' +
+    '<td>' + r.vehicle + '</td><td>' + r.origin + ' → ' + r.destination + '</td>' +
+    '<td><span class="status-badge badge-' + r.status.toLowerCase().replace(' ','-') + '">' + r.status + '</span></td></tr>'
+  ).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">{{ _("No trips found") }}</td></tr>';
+
+  // Recent Penalties
+  const rpEl = document.getElementById('recentPenaltiesTable');
+  rpEl.innerHTML = (data.recentPenalties || []).map(r =>
+    '<tr><td><a href="/penalties/' + r.id + '" style="color:#7c3aed;text-decoration:none;font-weight:600;">' + r.penaltyId + '</a></td>' +
+    '<td>' + r.employee + '</td><td>' + r.violation + '</td><td style="font-weight:600;color:#dc2626;">$' + r.amount.toFixed(2) + '</td>' +
+    '<td><span class="status-badge badge-' + r.status.toLowerCase() + '">' + r.status + '</span></td></tr>'
+  ).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">{{ _("No penalties found") }}</td></tr>';
+
+  // Pending Approvals
+  const paEl = document.getElementById('pendingApprovalsTable');
+  paEl.innerHTML = (data.pendingApprovals || []).map(r =>
+    '<tr><td><a href="/route-requests/' + r.id + '" style="color:#d97706;text-decoration:none;font-weight:600;">' + r.requestId + '</a></td>' +
+    '<td>' + r.requester + '</td><td>' + r.destination + '</td><td>' + r.date + '</td></tr>'
+  ).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">{{ _("No pending approvals") }}</td></tr>';
+}
+
+// ── Date Range ──
+function updateDateRange() {
+  const v = document.getElementById('filterRange').value;
+  document.getElementById('customDateRange').style.display = v === 'custom' ? 'flex' : 'none';
+  refreshDashboard();
+}
+
+// ── Comparison Mode ──
+function toggleComparison() {
+  const panel = document.getElementById('comparisonPanel');
+  const active = document.getElementById('comparisonToggle').checked;
+  panel.style.display = active ? '' : 'none';
+  document.getElementById('compType').addEventListener('change', function() {
+    document.getElementById('compCustomRanges').style.display = this.value === 'custom' ? 'flex' : 'none';
+  });
+}
+
+async function runComparison() {
+  const type = document.getElementById('compType').value;
+  const params = new URLSearchParams();
+  params.set('type', type);
+  if (type === 'custom') {
+    params.set('period_a_start', document.getElementById('compAStart').value);
+    params.set('period_a_end', document.getElementById('compAEnd').value);
+    params.set('period_b_start', document.getElementById('compBStart').value);
+    params.set('period_b_end', document.getElementById('compBEnd').value);
+  }
+  const resp = await fetch('/api/dashboard/comparison?' + params.toString());
+  const data = await resp.json();
+  const el = document.getElementById('comparisonResults');
+  if (!data.results || !data.results.length) {
+    el.innerHTML = '<p class="text-muted text-center py-3">{{ _("No data for comparison.") }}</p>';
+    return;
+  }
+  let html = '<div class="d-flex gap-3 mb-3"><span class="period-badge period-a"><i class="fas fa-calendar"></i> ' + data.periodA.start + ' — ' + data.periodA.end + '</span>' +
+    '<span class="period-badge period-b"><i class="fas fa-calendar"></i> ' + data.periodB.start + ' — ' + data.periodB.end + '</span></div>';
+  data.results.forEach(r => {
+    const arrow = r.direction === 'up' ? 'fa-arrow-up' : (r.direction === 'down' ? 'fa-arrow-down' : 'fa-minus');
+    html += '<div class="comparison-row">' +
+      '<span class="comp-label">' + r.label + '</span>' +
+      '<span class="comp-value period-a">' + r.periodA + '</span>' +
+      '<i class="fas fa-arrow-right text-muted" style="font-size:.7rem;"></i>' +
+      '<span class="comp-value period-b">' + r.periodB + '</span>' +
+      '<span class="comp-diff ' + r.direction + '"><i class="fas ' + arrow + '"></i> ' + (r.diff > 0 ? '+' : '') + r.diff + ' (' + (r.pct > 0 ? '+' : '') + r.pct + '%)</span>' +
+    '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── Export (Blob download, no Save-As dialog) ──
+function exportDashboard(format) {
+  var url = format === 'excel'
+    ? '/reports/export/requests?' + getFilters()
+    : '/reports/export/requests/pdf?' + getFilters();
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'blob';
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var blob = xhr.response;
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+      var match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      link.download = match ? match[1].replace(/['"]/g, '') : 'export.' + format;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          var err = JSON.parse(reader.result);
+          if (err.warning) { alert(err.error); }
+          else { alert('Export failed: ' + (err.error || xhr.statusText)); }
+        } catch(e) { alert('Export failed: ' + xhr.statusText); }
+      };
+      reader.readAsText(blob);
+    }
+  };
+  xhr.onerror = function() { alert('Export failed: Network error'); };
+  xhr.send();
+}
 </script>
 {% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('daily_reports') %}
+{% block title %}{% if report %}{{ _('Edit Daily Report') }}{% else %}{{ _('New Daily Report') }}{% endif %}{% endblock %}
+{% block page_title %}{% if report %}{{ _('Edit Daily Report') }} — {{ report.report_date }}{% else %}{{ _('New Daily Performance Report') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Daily Reports') }}
+  </a>
+</div>
+
+<form method="POST">
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    <!-- Employee Information -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-user me-2"></i>{{ _('Employee Information') }}
+      </h6>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Staff Name') }}</label>
+          <input type="text" name="staff_name" class="form-control"
+            value="{{ report.staff_name if report else current_user.full_name }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('Staff ID') }}</label>
+          <input type="text" name="staff_id" class="form-control"
+            value="{{ report.staff_id if report else current_user.username }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Branch') }}</label>
+          <select name="branch" class="form-select">
+            <option value="">{{ _('— Select Branch —') }}</option>
+            {% for b in branches %}
+            <option value="{{ b.data.name }}" {% if report and report.branch == b.data.name %}selected{% elif not report and current_user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Company') }}</label>
+          <select name="company" class="form-select">
+            <option value="">{{ _('— Select Company —') }}</option>
+            {% for c in companies %}
+            <option value="{{ c.data.name }}" {% if report and report.company == c.data.name %}selected{% elif not report and current_user.company == c.data.name %}selected{% endif %}>{{ c.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Report Form -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-clipboard-list me-2"></i>{{ _('Daily Report') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Report Date') }} <span class="text-danger">*</span></label>
+          <input type="date" name="report_date" class="form-control" required
+            value="{{ report.report_date if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Tickets Sold') }}</label>
+          <input type="number" name="tickets_sold" class="form-control" min="0" step="1"
+            value="{{ report.tickets_sold if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Total Sales Amount ($)') }}</label>
+          <input type="number" name="total_sales_amount" class="form-control" min="0" step="0.01"
+            value="{{ report.total_sales_amount if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Number of Bookings') }}</label>
+          <input type="number" name="bookings" class="form-control" min="0" step="1"
+            value="{{ report.bookings if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Booking Errors') }}</label>
+          <input type="number" name="booking_errors" class="form-control" min="0" step="1"
+            value="{{ report.booking_errors if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Cancelled Tickets') }}</label>
+          <input type="number" name="cancelled_tickets" class="form-control" min="0" step="1"
+            value="{{ report.cancelled_tickets if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Refunded Tickets') }}</label>
+          <input type="number" name="refunded_tickets" class="form-control" min="0" step="1"
+            value="{{ report.refunded_tickets if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Customer Complaints') }}</label>
+          <input type="number" name="complaints" class="form-control" min="0" step="1"
+            value="{{ report.complaints if report else 0 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Resolved Complaints') }}</label>
+          <input type="number" name="resolved_complaints" class="form-control" min="0" step="1"
+            value="{{ report.resolved_complaints if report else 0 }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Remarks') }}</label>
+          <textarea name="remarks" class="form-control" rows="3" placeholder="{{ _('Additional notes...') }}">{{ report.remarks if report else '' }}</textarea>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Time Check In') }}</label>
+          <input type="time" name="time_check_in" class="form-control"
+            value="{{ report.time_check_in if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Time Check Out') }}</label>
+          <input type="time" name="time_check_out" class="form-control"
+            value="{{ report.time_check_out if report else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Attendance Status') }}</label>
+          <select name="attendance_status" class="form-select">
+            <option value="">{{ _('— Select —') }}</option>
+            <option value="On Time" {% if report and report.attendance_status == 'On Time' %}selected{% endif %}>{{ _('On Time') }}</option>
+            <option value="Late" {% if report and report.attendance_status == 'Late' %}selected{% endif %}>{{ _('Late') }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <div class="form-card" style="position:sticky;top:80px;">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-info-circle me-2"></i>{{ _('Report Status') }}
+      </h6>
+      {% if report %}
+      <div class="mb-3 p-3 rounded" style="background:var(--badge-bg);border:1px solid var(--input-border);">
+        <div class="mb-1"><strong>{{ _('Status:') }}</strong> <span class="status-badge {% if report.status == 'Submitted' %}badge-approved{% else %}badge-pending{% endif %}">{{ report.status }}</span></div>
+        <div><strong>{{ _('Date:') }}</strong> {{ report.report_date }}</div>
+      </div>
+      {% endif %}
+      <input type="hidden" name="status" id="statusInput" value="{{ report.status if report else 'Draft' }}">
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('statusInput').value='Draft'">
+          <i class="fas fa-save me-2"></i> {{ _('Save Draft') }}
+        </button>
+        <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('statusInput').value='Submitted'">
+          <i class="fas fa-check-circle me-2"></i> {{ _('Submit Report') }}
+        </button>
+        <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

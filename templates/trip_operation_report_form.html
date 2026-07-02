@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('trip_operation_reports') %}
 {% block title %}{% if report %}{{ _('Edit Trip Operation Report') }}{% else %}{{ _('New Trip Operation Report') }}{% endif %}{% endblock %}
 {% block page_title %}{% if report %}{{ _('Edit Report') }} — {{ report.report_id }}{% else %}{{ _('New Trip Operation Report') }}{% endif %}{% endblock %}
 
@@ -38,30 +39,44 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">{{ _('Departure Time') }} <span class="text-danger">*</span></label>
-          <input type="time" name="departure_time" class="form-control" required
-            value="{{ report.departure_time if report else '' }}">
+          <input type="time" name="departure_time" id="departureTime" class="form-control" required
+            value="{{ report.departure_time if report else '' }}" onchange="calcLET()">
         </div>
         <div class="col-md-4">
-          <label class="form-label">{{ _('Power Off Time') }}</label>
-          <input type="time" name="power_off_time" class="form-control"
-            value="{{ report.power_off_time if report else '' }}">
+          <label class="form-label">{{ _('Arrival at Station') }}</label>
+          <input type="time" name="arrival_at_station" id="arrivalStation" class="form-control"
+            value="{{ report.arrival_at_station if report else '' }}" onchange="calcTravelDelay()">
         </div>
         <div class="col-md-4">
-          <label class="form-label">{{ _('Power On Time') }}</label>
-          <input type="time" name="power_on_time" class="form-control"
-            value="{{ report.power_on_time if report else '' }}">
+          <label class="form-label">{{ _('Departure from Station') }}</label>
+          <input type="time" name="departure_from_station" id="departureStation" class="form-control"
+            value="{{ report.departure_from_station if report else '' }}" onchange="calcTravelDelay(); calcLET()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('LET Duration') }}</label>
+          <input type="text" name="layover_duration" id="layoverDuration" class="form-control"
+            value="{{ report.layover_duration if report else '' }}" readonly
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('Power') }}</label>
+          <select name="power_off_time" class="form-select">
+            {% for p in power_statuses %}
+            <option value="{{ p.data.name }}" {% if report and report.power_off_time == p.data.name %}selected{% elif not report and loop.first %}selected{% endif %}>{{ p.data.name }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-md-4">
           <label class="form-label">{{ _('Vehicle Number') }} <span class="text-danger">*</span></label>
           <input type="text" name="vehicle_number" class="form-control" required
             value="{{ report.vehicle_number if report else '' }}" placeholder="{{ _('e.g., PP-1234') }}">
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label class="form-label">{{ _('Driver Phone Number') }}</label>
           <input type="text" name="driver_phone" class="form-control"
             value="{{ report.driver_phone if report else '' }}" placeholder="{{ _('e.g., 012 345 678') }}">
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label class="form-label">{{ _('Number of Passengers') }} <span class="text-danger">*</span></label>
           <input type="number" name="passenger_count" class="form-control" min="0"
             value="{{ report.passenger_count if report else 0 }}">
@@ -75,20 +90,11 @@
         <i class="fas fa-building me-2"></i>{{ _('Station Information') }}
       </h6>
       <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">{{ _('Arrival at Station') }}</label>
-          <input type="time" name="arrival_at_station" class="form-control"
-            value="{{ report.arrival_at_station if report else '' }}">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ _('Departure from Station') }}</label>
-          <input type="time" name="departure_from_station" class="form-control"
-            value="{{ report.departure_from_station if report else '' }}">
-        </div>
         <div class="col-md-4">
           <label class="form-label">{{ _('Travel Delay Duration (min)') }}</label>
-          <input type="number" name="travel_delay_duration" class="form-control" min="0" step="0.5"
-            value="{{ report.travel_delay_duration if report else 0 }}">
+          <input type="number" name="travel_delay_duration" id="travelDelayDuration" class="form-control" min="0" step="0.5"
+            value="{{ report.travel_delay_duration if report else 0 }}" readonly
+            style="background:var(--badge-bg);cursor:not-allowed;">
         </div>
         <div class="col-md-8">
           <label class="form-label">{{ _('Reason for Delay') }}</label>
@@ -107,8 +113,9 @@
           <label class="form-label">{{ _('Vehicle Status') }} <span class="text-danger">*</span></label>
           <select name="vehicle_status" class="form-select" required>
             <option value="">{{ _('-- Select Status --') }}</option>
-            <option value="Departed" {% if report and report.vehicle_status=='Departed' %}selected{% endif %}>{{ _('Departed') }}</option>
-            <option value="Not Departed" {% if report and report.vehicle_status=='Not Departed' %}selected{% endif %}>{{ _('Not Departed') }}</option>
+            {% for vs in vehicle_statuses %}
+            <option value="{{ vs.data.name }}" {% if report and report.vehicle_status == vs.data.name %}selected{% endif %}>{{ vs.data.label if vs.data.label else vs.data.name }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-md-6">
@@ -162,4 +169,61 @@
   </div>
 </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calcTravelDelay() {
+  var arr = document.getElementById('arrivalStation');
+  var dep = document.getElementById('departureStation');
+  var dur = document.getElementById('travelDelayDuration');
+  if (!arr || !dep || !dur) return;
+  if (!arr.value || !dep.value) {
+    dur.value = 0;
+    return;
+  }
+  var arrParts = arr.value.split(':');
+  var depParts = dep.value.split(':');
+  var arrMin = parseInt(arrParts[0]) * 60 + parseInt(arrParts[1]);
+  var depMin = parseInt(depParts[0]) * 60 + parseInt(depParts[1]);
+  if (depMin < arrMin) {
+    dur.value = 0;
+    return;
+  }
+  dur.value = depMin - arrMin;
+}
+
+function calcLET() {
+  var depTime = document.getElementById('departureTime');
+  var depStation = document.getElementById('departureStation');
+  var letField = document.getElementById('layoverDuration');
+  if (!depTime || !depStation || !letField) return;
+  if (!depTime.value || !depStation.value) {
+    letField.value = '';
+    return;
+  }
+  var depParts = depTime.value.split(':');
+  var staParts = depStation.value.split(':');
+  var depMin = parseInt(depParts[0]) * 60 + parseInt(depParts[1]);
+  var staMin = parseInt(staParts[0]) * 60 + parseInt(staParts[1]);
+  if (staMin < depMin) {
+    letField.value = '00:00';
+    return;
+  }
+  var diff = staMin - depMin;
+  var hours = Math.floor(diff / 60);
+  var mins = diff % 60;
+  letField.value = String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function() {
+      calcTravelDelay();
+      calcLET();
+    });
+  }
+});
+</script>
 {% endblock %}

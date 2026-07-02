@@ -1,247 +1,1020 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Reports') }}{% endblock %}
-{% block page_title %}{{ _('Reports & Analytics') }}{% endblock %}
+{% block title %}{{ _('Reports & Analytics') }}{% endblock %}
+{% block page_title %}{{ _('Reports') }}{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
-  <!-- Route Request Summary -->
-  <div class="col-lg-6">
-    <div class="form-card h-100">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-route me-2 text-primary"></i>{{ _('Route Requests Summary') }}</h6>
-        <div class="btn-group btn-group-sm">
-          <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
-            <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
-          </a>
-          <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
-            <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
-          </a>
-        </div>
-      </div>
-      <canvas id="rrChart" style="max-height:200px;"></canvas>
-      <div class="row g-2 mt-3">
-        {% for status, count in rr_by_status.items() %}
-        <div class="col-4">
-          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
-            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Approved' %}#10b981{% elif status=='Rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ count }}</div>
-            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+<style>
+  :root {
+    --rpt-primary: #1a3c5e;
+    --rpt-primary-light: #2563a8;
+    --rpt-success: #059669;
+    --rpt-warning: #d97706;
+    --rpt-danger: #dc2626;
+    --rpt-info: #0284c7;
+    --rpt-purple: #7c3aed;
+    --rpt-bg: #f8fafc;
+    --rpt-card-bg: #ffffff;
+    --rpt-border: #e2e8f0;
+    --rpt-text: #1e293b;
+    --rpt-text-secondary: #64748b;
+    --rpt-text-muted: #94a3b8;
+    --rpt-radius: 12px;
+    --rpt-shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+    --rpt-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --rpt-shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+  }
 
-  <!-- Penalty Summary -->
-  <div class="col-lg-6">
-    <div class="form-card h-100">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>{{ _('Penalty Summary') }}</h6>
-        <div class="btn-group btn-group-sm">
-          <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success">
-            <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
-          </a>
-          <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger">
-            <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
-          </a>
-        </div>
-      </div>
-      <canvas id="epChart" style="max-height:200px;"></canvas>
-      <div class="row g-2 mt-3">
-        {% for status, count in ep_by_status.items() %}
-        <div class="col-4">
-          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
-            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Approved' %}#10b981{% elif status=='Rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ count }}</div>
-            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+  .rpt-header { margin-bottom: 1.5rem; }
+  .rpt-title {
+    font-size: 1.35rem; font-weight: 700;
+    color: var(--rpt-text); margin: 0 0 2px 0;
+  }
+  .rpt-desc {
+    font-size: .85rem; color: var(--rpt-text-secondary); margin: 0;
+  }
+
+  /* ── Statistics Cards ── */
+  .rpt-stats-row {
+    display: flex; gap: 16px; margin-bottom: 1.25rem;
+    overflow-x: auto; padding-bottom: 4px;
+  }
+  .rpt-stat-card {
+    flex: 1; min-width: 170px;
+    background: var(--rpt-card-bg);
+    border: 1px solid var(--rpt-border);
+    border-radius: var(--rpt-radius);
+    box-shadow: var(--rpt-shadow-sm);
+    padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .rpt-stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--rpt-primary);
+    opacity: .15;
+  }
+  .rpt-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--rpt-shadow-lg);
+  }
+  .rpt-stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .rpt-stat-body { min-width: 0; }
+  .rpt-stat-value {
+    font-size: 1.5rem; font-weight: 800;
+    color: var(--rpt-text); line-height: 1.2;
+  }
+  .rpt-stat-label {
+    font-size: .75rem; color: var(--rpt-text-secondary);
+    font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── Filter Card ── */
+  .rpt-filter-card {
+    background: var(--rpt-card-bg);
+    border: 1px solid var(--rpt-border);
+    border-radius: var(--rpt-radius);
+    box-shadow: var(--rpt-shadow-sm);
+    padding: 20px 22px;
+    margin-bottom: 1.25rem;
+    transition: opacity .25s;
+  }
+  .rpt-date-presets {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .rpt-date-btn {
+    padding: 5px 14px; border-radius: 20px;
+    font-size: .78rem; font-weight: 500;
+    border: 1px solid var(--rpt-border);
+    background: transparent; color: var(--rpt-text-secondary);
+    cursor: pointer; transition: all .2s;
+  }
+  .rpt-date-btn:hover { background: #f1f5f9; color: var(--rpt-text); }
+  .rpt-date-btn.active { background: var(--rpt-primary); color: #fff; border-color: var(--rpt-primary); }
+
+  .rpt-filter-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    align-items: flex-end; margin-bottom: 12px;
+  }
+  .rpt-filter-row .filter-group label {
+    font-size: .72rem; font-weight: 600;
+    color: var(--rpt-text-secondary); margin-bottom: 2px; display: block;
+  }
+  .rpt-filter-row .form-control,
+  .rpt-filter-row .form-select {
+    width: 150px; font-size: .82rem; border-radius: 8px;
+    border: 1px solid var(--rpt-border);
+    background: var(--rpt-bg); transition: border-color .2s, box-shadow .2s;
+  }
+  .rpt-filter-row .form-control:focus,
+  .rpt-filter-row .form-select:focus {
+    border-color: var(--rpt-primary-light);
+    box-shadow: 0 0 0 3px rgba(37,99,168,.12);
+    background: var(--rpt-card-bg);
+  }
+  .rpt-custom-date {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    align-items: flex-end; margin-bottom: 12px;
+  }
+  .rpt-custom-date .rpt-date-field label {
+    font-size: .72rem; font-weight: 600;
+    color: var(--rpt-text-secondary); margin-bottom: 2px; display: block;
+  }
+  .rpt-custom-date .form-control {
+    width: 150px; font-size: .82rem; border-radius: 8px;
+    border: 1px solid var(--rpt-border); background: var(--rpt-bg);
+  }
+  .rpt-custom-date .form-control:focus {
+    border-color: var(--rpt-primary-light);
+    box-shadow: 0 0 0 3px rgba(37,99,168,.12);
+    background: var(--rpt-card-bg);
+  }
+  .rpt-filter-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    align-items: center; padding-top: 12px;
+    border-top: 1px solid var(--rpt-border);
+  }
+  .rpt-filter-actions .btn {
+    font-size: .8rem; padding: 6px 18px;
+    border-radius: 8px; font-weight: 500;
+    transition: all .2s;
+  }
+  .rpt-filter-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .rpt-filter-actions .rpt-search-box {
+    position: relative; margin-left: auto; min-width: 220px;
+  }
+  .rpt-filter-actions .rpt-search-box i {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--rpt-text-muted); font-size: .8rem;
+    pointer-events: none; z-index: 1;
+  }
+  .rpt-filter-actions .rpt-search-box .form-control {
+    padding-left: 30px; font-size: .82rem;
+    border-radius: 8px; width: 100%;
+  }
+
+  /* ── Table ── */
+  .rpt-table-card {
+    background: var(--rpt-card-bg);
+    border: 1px solid var(--rpt-border);
+    border-radius: var(--rpt-radius);
+    box-shadow: var(--rpt-shadow-sm);
+    overflow: hidden;
+    transition: opacity .25s;
+  }
+  .rpt-table-wrapper {
+    overflow-x: auto; overflow-y: auto;
+    max-height: 560px; position: relative;
+  }
+  .rpt-table {
+    width: 100%; min-width: 700px;
+    border-collapse: separate; border-spacing: 0;
+    font-size: .82rem;
+  }
+  .rpt-table thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: #f1f5f9; color: #475569;
+    font-weight: 600; font-size: .73rem;
+    text-transform: uppercase; letter-spacing: .04em;
+    padding: 11px 14px;
+    border-bottom: 2px solid var(--rpt-border);
+    white-space: nowrap; cursor: pointer;
+    user-select: none; text-align: left;
+  }
+  .rpt-table thead th:hover { color: var(--rpt-primary); }
+  .rpt-table thead th .sort-icon {
+    font-size: .6rem; margin-left: 4px;
+    opacity: .35; transition: opacity .2s;
+  }
+  .rpt-table thead th:hover .sort-icon { opacity: .7; }
+  .rpt-table thead th .sort-icon.active { opacity: 1; color: var(--rpt-primary); }
+  .rpt-table tbody td {
+    padding: 10px 14px; vertical-align: middle;
+    color: var(--rpt-text); border-bottom: 1px solid #f1f5f9;
+  }
+  .rpt-table tbody tr:nth-child(even) td { background: #f8fafc; }
+  .rpt-table tbody tr:hover td { background: #eef2ff !important; }
+  .rpt-table tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Status Badges ── */
+  .rpt-badge {
+    display: inline-block; padding: 3px 12px;
+    border-radius: 20px; font-size: .71rem;
+    font-weight: 600; white-space: nowrap;
+  }
+  .rpt-badge-success { background: #d1fae5; color: #065f46; }
+  .rpt-badge-warning { background: #fef3c7; color: #92400e; }
+  .rpt-badge-danger  { background: #fee2e2; color: #991b1b; }
+  .rpt-badge-info    { background: #dbeafe; color: #1e40af; }
+  .rpt-badge-default { background: #f1f5f9; color: #475569; }
+  .rpt-badge-purple  { background: #ede9fe; color: #5b21b6; }
+
+  /* ── Table Footer ── */
+  .rpt-table-footer {
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap;
+    gap: 8px; padding: 12px 14px;
+    border-top: 1px solid var(--rpt-border);
+    font-size: .8rem; color: var(--rpt-text-secondary);
+  }
+  .rpt-records-info { font-weight: 500; }
+  .rpt-pagination {
+    display: flex; align-items: center; gap: 3px;
+  }
+  .rpt-page-btn {
+    min-width: 32px; height: 32px; border-radius: 6px;
+    border: 1px solid var(--rpt-border);
+    background: var(--rpt-card-bg); color: var(--rpt-text);
+    font-size: .75rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0 7px; transition: all .15s;
+  }
+  .rpt-page-btn:hover:not(.disabled) { border-color: var(--rpt-primary); color: var(--rpt-primary); }
+  .rpt-page-btn.active { background: var(--rpt-primary); color: #fff; border-color: var(--rpt-primary); }
+  .rpt-page-btn.disabled { opacity: .35; cursor: default; }
+
+  /* ── States ── */
+  .rpt-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--rpt-text-muted);
+  }
+  .rpt-state .rpt-state-icon { font-size: 3rem; margin-bottom: 14px; opacity: .2; }
+  .rpt-state h5 { font-weight: 600; color: var(--rpt-text-secondary); margin: 0 0 4px 0; font-size: 1rem; }
+  .rpt-state p { font-size: .85rem; margin: 0; }
+  .rpt-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--rpt-border);
+    border-top-color: var(--rpt-primary);
+    border-radius: 50%;
+    animation: rpt-spin .65s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes rpt-spin { to { transform: rotate(360deg); } }
+
+  /* ── Fade transitions ── */
+  .rpt-fade-enter { opacity: 0; transform: translateY(6px); }
+  .rpt-fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity .25s ease, transform .25s ease; }
+
+  /* ── Print ── */
+  @media print {
+    body * { visibility: hidden; }
+    #rptTableSection, #rptTableSection * { visibility: visible; }
+    #rptTableSection { position: absolute; left: 0; top: 0; width: 100%; }
+    .rpt-table-card { border: 1px solid #ddd; border-radius: 0; box-shadow: none; }
+    .rpt-table thead th { background: #1a3c5e !important; color: #fff !important; }
+    .rpt-filter-actions, .rpt-date-presets, .rpt-custom-date, .rpt-filter-row,
+    #sidebar, .topbar, .rpt-header, .rpt-stats-row { display: none !important; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .rpt-stats-row { flex-wrap: wrap; }
+    .rpt-stat-card { min-width: calc(50% - 16px); }
+    .rpt-filter-row { flex-direction: column; }
+    .rpt-filter-row .form-control,
+    .rpt-filter-row .form-select { width: 100%; }
+    .rpt-filter-actions { flex-direction: column; align-items: stretch; }
+    .rpt-filter-actions .rpt-search-box { margin-left: 0; min-width: unset; }
+    .rpt-table-wrapper { max-height: 380px; }
+  }
+</style>
+
+<!-- Report Header -->
+<div class="rpt-header">
+  <h2 class="rpt-title" id="reportTitle">{{ _('Select a Report') }}</h2>
+  <p class="rpt-desc" id="reportDesc">{{ _('Choose a report type from the sidebar to view analytics and data.') }}</p>
 </div>
 
-<!-- Trip Operation Report Summary -->
-<div class="row g-3 mb-4">
-  <div class="col-lg-6">
-    <div class="form-card h-100">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h6 class="fw-bold mb-0" style="color:#1a3c5e;"><i class="fas fa-bus me-2 text-info"></i>{{ _('Trip Report Summary') }}</h6>
-        <div class="d-flex gap-1">
-          <div class="btn-group btn-group-sm">
-            <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
-              <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
-            </a>
-            <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
-              <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
-            </a>
-          </div>
-          <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-sm btn-outline-info">
-            <i class="fas fa-list me-1"></i>{{ _('View All') }}
-          </a>
-        </div>
-      </div>
-      <canvas id="torChart" style="max-height:200px;"></canvas>
-      <div class="row g-2 mt-3">
-        {% for status, count in tor_by_status.items() %}
-        <div class="col-6">
-          <div class="text-center p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
-            <div style="font-size:1.3rem;font-weight:800;color:{% if status=='Departed' %}#10b981{% else %}#ef4444{% endif %};">{{ count }}</div>
-            <div style="font-size:.72rem;color:#64748b;">{{ status }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      <hr class="my-3">
-      <div class="d-flex justify-content-between px-2">
-        <span style="color:#64748b;font-size:.875rem;">{{ _('Total Reports') }}</span>
-        <span style="font-weight:700;color:#1a3c5e;">{{ tor_total }}</span>
-      </div>
-      <div class="d-flex justify-content-between px-2 mt-1">
-        <span style="color:#64748b;font-size:.875rem;">{{ _('Total Passengers') }}</span>
-        <span style="font-weight:700;color:#1a3c5e;">{{ tor_passengers }}</span>
-      </div>
+<!-- Statistics Cards -->
+<div class="rpt-stats-row" id="statsSection" style="display:none;">
+  <div class="rpt-stat-card" id="statTotalCard">
+    <div class="rpt-stat-icon" style="background:#e0e7ff;color:#4338ca;">
+      <i class="fas fa-database"></i>
+    </div>
+    <div class="rpt-stat-body">
+      <div class="rpt-stat-value" id="statTotal">0</div>
+      <div class="rpt-stat-label">{{ _('Total Records') }}</div>
     </div>
   </div>
+  <div id="rptDynamicStats" class="d-flex gap-3 flex-fill"></div>
 </div>
 
-<!-- Department Breakdown -->
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="data-table">
-      <div class="p-3 border-bottom">
-        <h6 class="mb-0 fw-bold" style="color:#1a3c5e;"><i class="fas fa-building me-2"></i>{{ _('Penalty by Department') }}</h6>
-      </div>
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ _('Department') }}</th>
-              <th>{{ _('Total Cases') }}</th>
-              <th>{{ _('Total Amount') }}</th>
-              <th>{{ _('Visual') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% set max_amount = dept_penalties | map('last') | select | list | max if dept_penalties else 1 %}
-            {% for dept, count, amount in dept_penalties %}
-            <tr>
-              <td><span class="fw-600">{{ dept or _('Unassigned') }}</span></td>
-              <td>{{ _('%(count)s case', count=count) }}{{ _('s') if count != 1 else '' }}</td>
-              <td style="font-weight:700;color:#dc2626;">${{ "%.2f"|format(amount or 0) }}</td>
-              <td style="min-width:120px;">
-                <div style="background:#fee2e2;border-radius:4px;height:8px;">
-                  <div style="background:#dc2626;border-radius:4px;height:8px;width:{{ ((amount or 0) / (max_amount or 1) * 100)|round }}%;"></div>
-                </div>
-              </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4" class="text-center py-4 text-muted">{{ _('No penalty data available') }}</td></tr>
-            {% endfor %}
-          </tbody>
-          {% if dept_penalties %}
-          <tfoot>
-            <tr style="background:#f8fafc;font-weight:700;">
-              <td>{{ _('Total') }}</td>
-              <td>{{ ep_by_status.values()|sum }}</td>
-              <td style="color:#dc2626;">${{ "%.2f"|format(total_penalty_amount) }}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-          {% endif %}
-        </table>
+<!-- Charts Section -->
+<div class="rpt-charts-row" id="chartsSection" style="display:none;">
+  <div class="row g-3 mb-3">
+    <div class="col-md-8">
+      <div class="rpt-chart-card">
+        <div class="rpt-chart-header">
+          <h6 class="rpt-chart-title">{{ _('Monthly Trend') }}</h6>
+        </div>
+        <div id="trendChart" style="height:280px;"></div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Quick Export Panel -->
-<div class="form-card">
-  <h6 class="fw-bold mb-4" style="color:#1a3c5e;"><i class="fas fa-download me-2"></i>{{ _('Export Reports') }}</h6>
-  <div class="row g-3">
     <div class="col-md-4">
-      <div class="btn-group w-100">
-        <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success w-50 py-3">
-          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Route Requests') }}<br>{{ _('Excel') }}</small>
-        </a>
-        <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger w-50 py-3">
-          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Route Requests') }}<br>{{ _('PDF') }}</small>
-        </a>
+      <div class="rpt-chart-card">
+        <div class="rpt-chart-header">
+          <h6 class="rpt-chart-title">{{ _('Status Distribution') }}</h6>
+        </div>
+        <div id="statusChart" style="height:280px;"></div>
       </div>
-    </div>
-    <div class="col-md-4">
-      <div class="btn-group w-100">
-        <a href="{{ url_for('export_penalties_excel') }}" class="btn btn-outline-success w-50 py-3">
-          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Penalties') }}<br>{{ _('Excel') }}</small>
-        </a>
-        <a href="{{ url_for('export_penalties_pdf') }}" class="btn btn-outline-danger w-50 py-3">
-          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Penalties') }}<br>{{ _('PDF') }}</small>
-        </a>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="btn-group w-100">
-        <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success w-50 py-3">
-          <i class="fas fa-file-excel d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Trip Reports') }}<br>{{ _('Excel') }}</small>
-        </a>
-        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger w-50 py-3">
-          <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.3rem;"></i>
-          <small>{{ _('Trip Reports') }}<br>{{ _('PDF') }}</small>
-        </a>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <a href="{{ url_for('route_requests') }}?status=Pending" class="btn btn-outline-warning w-100 py-3">
-        <i class="fas fa-clock d-block mb-1" style="font-size:1.3rem;"></i>
-        <small>{{ _('Pending Requests') }}<br>{{ _('View List') }}</small>
-      </a>
-    </div>
-    <div class="col-md-3">
-      <a href="{{ url_for('penalties') }}?status=Approved" class="btn btn-outline-primary w-100 py-3">
-        <i class="fas fa-check-circle d-block mb-1" style="font-size:1.3rem;"></i>
-        <small>{{ _('Approved Penalties') }}<br>{{ _('View List') }}</small>
-      </a>
-    </div>
-    <div class="col-md-3">
-      <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-info w-100 py-3">
-        <i class="fas fa-bus d-block mb-1" style="font-size:1.3rem;"></i>
-        <small>{{ _('Trip Reports') }}<br>{{ _('View All') }}</small>
-      </a>
     </div>
   </div>
 </div>
+
+<style>
+  .rpt-charts-row { margin-bottom: 1.25rem; }
+  .rpt-chart-card {
+    background: var(--rpt-card-bg);
+    border: 1px solid var(--rpt-border);
+    border-radius: var(--rpt-radius);
+    box-shadow: var(--rpt-shadow-sm);
+    padding: 18px 20px;
+    transition: opacity .25s;
+  }
+  .rpt-chart-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .rpt-chart-title {
+    font-size: .85rem; font-weight: 600;
+    color: var(--rpt-text); margin: 0;
+  }
+</style>
+
+<!-- Filter Card -->
+<div class="rpt-filter-card" id="rptFilterSection" style="display:none;">
+  <div class="rpt-date-presets" id="rptDatePresets">
+    <button class="rpt-date-btn" data-range="today">{{ _('Today') }}</button>
+    <button class="rpt-date-btn" data-range="week">{{ _('This Week') }}</button>
+    <button class="rpt-date-btn" data-range="month">{{ _('This Month') }}</button>
+    <button class="rpt-date-btn" data-range="year">{{ _('This Year') }}</button>
+    <button class="rpt-date-btn active" data-range="all">{{ _('All Time') }}</button>
+    <button class="rpt-date-btn" data-range="custom">{{ _('Custom Date') }}</button>
+  </div>
+
+  <div class="rpt-custom-date" id="customDateRange" style="display:none;">
+    <div class="rpt-date-field">
+      <label>{{ _('Date From') }}</label>
+      <input type="date" class="form-control form-control-sm" id="rptDateFrom">
+    </div>
+    <div class="rpt-date-field">
+      <label>{{ _('Date To') }}</label>
+      <input type="date" class="form-control form-control-sm" id="rptDateTo">
+    </div>
+  </div>
+
+  <div class="rpt-filter-row" id="rptDynamicFilters"></div>
+
+  <div class="rpt-filter-actions">
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" id="rptBtnApply"><i class="fas fa-search me-1"></i>{{ _('Search') }}</button>
+      <button class="btn btn-outline-secondary" id="rptBtnReset">{{ _('Reset') }}</button>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success" id="rptExportExcel"><i class="fas fa-file-excel me-1"></i>{{ _('Excel') }}</button>
+      <button class="btn btn-outline-danger" id="rptExportPdf"><i class="fas fa-file-pdf me-1"></i>{{ _('PDF') }}</button>
+      <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i>{{ _('Print') }}</button>
+    </div>
+    <div class="rpt-search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" class="form-control form-control-sm" id="rptSearch" placeholder="{{ _('Search records...') }}">
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="rpt-table-card" id="rptTableSection" style="display:none;">
+  <div class="rpt-table-wrapper">
+    <table class="rpt-table" id="rptTable">
+      <thead id="rptTableHead"></thead>
+      <tbody id="rptTableBody"></tbody>
+    </table>
+  </div>
+  <div class="rpt-table-footer">
+    <span class="rpt-records-info" id="rptRecordCount">{{ _('Showing 0 of 0 records') }}</span>
+    <div class="rpt-pagination" id="rptPagination"></div>
+  </div>
+</div>
+
+<!-- States -->
+<div class="rpt-state" id="rptEmpty">
+  <div class="rpt-state-icon"><i class="fas fa-chart-pie"></i></div>
+  <h5>{{ _('No Report Selected') }}</h5>
+  <p>{{ _('Choose a report type from the sidebar to begin.') }}</p>
+</div>
+
+<div class="rpt-state" id="rptLoading" style="display:none;">
+  <div class="rpt-spinner"></div>
+  <p>{{ _('Loading data...') }}</p>
+</div>
+
+<div class="rpt-state" id="rptNoData" style="display:none;">
+  <div class="rpt-state-icon"><i class="fas fa-inbox"></i></div>
+  <h5>{{ _('No Results') }}</h5>
+  <p>{{ _('No records found for the selected filters.') }}</p>
+</div>
+
+<input type="hidden" id="initialReportType" value="{{ initial_report_type or '' }}">
 {% endblock %}
 
 {% block extra_js %}
 <script>
-new Chart(document.getElementById('rrChart'), {
-  type: 'doughnut',
-  data: {
-    labels: {{ rr_by_status.keys()|list|tojson }},
-    datasets: [{ data: {{ rr_by_status.values()|list|tojson }}, backgroundColor: ['#f59e0b','#10b981','#ef4444'], borderWidth: 0 }]
-  },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-});
-new Chart(document.getElementById('epChart'), {
-  type: 'doughnut',
-  data: {
-    labels: {{ ep_by_status.keys()|list|tojson }},
-    datasets: [{ data: {{ ep_by_status.values()|list|tojson }}, backgroundColor: ['#f59e0b','#10b981','#ef4444'], borderWidth: 0 }]
-  },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-});
-new Chart(document.getElementById('torChart'), {
-  type: 'doughnut',
-  data: {
-    labels: {{ tor_by_status.keys()|list|tojson }},
-    datasets: [{ data: {{ tor_by_status.values()|list|tojson }}, backgroundColor: ['#10b981','#ef4444'], borderWidth: 0 }]
-  },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-});
+(function() {
+  'use strict';
+
+  var REPORT_TYPES = {{ report_types | tojson }};
+
+  var STATE = {
+    type: '',
+    range: 'all',
+    startDate: '',
+    endDate: '',
+    filters: {},
+    search: '',
+    page: 1,
+    length: 25,
+    sort: '',
+    order: 'desc',
+    total: 0,
+    pages: 0
+  };
+
+  var trendChart = null;
+  var statusChart = null;
+
+  // ── DOM refs ──
+  var els = {};
+  var ids = [
+    'reportTitle','reportDesc','rptFilterSection','rptDatePresets','customDateRange',
+    'rptDateFrom','rptDateTo','rptDynamicFilters','rptBtnApply','rptBtnReset',
+    'statsSection','statTotal','rptDynamicStats','chartsSection',
+    'rptSearch','rptExportExcel','rptExportPdf',
+    'rptTableSection','rptTableHead','rptTableBody','rptRecordCount','rptPagination',
+    'rptEmpty','rptLoading','rptNoData','initialReportType',
+    'trendChart','statusChart'
+  ];
+  ids.forEach(function(id) { els[id] = document.getElementById(id); });
+
+  // ── Helpers ──
+  function show(el) { if (el) el.style.display = ''; }
+  function hide(el) { if (el) el.style.display = 'none'; }
+
+  function getStatusStyle(status) {
+    var s = (status || '').toString().toLowerCase();
+    if (s.includes('approved') || s.includes('completed') || s.includes('submitted') || s.includes('departed') || s.includes('excellent')) return {bg:'#d1fae5',color:'#065f46',icon:'fa-check-circle',type:'success'};
+    if (s.includes('pending') || s.includes('draft') || s.includes('not')) return {bg:'#fef3c7',color:'#92400e',icon:'fa-clock',type:'warning'};
+    if (s.includes('rejected') || s.includes('unsatisfactory') || s.includes('cancelled')) return {bg:'#fee2e2',color:'#991b1b',icon:'fa-times-circle',type:'danger'};
+    if (s.includes('very-good') || s.includes('very good')) return {bg:'#dbeafe',color:'#1e40af',icon:'fa-star',type:'info'};
+    if (s.includes('good')) return {bg:'#d1fae5',color:'#065f46',icon:'fa-thumbs-up',type:'success'};
+    if (s.includes('need')) return {bg:'#fef3c7',color:'#92400e',icon:'fa-exclamation-triangle',type:'warning'};
+    return {bg:'#f1f5f9',color:'#475569',icon:'fa-circle',type:'default'};
+  }
+
+  function updateUrlHash(type) {
+    if (history.pushState) {
+      history.pushState(null, '', window.location.pathname + '#' + type);
+    }
+  }
+
+  function getTypeFromHash() {
+    var hash = window.location.hash.replace('#', '');
+    return REPORT_TYPES[hash] ? hash : '';
+  }
+
+  window.selectReport = function selectReport(type) {
+    if (!REPORT_TYPES[type]) return;
+    STATE.type = type;
+    STATE.range = 'all';
+    STATE.startDate = '';
+    STATE.endDate = '';
+    STATE.filters = {};
+    STATE.search = '';
+    STATE.page = 1;
+    STATE.sort = '';
+    STATE.order = 'desc';
+
+    updateUrlHash(type);
+
+    var reportsCollapse = document.getElementById('subReports');
+    if (reportsCollapse && !reportsCollapse.classList.contains('show')) {
+      try {
+        var bs = new bootstrap.Collapse(reportsCollapse, { toggle: false });
+        if (bs) bs.show();
+      } catch(e) {
+        reportsCollapse.classList.add('show');
+        var toggle = document.getElementById('reportToggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    document.querySelectorAll('.report-link').forEach(function(el) {
+      var dt = el.getAttribute('data-report') || '';
+      el.classList.toggle('active', dt === type || dt === type.replace('_','-'));
+    });
+
+    var cfg = REPORT_TYPES[type];
+    els.reportTitle.textContent = cfg.label;
+    els.reportDesc.textContent = '{{ _('Comprehensive analytics and reporting for') }} ' + cfg.label.toLowerCase() + '.';
+
+    els.statTotal.textContent = '0';
+    els.rptDynamicStats.innerHTML = '';
+
+    show(els.rptFilterSection);
+    show(els.statsSection);
+    show(els.chartsSection);
+    hide(els.rptEmpty);
+
+    els.rptDatePresets.querySelectorAll('.rpt-date-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.range === 'all');
+    });
+    hide(els.customDateRange);
+    els.rptDateFrom.value = '';
+    els.rptDateTo.value = '';
+
+    renderFilters(type);
+    els.rptSearch.value = '';
+    loadData();
+    loadCharts(type);
+  };
+
+  // ── Load Charts ──
+  function loadCharts(type) {
+    if (!type) return;
+    var url = '{{ url_for("reports_charts", report_type="__TYPE__") }}'.replace('__TYPE__', type);
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        renderCharts(data);
+      })
+      .catch(function(err) {
+        console.error('Chart error:', err);
+      });
+  }
+
+  function renderCharts(data) {
+    if (!data) return;
+    if (!data.trend || !data.trend.categories || data.trend.categories.length === 0) {
+      if (trendChart) { trendChart.destroy(); trendChart = null; }
+      if (statusChart) { statusChart.destroy(); statusChart = null; }
+      return;
+    }
+
+    var trendOpts = {
+      chart: { type: 'area', height: 280, toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit' },
+      colors: ['#2563a8'],
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth', width: 2 },
+      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05 } },
+      grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+      xaxis: { categories: data.trend.categories, axisBorder: { show: false }, labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+      yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+      tooltip: { theme: 'light' }
+    };
+    trendOpts.series = data.trend.series || [];
+
+    if (trendChart) { trendChart.destroy(); }
+    trendChart = new ApexCharts(els.trendChart, trendOpts);
+    trendChart.render();
+
+    if (data.status && data.status.labels && data.status.labels.length > 0) {
+      var colors = data.status.labels.map(function(l) {
+        var s = l.toLowerCase();
+        if (s.includes('approved') || s.includes('completed') || s.includes('submitted') || s.includes('departed') || s.includes('excellent')) return '#059669';
+        if (s.includes('pending') || s.includes('draft') || s.includes('not')) return '#d97706';
+        if (s.includes('rejected') || s.includes('unsatisfactory') || s.includes('cancelled')) return '#dc2626';
+        return '#64748b';
+      });
+
+      var statusOpts = {
+        chart: { type: 'donut', height: 280, fontFamily: 'inherit' },
+        colors: colors,
+        labels: data.status.labels,
+        dataLabels: { enabled: false },
+        legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#475569' } },
+        plotOptions: {
+          pie: { donut: { size: '60%', labels: { show: true, name: { show: true }, value: { show: true, fontSize: '16px', fontWeight: 600, color: '#1e293b' }, total: { show: true, label: 'Total', color: '#64748b' } } } }
+        },
+        responsive: [{ breakpoint: 480, options: { chart: { height: 220 }, legend: { position: 'bottom' } } }]
+      };
+      statusOpts.series = data.status.values || [];
+
+      if (statusChart) { statusChart.destroy(); }
+      statusChart = new ApexCharts(els.statusChart, statusOpts);
+      statusChart.render();
+    }
+  }
+
+  // ── Date preset clicks ──
+  els.rptDatePresets.addEventListener('click', function(e) {
+    var btn = e.target.closest('.rpt-date-btn');
+    if (!btn) return;
+    var range = btn.dataset.range;
+    els.rptDatePresets.querySelectorAll('.rpt-date-btn').forEach(function(b) {
+      b.classList.toggle('active', b === btn);
+    });
+    if (range === 'custom') {
+      show(els.customDateRange);
+    } else {
+      hide(els.customDateRange);
+      STATE.range = range;
+      STATE.startDate = '';
+      STATE.endDate = '';
+      els.rptDateFrom.value = '';
+      els.rptDateTo.value = '';
+    }
+  });
+
+  els.rptDateFrom.addEventListener('change', function() {
+    STATE.startDate = this.value;
+    STATE.range = 'custom';
+  });
+  els.rptDateTo.addEventListener('change', function() {
+    STATE.endDate = this.value;
+    STATE.range = 'custom';
+  });
+
+  // ── Dynamic Filters ──
+  function renderFilters(type) {
+    var cfg = REPORT_TYPES[type];
+    if (!cfg) return;
+    els.rptDynamicFilters.innerHTML = '';
+    var fields = cfg.filter_fields || {};
+    var filterKeys = cfg.filters || [];
+    filterKeys.forEach(function(key) {
+      var info = fields[key];
+      if (!info) return;
+      var labelText = key.split('_').map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+      if (info.length > 2 && typeof info[2] === 'string' && info[2] !== '') labelText = info[2];
+      var group = document.createElement('div');
+      group.className = 'filter-group';
+      var label = document.createElement('label');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var ftype = info[1];
+      if (ftype === 'select') {
+        var opts = [];
+        for (var i = 2; i < info.length; i++) {
+          if (Array.isArray(info[i])) { opts = info[i]; break; }
+        }
+        var sel = document.createElement('select');
+        sel.className = 'form-select form-select-sm';
+        sel.dataset.filterKey = key;
+        var optAll = document.createElement('option');
+        optAll.value = '';
+        optAll.textContent = '{{ _('All') }}';
+        sel.appendChild(optAll);
+        opts.forEach(function(v) {
+          var opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+        if (STATE.filters[key]) sel.value = STATE.filters[key];
+        group.appendChild(sel);
+      } else {
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'form-control form-control-sm';
+        inp.placeholder = labelText;
+        inp.dataset.filterKey = key;
+        if (STATE.filters[key]) inp.value = STATE.filters[key];
+        group.appendChild(inp);
+      }
+      els.rptDynamicFilters.appendChild(group);
+    });
+  }
+
+  // ── Apply / Reset ──
+  els.rptBtnApply.addEventListener('click', function() {
+    els.rptDynamicFilters.querySelectorAll('select, input').forEach(function(el) {
+      var key = el.dataset.filterKey;
+      if (key) STATE.filters[key] = el.value;
+    });
+    if (STATE.range === 'custom') {
+      STATE.startDate = els.rptDateFrom.value || '';
+      STATE.endDate = els.rptDateTo.value || '';
+    } else {
+      STATE.startDate = '';
+      STATE.endDate = '';
+    }
+    STATE.page = 1;
+    loadData();
+  });
+
+  els.rptBtnReset.addEventListener('click', function() {
+    STATE.range = 'all';
+    STATE.startDate = '';
+    STATE.endDate = '';
+    STATE.filters = {};
+    STATE.search = '';
+    STATE.page = 1;
+    STATE.sort = '';
+    STATE.order = 'desc';
+    els.rptDatePresets.querySelectorAll('.rpt-date-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.range === 'all');
+    });
+    hide(els.customDateRange);
+    els.rptDateFrom.value = '';
+    els.rptDateTo.value = '';
+    els.rptSearch.value = '';
+    renderFilters(STATE.type);
+    loadData();
+  });
+
+  // ── Search (debounced) ──
+  var searchTimer;
+  els.rptSearch.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() {
+      STATE.search = els.rptSearch.value.trim();
+      STATE.page = 1;
+      loadData();
+    }, 350);
+  });
+
+  // ── Load Data ──
+  function loadData() {
+    if (!STATE.type) return;
+    showLoading();
+
+    var params = new URLSearchParams();
+    params.set('type', STATE.type);
+    params.set('range', STATE.range);
+    params.set('page', STATE.page);
+    params.set('length', STATE.length);
+    params.set('sort', STATE.sort);
+    params.set('order', STATE.order);
+    params.set('search', STATE.search);
+    if (STATE.startDate) params.set('start_date', STATE.startDate);
+    if (STATE.endDate) params.set('end_date', STATE.endDate);
+    for (var k in STATE.filters) {
+      if (STATE.filters[k]) params.set(k, STATE.filters[k]);
+    }
+
+    var url = '{{ url_for("reports_data") }}?' + params.toString();
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.error) { showNoData(); return; }
+        renderStats(res.stats);
+        if (!res.data || res.data.length === 0) {
+          showNoData();
+          els.rptRecordCount.textContent = '{{ _('Showing 0 of') }} ' + (res.total || 0) + ' {{ _('records') }}';
+          els.rptPagination.innerHTML = '';
+          return;
+        }
+        renderTable(res);
+        renderPagination(res);
+        els.rptRecordCount.textContent = '{{ _('Showing') }} ' +
+          ((res.page - 1) * res.length + 1) + '-' +
+          Math.min(res.page * res.length, res.total) +
+          ' {{ _('of') }} ' + res.total + ' {{ _('records') }}';
+        show(els.rptTableSection);
+        hide(els.rptLoading);
+        hide(els.rptNoData);
+        hide(els.rptEmpty);
+      })
+      .catch(function(err) {
+        console.error('Report error:', err);
+        showNoData();
+      });
+  }
+
+  function showLoading() {
+    show(els.rptLoading);
+    hide(els.rptTableSection);
+    hide(els.rptNoData);
+    hide(els.rptEmpty);
+  }
+
+  function showNoData() {
+    show(els.rptNoData);
+    hide(els.rptTableSection);
+    hide(els.rptLoading);
+    hide(els.rptEmpty);
+  }
+
+  // ── Render Stats ──
+  function renderStats(stats) {
+    if (!stats) { show(els.statsSection); return; }
+    els.statTotal.textContent = stats.total || 0;
+    var container = els.rptDynamicStats;
+    container.innerHTML = '';
+    if (stats.status_counts) {
+      Object.keys(stats.status_counts).forEach(function(key) {
+        var count = stats.status_counts[key];
+        var style = getStatusStyle(key);
+        var card = document.createElement('div');
+        card.className = 'rpt-stat-card';
+        card.innerHTML =
+          '<div class="rpt-stat-icon" style="background:' + style.bg + ';color:' + style.color + ';">' +
+            '<i class="fas ' + style.icon + '"></i>' +
+          '</div>' +
+          '<div class="rpt-stat-body">' +
+            '<div class="rpt-stat-value">' + count + '</div>' +
+            '<div class="rpt-stat-label">' + key + '</div>' +
+          '</div>';
+        container.appendChild(card);
+      });
+    }
+    show(els.statsSection);
+  }
+
+  // ── Render Table ──
+  function renderTable(res) {
+    var cfg = REPORT_TYPES[STATE.type];
+    if (!cfg) return;
+    var cols = cfg.columns || [];
+    var data = res.data || [];
+
+    var theadHtml = '<tr>';
+    cols.forEach(function(col) {
+      var si = '';
+      var sa = '';
+      if (col.sortable) {
+        if (STATE.sort === col.key) {
+          sa = ' active';
+          si = STATE.order === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+        } else {
+          si = 'fa-sort';
+        }
+      }
+      theadHtml += '<th data-key="' + col.key + '" data-sortable="' + (col.sortable ? '1' : '0') + '">' +
+        col.label +
+        (col.sortable ? ' <i class="fas ' + si + ' sort-icon' + sa + '"></i>' : '') +
+        '</th>';
+    });
+    theadHtml += '</tr>';
+    els.rptTableHead.innerHTML = theadHtml;
+
+    els.rptTableHead.querySelectorAll('th[data-sortable="1"]').forEach(function(th) {
+      th.addEventListener('click', function() {
+        var key = this.dataset.key;
+        if (STATE.sort === key) {
+          STATE.order = STATE.order === 'asc' ? 'desc' : 'asc';
+        } else {
+          STATE.sort = key;
+          STATE.order = 'desc';
+        }
+        STATE.page = 1;
+        loadData();
+      });
+    });
+
+    var tbodyHtml = '';
+    data.forEach(function(row) {
+      tbodyHtml += '<tr>';
+      cols.forEach(function(col) {
+        var val = row[col.key];
+        var display = val !== null && val !== undefined ? val : '-';
+        if (col.key === 'status' || col.key === 'vehicle_status' || col.key === 'performance_rating') {
+          var st = getStatusStyle(display);
+          display = '<span class="rpt-badge rpt-badge-' + st.type + '">' + display + '</span>';
+        }
+        tbodyHtml += '<td>' + display + '</td>';
+      });
+      tbodyHtml += '</tr>';
+    });
+    els.rptTableBody.innerHTML = tbodyHtml;
+  }
+
+  // ── Pagination ──
+  function renderPagination(res) {
+    var page = res.page;
+    var pages = res.pages;
+    var html = '';
+
+    html += '<button class="rpt-page-btn' + (page <= 1 ? ' disabled' : '') + '" data-page="' + (page - 1) + '"><i class="fas fa-chevron-left"></i></button>';
+    var start = Math.max(1, page - 2);
+    var end = Math.min(pages, page + 2);
+    if (start > 1) {
+      html += '<button class="rpt-page-btn" data-page="1">1</button>';
+      if (start > 2) html += '<span class="rpt-page-btn disabled">...</span>';
+    }
+    for (var i = start; i <= end; i++) {
+      html += '<button class="rpt-page-btn' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+    }
+    if (end < pages) {
+      if (end < pages - 1) html += '<span class="rpt-page-btn disabled">...</span>';
+      html += '<button class="rpt-page-btn" data-page="' + pages + '">' + pages + '</button>';
+    }
+    html += '<button class="rpt-page-btn' + (page >= pages ? ' disabled' : '') + '" data-page="' + (page + 1) + '"><i class="fas fa-chevron-right"></i></button>';
+
+    els.rptPagination.innerHTML = html;
+    els.rptPagination.querySelectorAll('.rpt-page-btn:not(.disabled)').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var p = parseInt(this.dataset.page);
+        if (p && p !== STATE.page) {
+          STATE.page = p;
+          loadData();
+        }
+      });
+    });
+  }
+
+  // ── Export ──
+  var EXPORT_BASE = '{{ url_for("reports_export", fmt="__FMT__", report_type="__REPORT__") }}';
+
+  function buildExportUrl(fmt) {
+    if (!STATE.type) return '';
+    var params = new URLSearchParams();
+    params.set('type', STATE.type);
+    params.set('range', STATE.range);
+    if (STATE.startDate) params.set('start_date', STATE.startDate);
+    if (STATE.endDate) params.set('end_date', STATE.endDate);
+    if (STATE.search) params.set('search', STATE.search);
+    for (var k in STATE.filters) {
+      if (STATE.filters[k]) params.set(k, STATE.filters[k]);
+    }
+    var url = EXPORT_BASE.replace('__FMT__', fmt).replace('__REPORT__', STATE.type);
+    return url + '?' + params.toString();
+  }
+
+  function triggerExport(fmt) {
+    var url = buildExportUrl(fmt);
+    if (!url) return;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        var blob = xhr.response;
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+        var match = disposition.match(/filename="?(.+?)"?$/);
+        link.download = match ? match[1] : 'export.' + fmt;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } else {
+        var reader = new FileReader();
+        reader.onload = function() {
+          try {
+            var err = JSON.parse(reader.result);
+            if (err.warning) {
+              alert(err.error);
+            } else {
+              alert('{{ _('Export failed') }}: ' + (err.error || xhr.statusText));
+            }
+          } catch(e) {
+            alert('{{ _('Export failed') }}: ' + xhr.statusText);
+          }
+        };
+        reader.readAsText(blob);
+      }
+    };
+    xhr.onerror = function() {
+      alert('{{ _('Export failed') }}: {{ _('Network error') }}');
+    };
+    xhr.send();
+  }
+
+  els.rptExportExcel.addEventListener('click', function() {
+    triggerExport('excel');
+  });
+
+  els.rptExportPdf.addEventListener('click', function() {
+    triggerExport('pdf');
+  });
+
+  // ── Hash change listener ──
+  window.addEventListener('hashchange', function() {
+    var t = getTypeFromHash();
+    if (t && t !== STATE.type) {
+      window.selectReport(t);
+    }
+  });
+
+  // ── Initial load from hash ──
+  var initialType = getTypeFromHash();
+  if (!initialType) {
+    initialType = els.initialReportType.value;
+  }
+  if (initialType && REPORT_TYPES[initialType]) {
+    window.selectReport(initialType);
+  } else {
+    hide(els.rptFilterSection);
+    hide(els.statsSection);
+    hide(els.chartsSection);
+    hide(els.rptTableSection);
+    hide(els.rptLoading);
+    hide(els.rptNoData);
+    show(els.rptEmpty);
+  }
+
+})();
 </script>
 {% endblock %}

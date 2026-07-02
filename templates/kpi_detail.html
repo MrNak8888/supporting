@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('kpi_evaluations') %}
+{% block title %}{{ _('KPI Evaluation') }} — {{ ke.staff_name }}{% endblock %}
+{% block page_title %}{{ _('KPI Evaluation') }} — {{ ke.staff_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('kpi_evaluations') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
+  </a>
+  {% if ke.status == 'Draft' %}
+  <a href="{{ url_for('edit_kpi_evaluation', id=ke.id) }}" class="btn btn-outline-warning btn-sm">
+    <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
+  </a>
+  {% endif %}
+  <form method="POST" action="{{ url_for('delete_kpi_evaluation', id=ke.id) }}" onsubmit="return confirm('{{ _('Delete this evaluation?') }}');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
+  </form>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#6366f1;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-user me-2"></i>{{ _('Employee Information') }}
+      </h6>
+      {% set emp_fields = [
+        (_('Staff Name'), ke.staff_name),
+        (_('Staff ID'), ke.staff_id),
+        (_('Branch'), ke.branch or '—'),
+        (_('Company'), ke.company or '—'),
+        (_('Evaluation Period'), '%s/%s'|format(ke.evaluation_month, ke.evaluation_year)),
+      ] %}
+      <div class="row g-3">
+        {% for label, value in emp_fields %}
+        <div class="col-md-4">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ value }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- KPI Scores Detail -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#6366f1;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-chart-bar me-2"></i>{{ _('KPI Scores Detail') }}
+      </h6>
+
+      <!-- Ticket Sales -->
+      <div class="mb-3 p-3 rounded" style="background:#f0f9ff;border:1px solid #bae6fd;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('1. Ticket Sales Performance') }} <span class="badge bg-primary ms-1">40%</span></strong>
+          <span style="font-weight:700;">{{ ke.ticket_sales_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Target') }}: {{ ke.ticket_sales_target }} | {{ _('Actual') }}: {{ ke.actual_tickets_sold }} | {{ _('Achievement') }}: {{ ke.achievement_pct }}%
+        </div>
+      </div>
+
+      <!-- Booking Accuracy -->
+      <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('2. Booking Accuracy') }} <span class="badge bg-success ms-1">20%</span></strong>
+          <span style="font-weight:700;">{{ ke.booking_accuracy_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Accuracy') }}: {{ ke.booking_accuracy_pct }}% | {{ _('Errors') }}: {{ ke.booking_errors }}
+        </div>
+      </div>
+
+      <!-- Customer Service -->
+      <div class="mb-3 p-3 rounded" style="background:#f0f9ff;border:1px solid #93c5fd;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('3. Customer Service Quality') }} <span class="badge bg-info ms-1">15%</span></strong>
+          <span style="font-weight:700;">{{ ke.customer_service_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Satisfaction') }}: {{ ke.customer_satisfaction }}% | {{ _('Complaints Handled') }}: {{ ke.complaints_handled }}
+        </div>
+      </div>
+
+      <!-- Attendance -->
+      <div class="mb-3 p-3 rounded" style="background:#fefce8;border:1px solid #fde68a;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('4. Attendance & Punctuality') }} <span class="badge bg-warning text-dark ms-1">10%</span></strong>
+          <span style="font-weight:700;">{{ ke.attendance_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Late Arrivals') }}: {{ ke.late_arrivals }} | {{ _('Unexcused Absences') }}: {{ ke.unexcused_absences }}
+        </div>
+      </div>
+
+      <!-- Daily Reporting -->
+      <div class="mb-3 p-3 rounded" style="background:#f1f5f9;border:1px solid #cbd5e1;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('5. Daily Reporting') }} <span class="badge bg-secondary ms-1">10%</span></strong>
+          <span style="font-weight:700;">{{ ke.daily_report_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Submission') }}: {{ ke.report_submission or '—' }}
+        </div>
+      </div>
+
+      <!-- SOP Compliance -->
+      <div class="mb-3 p-3 rounded" style="background:#fef2f2;border:1px solid #fecaca;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>{{ _('6. SOP Compliance') }} <span class="badge bg-danger ms-1">5%</span></strong>
+          <span style="font-weight:700;">{{ ke.sop_compliance_score }}</span>
+        </div>
+        <div style="font-size:.85rem;color:#64748b;">
+          {{ _('Compliance') }}: {{ ke.sop_compliance }}%
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#6366f1;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-comment me-2"></i>{{ _('Comments & Plan') }}
+      </h6>
+      {% if ke.comments %}
+      <div class="mb-3 p-3 rounded" style="background:var(--badge-bg);border:1px solid var(--input-border);">
+        <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;">{{ _('Comments') }}</div>
+        <div>{{ ke.comments }}</div>
+      </div>
+      {% endif %}
+      {% if ke.improvement_plan %}
+      <div class="p-3 rounded" style="background:#fff7ed;border:1px solid #fed7aa;">
+        <div style="font-size:.73rem;text-transform:uppercase;color:#c2410c;margin-bottom:3px;">{{ _('Improvement Plan') }}</div>
+        <div style="color:#9a3412;">{{ ke.improvement_plan }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <div class="form-card mb-3" style="border-top:4px solid #6366f1;">
+      <h6 class="fw-bold mb-3"><i class="fas fa-chart-line me-2"></i>{{ _('Performance Summary') }}</h6>
+      <div class="mb-3 p-3 rounded text-center" style="background:#f0f9ff;border:1px solid #bae6fd;">
+        <div style="font-size:2.5rem;font-weight:800;color:#6366f1;">{{ ke.total_score }}</div>
+        <div style="font-size:.8rem;color:#64748b;">{{ _('Total Score') }}</div>
+      </div>
+      <div class="mb-3 p-3 rounded text-center" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+        <div style="font-size:1.3rem;font-weight:700;color:#7c3aed;">{{ ke.performance_rating }}</div>
+        <div style="font-size:.8rem;color:#64748b;">{{ _('Performance Rating') }}</div>
+      </div>
+      <div style="font-size:.85rem;">
+        <div class="d-flex justify-content-between mb-2"><span>{{ _('Status') }}</span><span class="status-badge {% if ke.status == 'Submitted' %}badge-approved{% else %}badge-pending{% endif %}">{{ ke.status }}</span></div>
+        <div class="d-flex justify-content-between mb-2"><span>{{ _('Evaluator') }}</span><span>{{ ke.evaluator_name or '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span>{{ _('Created') }}</span><span>{{ ke.created_date.strftime('%d/%m/%Y') if ke.created_date else '' }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

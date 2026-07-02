@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('penalties') %}
 {% block title %}{% if penalty %}{{ _('Edit Penalty') }}{% else %}{{ _('New Penalty') }}{% endif %}{% endblock %}
 {% block page_title %}{% if penalty %}{{ _('Edit Penalty') }} — {{ penalty.penalty_id }}{% else %}{{ _('New Penalty') }}{% endif %}{% endblock %}
 
@@ -32,15 +33,19 @@
           <label class="form-label">{{ _('Department') }}</label>
           <select name="department" class="form-select">
             <option value="">{{ _('— Select Department —') }}</option>
-            {% for dept in ['IT','HR','Finance','Operations','Marketing','Management','Sales','Legal','Logistics'] %}
-            <option {% if penalty and penalty.department == dept %}selected{% endif %}>{{ dept }}</option>
+            {% for d in penalty_departments %}
+            <option value="{{ d.data.name }}" {% if penalty and penalty.department == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-6">
           <label class="form-label">{{ _('Position') }}</label>
-          <input type="text" name="position" class="form-control"
-            value="{{ penalty.position if penalty else '' }}" placeholder="{{ _('Job title') }}">
+          <select name="position" class="form-select">
+            <option value="">{{ _('— Select Position —') }}</option>
+            {% for p in positions %}
+            <option value="{{ p.name }}" {% if penalty and penalty.position == p.name %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
     </div>
@@ -55,8 +60,8 @@
           <label class="form-label">{{ _('Violation Type') }} <span class="text-danger">*</span></label>
           <select name="violation_type" class="form-select" required>
             <option value="">{{ _('— Select Type —') }}</option>
-            {% for v in ['Late Arrival','Absenteeism','Misconduct','Policy Violation','Performance Issue','Insubordination','Theft','Other'] %}
-            <option {% if penalty and penalty.violation_type == v %}selected{% endif %}>{{ v }}</option>
+            {% for v in violation_types %}
+            <option value="{{ v.data.name }}" {% if penalty and penalty.violation_type == v.data.name %}selected{% endif %}>{{ v.data.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -71,6 +76,11 @@
             placeholder="{{ _('Describe the violation in detail...') }}">{{ penalty.description if penalty else '' }}</textarea>
         </div>
         <div class="col-md-6">
+          <label class="form-label">{{ _('Old Code') }}</label>
+          <input type="text" name="old_code" class="form-control"
+            value="{{ penalty.old_code if penalty else '' }}" placeholder="{{ _('Legacy code from old system') }}">
+        </div>
+        <div class="col-md-6">
           <label class="form-label">{{ _('Penalty Amount ($)') }}</label>
           <div class="input-group">
             <span class="input-group-text">$</span>
@@ -79,10 +89,19 @@
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">{{ _('Approved By') }}</label>
-          <input type="text" name="approved_by" class="form-control"
-            value="{{ penalty.approved_by if penalty else current_user.full_name }}"
-            placeholder="{{ _('Manager name') }}">
+          <label class="form-label">{{ _('Requester Name') }}</label>
+          <input type="text" class="form-control" readonly
+            value="{{ penalty.creator.full_name if penalty and penalty.creator else current_user.full_name }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Request by') }}</label>
+          <select name="approved_by" class="form-select">
+            <option value="">{{ _('— Select User —') }}</option>
+            {% for u in users %}
+            <option value="{{ u.full_name }}" {% if penalty and penalty.approved_by == u.full_name %}selected{% elif not penalty and u.id == current_user.id %}selected{% endif %}>{{ u.full_name }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-12">
           <label class="form-label">{{ _('Evidence File') }}</label>

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('users') %}
 {% block title %}{% if user %}Edit User{% else %}New User{% endif %}{% endblock %}
 {% block page_title %}{% if user %}Edit User{% else %}New User{% endif %}{% endblock %}
 
@@ -41,8 +42,12 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Branch</label>
-            <input type="text" name="branch" class="form-control"
-              value="{{ user.branch if user else '' }}" placeholder="Branch or office">
+            <select name="branch" class="form-select">
+              <option value="">-- Select Branch --</option>
+              {% for b in branches %}
+              <option value="{{ b.data.name }}" {% if user and user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="col-12">
             <label class="form-label">Password {% if not user %}<span class="text-danger">*</span>{% else %}<small class="text-muted">(leave blank to keep current)</small>{% endif %}</label>

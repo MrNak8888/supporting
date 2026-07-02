@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('daily_reports') %}
+{% block title %}{{ _('Daily Report') }} — {{ dr.staff_name }}{% endblock %}
+{% block page_title %}{{ _('Daily Performance Report') }} — {{ dr.report_date }}{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
+  </a>
+  {% if dr.status == 'Draft' %}
+  <a href="{{ url_for('edit_daily_report', id=dr.id) }}" class="btn btn-outline-warning btn-sm">
+    <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
+  </a>
+  {% endif %}
+  <form method="POST" action="{{ url_for('delete_daily_report', id=dr.id) }}" onsubmit="return confirm('{{ _('Delete this report?') }}');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
+  </form>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-user me-2"></i>{{ _('Employee Information') }}
+      </h6>
+      <div class="row g-3">
+        {% set emp_fields = [
+          (_('Staff Name'), dr.staff_name),
+          (_('Staff ID'), dr.staff_id),
+          (_('Branch'), dr.branch or '—'),
+          (_('Company'), dr.company or '—'),
+          (_('Report Date'), dr.report_date|string),
+          (_('Status'), dr.status),
+        ] %}
+        {% for label, value in emp_fields %}
+        <div class="col-md-4">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ value }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-chart-bar me-2"></i>{{ _('Performance Data') }}
+      </h6>
+      <div class="row g-3">
+        {% set perf_fields = [
+          (_('Tickets Sold'), dr.tickets_sold),
+          (_('Total Sales Amount'), '$%s'|format('%.2f'|format(dr.total_sales_amount))),
+          (_('Number of Bookings'), dr.bookings),
+          (_('Booking Errors'), dr.booking_errors),
+          (_('Cancelled Tickets'), dr.cancelled_tickets),
+          (_('Refunded Tickets'), dr.refunded_tickets),
+          (_('Customer Complaints'), dr.complaints),
+          (_('Resolved Complaints'), dr.resolved_complaints),
+        ] %}
+        {% for label, value in perf_fields %}
+        <div class="col-md-3">
+          <div style="background:#f0f9ff;border-radius:8px;padding:12px 14px;border:1px solid #bae6fd;">
+            <div style="font-size:.73rem;text-transform:uppercase;color:#0369a1;letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:700;color:#0891b2;">{{ value }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px;">
+        <i class="fas fa-clock me-2"></i>{{ _('Attendance Information') }}
+      </h6>
+      <div class="row g-3">
+        {% set att_fields = [
+          (_('Time Check In'), dr.time_check_in or '—'),
+          (_('Time Check Out'), dr.time_check_out or '—'),
+          (_('Attendance Status'), dr.attendance_status or '—'),
+        ] %}
+        {% for label, value in att_fields %}
+        <div class="col-md-4">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ value }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if dr.remarks %}
+    <div class="form-card">
+      <h6 class="fw-bold mb-3" style="color:#0891b2;">{{ _('Remarks') }}</h6>
+      <p style="color:var(--text-primary);">{{ dr.remarks }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="form-card" style="border-top:4px solid #0891b2;">
+      <h6 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>{{ _('Report Info') }}</h6>
+      <div style="font-size:.85rem;">
+        <div class="d-flex justify-content-between mb-2"><span>{{ _('Status') }}</span><span class="status-badge {% if dr.status == 'Submitted' %}badge-approved{% else %}badge-pending{% endif %}">{{ dr.status }}</span></div>
+        <div class="d-flex justify-content-between mb-2"><span>{{ _('Created') }}</span><span>{{ dr.created_date.strftime('%d/%m/%Y %H:%M') if dr.created_date else '' }}</span></div>
+        {% if dr.updated_date and dr.updated_date != dr.created_date %}
+        <div class="d-flex justify-content-between"><span>{{ _('Updated') }}</span><span>{{ dr.updated_date.strftime('%d/%m/%Y %H:%M') if dr.updated_date else '' }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

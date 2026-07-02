@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('route_requests') %}
 {% block title %}{{ rr.request_id }}{% endblock %}
 {% block page_title %}Request Detail — {{ rr.request_id }}{% endblock %}
 
@@ -19,10 +20,10 @@
   {% endif %}
   <div class="ms-auto">
     <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-excel me-1"></i> Excel
       </a>
-      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger">
+      <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-pdf me-1"></i> PDF
       </a>
     </div>

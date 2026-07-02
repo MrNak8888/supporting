@@ -4,10 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <div class="d-flex align-items-center gap-3">
-    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary btn-sm">
-      <i class="fas fa-chart-bar me-1"></i> {{ _('Back to Reports & Analytics') }}
-    </a>
+  <div>
     <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage and track all trip operation reports') }}</p>
   </div>
   {% if has_permission('trip_operation_report_create') %}
@@ -70,10 +67,10 @@
     <span style="font-size:.875rem;color:#64748b;">{{ _('Showing %(shown)s of %(total)s record(s)', shown=reports|length, total=total_count) }}</span>
     {% if has_any_permission('trip_operation_report_view','trip_operation_report_download') %}
     <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
         </a>
-        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
+        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
           <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
       </a>
     </div>
@@ -90,6 +87,8 @@
           <th>{{ _('Departure') }}</th>
           <th>{{ _('Driver Phone') }}</th>
           <th>{{ _('Arrival Station') }}</th>
+          <th>{{ _('LET Duration') }}</th>
+          <th>{{ _('Delay (min)') }}</th>
           <th>{{ _('Passengers') }}</th>
           <th>{{ _('Coordinator') }}</th>
           <th>{{ _('Status') }}</th>
@@ -106,6 +105,8 @@
           <td style="color:#64748b;">{{ r.departure_time if r.departure_time else '—' }}</td>
           <td style="color:#64748b;">{{ r.driver_phone if r.driver_phone else '—' }}</td>
           <td style="color:#64748b;">{{ r.arrival_at_station if r.arrival_at_station else '—' }}</td>
+          <td style="color:#64748b;">{{ r.layover_duration if r.layover_duration else '—' }}</td>
+          <td style="color:#64748b;">{{ r.travel_delay_duration|int if r.travel_delay_duration else '0' }}</td>
           <td>{{ r.passenger_count }}</td>
           <td>{{ r.coordinator_name if r.coordinator_name else '—' }}</td>
           <td><span class="status-badge {% if r.vehicle_status=='Departed' %}badge-approved{% else %}badge-pending{% endif %}">{{ r.vehicle_status }}</span></td>
@@ -130,7 +131,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="11" class="text-center py-5 text-muted">
+        <tr><td colspan="13" class="text-center py-5 text-muted">
           <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No reports found') }}
         </td></tr>
         {% endfor %}

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('kpi_dashboard') %}
+{% block title %}{{ _('KPI History') }}{% endblock %}
+{% block page_title %}{{ _('KPI Performance History') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">{{ _('Historical monthly KPI scores and performance ratings') }}</p>
+  <a href="{{ url_for('kpi_dashboard') }}" class="btn btn-outline-primary">
+    <i class="fas fa-chart-line me-1"></i> {{ _('KPI Dashboard') }}
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Year') }}</label>
+      <select name="year" class="form-select">
+        <option value="">{{ _('All Years') }}</option>
+        {% for y in years %}
+        <option value="{{ y[0] }}" {% if year_filter|string == y[0]|string %}selected{% endif %}>{{ y[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Month') }}</label>
+      <select name="month" class="form-select">
+        <option value="">{{ _('All Months') }}</option>
+        {% for m in range(1, 13) %}
+        <option value="{{ m }}" {% if month_filter|string == m|string %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Staff') }}</label>
+      <select name="staff" class="form-select">
+        <option value="">{{ _('All Staff') }}</option>
+        {% for s in staff_list %}
+        <option value="{{ s[0] }}" {% if staff_filter == s[0] %}selected{% endif %}>{{ s[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+    </div>
+    <div class="col-md-1">
+      <a href="{{ url_for('kpi_history') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<!-- History Table -->
+<div class="data-table">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Period') }}</th>
+          <th>{{ _('Staff') }}</th>
+          <th>{{ _('Branch') }}</th>
+          <th>{{ _('Tickets') }}</th>
+          <th>{{ _('Sales ($)') }}</th>
+          <th>{{ _('TS Score') }}</th>
+          <th>{{ _('BA Score') }}</th>
+          <th>{{ _('CS Score') }}</th>
+          <th>{{ _('AT Score') }}</th>
+          <th>{{ _('DR Score') }}</th>
+          <th>{{ _('SOP Score') }}</th>
+          <th>{{ _('Total') }}</th>
+          <th>{{ _('Rating') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in summaries %}
+        <tr>
+          <td style="white-space:nowrap;">{{ s.month }}/{{ s.year }}</td>
+          <td style="font-weight:600;">{{ s.staff_name }}</td>
+          <td style="color:var(--text-secondary);">{{ s.branch or '—' }}</td>
+          <td>{{ s.total_tickets_sold }}</td>
+          <td>${{ "%.2f"|format(s.total_sales_amount) }}</td>
+          <td>{{ "%.1f"|format(s.ticket_sales_score) }}</td>
+          <td>{{ "%.1f"|format(s.booking_accuracy_score) }}</td>
+          <td>{{ "%.1f"|format(s.customer_service_score) }}</td>
+          <td>{{ "%.1f"|format(s.attendance_score) }}</td>
+          <td>{{ "%.1f"|format(s.daily_reporting_score) }}</td>
+          <td>{{ "%.1f"|format(s.sop_compliance_score) }}</td>
+          <td style="font-weight:700;">{{ "%.1f"|format(s.total_score) }}</td>
+          <td>
+            <span class="status-badge" style="
+              {% if s.performance_rating == 'Excellent' %}background:#d1fae5;color:#065f46;
+              {% elif s.performance_rating == 'Very Good' %}background:#dbeafe;color:#1d4ed8;
+              {% elif s.performance_rating == 'Good' %}background:#fef3c7;color:#92400e;
+              {% elif s.performance_rating == 'Need Improvement' %}background:#fce7f3;color:#db2777;
+              {% else %}background:#fee2e2;color:#991b1b;
+              {% endif %}">
+              {{ s.performance_rating or '—' }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="text-center py-5 text-muted">
+          <i class="fas fa-history fa-2x mb-2 d-block"></i>{{ _('No KPI history records found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

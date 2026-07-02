@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ _('IT Management System') }}{% endblock %}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.css">
   <style>
     :root {
       --primary: #1a3c5e;
@@ -65,8 +66,43 @@
     #sidebar .nav-link:hover, #sidebar .nav-link.active { background: rgba(255,255,255,.1); color: #fff; }
     #sidebar .nav-link.active { border-left: 3px solid var(--accent); }
     #sidebar .nav-link i { width: 18px; text-align: center; opacity: .8; }
+    #sidebar .nav-link .arrow {
+      margin-left: auto; font-size: .65rem; transition: transform .25s; opacity: .6;
+    }
+    #sidebar .nav-link[aria-expanded="true"] .arrow { transform: rotate(180deg); }
+    #sidebar .sub-link {
+      padding: 8px 20px 8px 48px; font-size: .82rem;
+      color: rgba(255,255,255,.6); border-left: none;
+    }
+    #sidebar .sub-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+    #sidebar .sub-link.active { color: #fff; background: rgba(255,255,255,.1); border-left: 2px solid var(--accent); }
+    #sidebar .sub-link i { width: 16px; font-size: .75rem; opacity: .6; }
     #sidebar .user-box { margin-top: auto; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); }
     #sidebar .user-box .role-badge { background: var(--accent); color: #1a1a1a; font-size: .65rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    #sidebar .collapse:not(.show) { display: none; }
+    #sidebar .collapse.show { display: block; }
+    #sidebar .collapsing { transition: height .25s ease; }
+
+    /* ── REPORTS ACCORDION ── */
+    #sidebar .report-count-badge {
+      background: var(--accent); color: #1a1a1a; font-size: .65rem;
+      padding: 1px 7px; border-radius: 10px; font-weight: 700;
+      line-height: 1.4; margin-left: auto;
+    }
+    #sidebar .report-search-wrapper {
+      padding: 6px 12px 4px 16px; position: relative;
+    }
+    #sidebar .report-search-input {
+      width: 100%; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 6px; padding: 5px 10px 5px 26px; font-size: .75rem; color: #fff;
+      outline: none; transition: .2s;
+    }
+    #sidebar .report-search-input::placeholder { color: rgba(255,255,255,.4); }
+    #sidebar .report-search-input:focus { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.25); }
+    #sidebar .report-search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,.4); font-size: .65rem; pointer-events: none; }
+    #sidebar .nav-link.sub-link.active i { opacity: 1; }
+    #sidebar .nav-link.sub-link.report-link { padding-left: 48px; }
+    #sidebar .reports-list { padding: 2px 0; }
 
     /* ── MAIN ── */
     #main { margin-left: var(--sidebar-w); min-height: 100vh; }
@@ -108,6 +144,16 @@
       font-weight: 700; color: #1a1a1a; font-size: .85rem; cursor: pointer;
     }
     .content { padding: 24px 28px; }
+
+    /* ── BACK BUTTON ── */
+    .btn-back {
+      width: 34px; height: 34px; border-radius: 10px;
+      border: 1px solid var(--input-border); background: var(--card-bg);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-secondary); font-size: .85rem;
+      text-decoration: none; transition: .2s; flex-shrink: 0;
+    }
+    .btn-back:hover { background: var(--bg); color: var(--text-primary); border-color: var(--primary-light); }
 
     /* ── DASHBOARD SPECIFIC ── */
     .dash-header { margin-bottom: 24px; }
@@ -177,6 +223,13 @@
     .badge-rejected { background: #fee2e2; color: #991b1b; }
     .badge-departed { background: #d1fae5; color: #065f46; }
     .badge-not-departed { background: #fee2e2; color: #991b1b; }
+    .badge-excellent { background: #d1fae5; color: #065f46; }
+    .badge-very-good { background: #dbeafe; color: #1e40af; }
+    .badge-good { background: #fef3c7; color: #92400e; }
+    .badge-need-improvement { background: #fed7aa; color: #9a3412; }
+    .badge-unsatisfactory { background: #fee2e2; color: #991b1b; }
+    .badge-submitted { background: #d1fae5; color: #065f46; }
+    .badge-draft { background: #fef3c7; color: #92400e; }
     .status-badge { padding: 4px 12px; border-radius: 20px; font-size: .73rem; font-weight: 600; white-space: nowrap; }
 
     /* ── QUICK ACTIONS ── */
@@ -240,6 +293,172 @@
     }
     /* Dropdown for user menu */
     .user-dropdown { cursor: pointer; }
+
+    /* ═══════════════════════════════════
+       ENTERPRISE DASHBOARD V2 COMPONENTS
+       ═══════════════════════════════════ */
+
+    /* ── Filter Panel ── */
+    .dash-filter-panel {
+      background: var(--card-bg); border-radius: 18px; padding: 18px 22px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      margin-bottom: 20px; transition: box-shadow .2s;
+    }
+    .dash-filter-panel .filter-label {
+      font-size: .72rem; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px;
+    }
+    .dash-filter-panel select, .dash-filter-panel input {
+      font-size: .82rem; border-radius: 10px; border: 1px solid var(--input-border);
+      background: var(--input-bg); color: var(--text-primary); padding: 6px 12px;
+    }
+    .dash-filter-panel select:focus, .dash-filter-panel input:focus {
+      border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(37,99,168,.15); outline: none;
+    }
+
+    /* ── KPI Cards V2 ── */
+    .kpi-card-v2 {
+      background: var(--card-bg); border-radius: 20px; padding: 20px 22px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      position: relative; overflow: hidden; transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+      cursor: default;
+    }
+    .kpi-card-v2:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
+    .kpi-card-v2 .kpi-v2-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .kpi-card-v2 .kpi-v2-icon {
+      width: 48px; height: 48px; border-radius: 16px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
+    }
+    .kpi-card-v2 .kpi-v2-trend {
+      display: inline-flex; align-items: center; gap: 3px; font-size: .7rem;
+      font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+    }
+    .kpi-card-v2 .kpi-v2-trend.up { color: #059669; background: #d1fae5; }
+    .kpi-card-v2 .kpi-v2-trend.down { color: #dc2626; background: #fee2e2; }
+    .kpi-card-v2 .kpi-v2-trend.neutral { color: #64748b; background: var(--badge-bg); }
+    .kpi-card-v2 .kpi-v2-value { font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.1; margin-bottom: 2px; letter-spacing: -.02em; }
+    .kpi-card-v2 .kpi-v2-label { font-size: .78rem; color: var(--text-secondary); font-weight: 500; }
+    .kpi-card-v2 .kpi-v2-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--card-border); }
+    .kpi-card-v2 .kpi-v2-footer .prev-label { font-size: .7rem; color: var(--text-muted); }
+    .kpi-card-v2 .kpi-v2-sparkline { height: 36px; width: 100%; margin-top: 4px; }
+    .kpi-card-v2 .kpi-v2-glow {
+      position: absolute; top: -50%; right: -20%;
+      width: 120px; height: 120px; border-radius: 50%;
+      opacity: .06; pointer-events: none;
+    }
+
+    /* ── Executive Summary Card ── */
+    .exec-summary-card {
+      background: linear-gradient(135deg, #1a3c5e 0%, #0f2744 100%);
+      border-radius: 20px; padding: 24px 28px; color: #fff;
+      box-shadow: 0 8px 32px rgba(15,39,68,.25); margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .exec-summary-card::before {
+      content: ''; position: absolute; top: -60%; right: -20%;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: rgba(255,255,255,.04); pointer-events: none;
+    }
+    .exec-summary-card h5 { font-weight: 700; font-size: 1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .exec-summary-card .summary-item {
+      display: flex; align-items: center; gap: 10px; padding: 5px 0;
+      font-size: .82rem; color: rgba(255,255,255,.85); border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .exec-summary-card .summary-item:last-child { border-bottom: none; }
+    .exec-summary-card .summary-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    /* ── AI Insights Card ── */
+    .ai-insights-card {
+      background: linear-gradient(135deg, #fdf4ff 0%, #f5f3ff 100%);
+      border-radius: 20px; padding: 20px 24px;
+      border: 1px solid #e9d5ff; margin-bottom: 20px;
+    }
+    body.dark .ai-insights-card {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      border-color: #4c1d95;
+    }
+    .ai-insights-card h5 { font-weight: 700; font-size: .95rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #7c3aed; }
+    body.dark .ai-insights-card h5 { color: #a78bfa; }
+    .ai-insights-card .insight-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 7px 0;
+      font-size: .82rem; color: var(--text-primary); border-bottom: 1px solid rgba(124,58,237,.1);
+    }
+    .ai-insights-card .insight-item:last-child { border-bottom: none; }
+    .ai-insights-card .insight-icon { color: #7c3aed; font-size: .8rem; margin-top: 3px; }
+    body.dark .ai-insights-card .insight-item { color: #e2e8f0; }
+
+    /* ── Comparison Dashboard ── */
+    .comparison-card {
+      background: var(--card-bg); border-radius: 20px; padding: 20px 24px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      margin-bottom: 20px;
+    }
+    .comparison-card .period-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 14px; border-radius: 20px; font-size: .75rem; font-weight: 600;
+    }
+    .comparison-card .period-badge.period-a { background: #dbeafe; color: #1d4ed8; }
+    .comparison-card .period-badge.period-b { background: #fce7f3; color: #be185d; }
+    .comparison-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--card-border);
+    }
+    .comparison-row:last-child { border-bottom: none; }
+    .comparison-row .comp-label { font-size: .85rem; font-weight: 600; color: var(--text-primary); min-width: 140px; }
+    .comparison-row .comp-value { font-size: 1.1rem; font-weight: 700; min-width: 50px; text-align: center; }
+    .comparison-row .comp-value.period-a { color: #1d4ed8; }
+    .comparison-row .comp-value.period-b { color: #be185d; }
+    .comparison-row .comp-diff { font-size: .85rem; font-weight: 600; min-width: 80px; text-align: right; }
+    .comparison-row .comp-diff.up { color: #059669; }
+    .comparison-row .comp-diff.down { color: #dc2626; }
+    .comparison-row .comp-diff.neutral { color: #64748b; }
+
+    /* ── Skeleton Loading ── */
+    .skeleton { background: linear-gradient(90deg, var(--badge-bg) 25%, #e2e8f0 50%, var(--badge-bg) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    body.dark .skeleton { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-kpi { height: 130px; width: 100%; }
+    .skeleton-chart { height: 300px; width: 100%; }
+    .skeleton-text { height: 16px; width: 60%; margin-bottom: 8px; }
+
+    /* ── Chart Card V2 ── */
+    .chart-card-v2 {
+      background: var(--card-bg); border-radius: 20px; padding: 20px 22px;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      transition: box-shadow .2s;
+    }
+    .chart-card-v2 .chart-title {
+      font-weight: 700; font-size: .88rem; color: var(--text-primary);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Comparison toggle ── */
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-switch .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--input-border); border-radius: 24px; transition: .3s;
+    }
+    .toggle-switch .slider::before {
+      content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .3s;
+    }
+    .toggle-switch input:checked + .slider { background: var(--primary); }
+    .toggle-switch input:checked + .slider::before { transform: translateX(20px); }
+
+    /* ── Tiny scrollbar for tables ── */
+    .dash-table-wrap { max-height: 340px; overflow-y: auto; }
+    .dash-table-wrap::-webkit-scrollbar { width: 4px; }
+    .dash-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .dash-table-wrap::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 768px) {
+      .kpi-card-v2 .kpi-v2-value { font-size: 1.5rem; }
+      .exec-summary-card { padding: 16px; }
+      .comparison-row { flex-wrap: wrap; gap: 6px; }
+      .comparison-row .comp-label { min-width: 100%; }
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -252,78 +471,234 @@
     <h5><i class="fas fa-network-wired me-2" style="color:var(--accent)"></i>{{ _('IT Management') }}</h5>
     <small>{{ _('System v1.0') }}</small>
   </div>
-  <div style="flex:1; padding: 8px 0;">
-    <div class="nav-section">{{ _('Main') }}</div>
+  {% set ns = namespace() %}
+  {% set ns.is_trip_ops = 'trip_operation' in (request.endpoint or '') or request.endpoint == 'vehicle_performance' %}
+  {% set ns.is_daily = request.endpoint and ('daily_report' in request.endpoint or request.endpoint == 'daily_reports') %}
+
+  {% set ns.is_kpi_dash = request.endpoint and 'kpi_dashboard' in request.endpoint %}
+  {% set ns.is_kpi_hist = request.endpoint and 'kpi_history' in request.endpoint %}
+  {% set ns.is_kpi_eval = request.endpoint and 'kpi_evaluation' in request.endpoint %}
+  {% set ns.is_transport = request.endpoint and 'transport' in request.endpoint %}
+  {% set ns.is_penalty = request.endpoint and 'penalt' in request.endpoint %}
+  {% set ns.is_user = 'user' in (request.endpoint or '') %}
+  {% set ns.is_role = 'role' in (request.endpoint or '') %}
+  {% set ns.is_dept = request.endpoint and 'department' in request.endpoint %}
+  {% set ns.is_pos = request.endpoint and 'position' in request.endpoint %}
+  {% set ns.is_sys = request.endpoint and 'dynamic' in request.endpoint %}
+  {% set ns.is_telegram = request.endpoint and 'telegram_settings' in request.endpoint %}
+  {% set ns.is_ops = ns.is_trip_ops or ns.is_daily %}
+  {% set ns.is_perf = ns.is_kpi_dash or ns.is_kpi_hist or ns.is_kpi_eval %}
+  {% set ns.is_admin = ns.is_user or ns.is_role %}
+  {% set ns.is_sett = ns.is_sys or ns.is_dept or ns.is_pos or ns.is_telegram %}
+  {% set ns.is_reports = request.endpoint and (request.endpoint.startswith('report_') or request.endpoint == 'reports' or request.endpoint == 'report_subpath') %}
+
+  <div id="sidebar-nav" style="flex:1; padding: 8px 0;">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="nav-section">{{ _('Overview') }}</div>
     <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
       <i class="fas fa-th-large"></i> {{ _('Dashboard') }}
     </a>
-    {% if has_any_permission('route_request_view','route_request_create','route_request_edit','route_request_delete','route_request_approve','route_request_reject','route_request_download') %}
-    <div class="nav-section">{{ _('Route Requests') }}</div>
-    <a href="{{ url_for('route_requests') }}" class="nav-link {% if 'route' in (request.endpoint or '') %}active{% endif %}">
-      <i class="fas fa-route"></i> {{ _('All Requests') }}
+
+    <!-- ═══ TRANSPORTATION ═══ -->
+    {% if has_any_permission('transport_request_view','transport_request_create','transport_request_edit','transport_request_delete','transport_request_approve','transport_request_reject','transport_request_download') %}
+    <div class="nav-section">{{ _('Transportation') }}</div>
+    <a href="#subTransport" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_transport else 'false' }}">
+      <i class="fas fa-truck"></i> {{ _('Transport Requests') }}
+      <i class="fas fa-chevron-down arrow"></i>
     </a>
-    {% if has_permission('route_request_create') %}
-    <a href="{{ url_for('new_route_request') }}" class="nav-link">
-      <i class="fas fa-plus-circle"></i> {{ _('New Request') }}
-    </a>
+    <div class="collapse {{ 'show' if ns.is_transport }}" id="subTransport" data-bs-parent="#sidebar-nav">
+      <a href="{{ url_for('transport_requests') }}" class="nav-link sub-link {% if ns.is_transport %}active{% endif %}">
+        <i class="fas fa-list"></i> {{ _('All Requests') }}
+      </a>
+      {% if has_permission('transport_request_create') %}
+      <a href="{{ url_for('new_transport_request') }}" class="nav-link sub-link">
+        <i class="fas fa-plus"></i> {{ _('New Request') }}
+      </a>
+      {% endif %}
+    </div>
     {% endif %}
-    {% endif %}
-    {% if has_any_permission('penalty_view','penalty_create','penalty_edit','penalty_delete','penalty_download') %}
-    <div class="nav-section">{{ _('HR & Organization') }}</div>
-    <a href="{{ url_for('penalties') }}" class="nav-link {% if request.endpoint and 'penalt' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-gavel"></i> {{ _('Penalties') }}
-    </a>
-    {% if has_permission('penalty_create') %}
-    <a href="{{ url_for('new_penalty') }}" class="nav-link">
-      <i class="fas fa-plus-circle"></i> {{ _('New Penalty') }}
-    </a>
-    {% endif %}
-    {% endif %}
+
+    <!-- ═══ OPERATIONS ═══ -->
+    <div class="nav-section">{{ _('Operations') }}</div>
+
     {% if has_any_permission('trip_operation_report_view','trip_operation_report_create','trip_operation_report_edit','trip_operation_report_delete','trip_operation_report_download') %}
-    <div class="nav-section">{{ _('Trip Operations') }}</div>
-    <a href="{{ url_for('trip_operation_reports') }}" class="nav-link {% if 'trip_operation' in (request.endpoint or '') %}active{% endif %}">
-      <i class="fas fa-bus"></i> {{ _('Trip Operation Report') }}
+    <a href="#subTripOps" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_trip_ops else 'false' }}">
+      <i class="fas fa-bus"></i> {{ _('Trip Operations') }}
+      <i class="fas fa-chevron-down arrow"></i>
     </a>
-    {% if has_permission('trip_operation_report_create') %}
-    <a href="{{ url_for('new_trip_operation_report') }}" class="nav-link">
-      <i class="fas fa-plus-circle"></i> {{ _('New Report') }}
+    <div class="collapse {{ 'show' if ns.is_trip_ops }}" id="subTripOps" data-bs-parent="#sidebar-nav">
+      <a href="{{ url_for('trip_operation_reports') }}" class="nav-link sub-link {% if ns.is_trip_ops %}active{% endif %}">
+        <i class="fas fa-list"></i> {{ _('Trip Operation Report') }}
+      </a>
+      {% if has_permission('trip_operation_report_create') %}
+      <a href="{{ url_for('new_trip_operation_report') }}" class="nav-link sub-link">
+        <i class="fas fa-plus"></i> {{ _('New Report') }}
+      </a>
+      {% endif %}
+      <a href="{{ url_for('vehicle_performance') }}" class="nav-link sub-link {% if request.endpoint=='vehicle_performance' %}active{% endif %}">
+        <i class="fas fa-chart-bar"></i> {{ _('Vehicle Performance') }}
+      </a>
+    </div>
+    {% endif %}
+
+    <a href="#subDaily" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_daily else 'false' }}">
+      <i class="fas fa-file-alt"></i> {{ _('Daily Performance') }}
+      <i class="fas fa-chevron-down arrow"></i>
     </a>
-    {% endif %}
-    {% endif %}
+    <div class="collapse {{ 'show' if ns.is_daily }}" id="subDaily" data-bs-parent="#sidebar-nav">
+      <a href="{{ url_for('daily_reports') }}" class="nav-link sub-link {% if ns.is_daily %}active{% endif %}">
+        <i class="fas fa-list"></i> {{ _('Daily Report') }}
+      </a>
+      <a href="{{ url_for('new_daily_report') }}" class="nav-link sub-link">
+        <i class="fas fa-plus"></i> {{ _('New Report') }}
+      </a>
+    </div>
+
+
+
+    <!-- ═══ PERFORMANCE & KPI ═══ -->
+    <div class="nav-section">{{ _('Performance & KPI') }}</div>
+    <a href="{{ url_for('kpi_dashboard') }}" class="nav-link {% if ns.is_kpi_dash %}active{% endif %}">
+      <i class="fas fa-chart-simple"></i> {{ _('KPI Dashboard') }}
+    </a>
+    <a href="{{ url_for('kpi_history') }}" class="nav-link {% if ns.is_kpi_hist %}active{% endif %}">
+      <i class="fas fa-clock-rotate-left"></i> {{ _('KPI History') }}
+    </a>
     {% if has_any_permission('report_view','report_create','report_edit','report_delete','report_export','report_print','report_download') %}
-    <div class="nav-section">{{ _('Analytics') }}</div>
-    <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint=='reports' %}active{% endif %}">
-      <i class="fas fa-chart-bar"></i> {{ _('Reports') }}
+    <a href="{{ url_for('kpi_evaluations') }}" class="nav-link {% if ns.is_kpi_eval %}active{% endif %}">
+      <i class="fas fa-chart-line"></i> {{ _('KPI Evaluations') }}
+    </a>
+    <a href="{{ url_for('new_kpi_evaluation') }}" class="nav-link">
+      <i class="fas fa-plus-circle"></i> {{ _('New Evaluation') }}
     </a>
     {% endif %}
-    {% if current_user.role == 'admin' or has_any_permission('system_settings_view','department_view','position_view','role_view','user_view') %}
-    <div class="nav-section">{{ _('Settings') }}</div>
-    {% if has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
-    <a href="{{ url_for('dynamic_settings') }}" class="nav-link {% if request.endpoint and 'dynamic' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-cogs"></i> {{ _('System Settings') }}
+
+    <!-- ═══ DISCIPLINE ═══ -->
+    {% if has_any_permission('penalty_view','penalty_create','penalty_edit','penalty_delete','penalty_download') %}
+    <div class="nav-section">{{ _('Discipline') }}</div>
+    <a href="#subPenalty" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_penalty else 'false' }}">
+      <i class="fas fa-gavel"></i> {{ _('Penalties') }}
+      <i class="fas fa-chevron-down arrow"></i>
     </a>
+    <div class="collapse {{ 'show' if ns.is_penalty }}" id="subPenalty" data-bs-parent="#sidebar-nav">
+      <a href="{{ url_for('penalties') }}" class="nav-link sub-link {% if ns.is_penalty %}active{% endif %}">
+        <i class="fas fa-list"></i> {{ _('View All') }}
+      </a>
+      {% if has_permission('penalty_create') %}
+      <a href="{{ url_for('new_penalty') }}" class="nav-link sub-link">
+        <i class="fas fa-plus"></i> {{ _('New Penalty') }}
+      </a>
+      {% endif %}
+    </div>
     {% endif %}
-    {% if has_any_permission('department_view','department_create','department_edit','department_delete','department_download') %}
-    <a href="{{ url_for('departments') }}" class="nav-link {% if request.endpoint and 'department' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-building"></i> {{ _('Departments') }}
+
+    <!-- ═══ REPORTS (Collapsible Accordion) ═══ -->
+    {% if has_any_permission('report_view','report_create','report_edit','report_delete','report_export','report_print','report_download') %}
+    <div class="nav-section d-flex align-items-center justify-content-between pe-3">
+      <span>{{ _('Reports') }}</span>
+      <span class="report-count-badge">8</span>
+    </div>
+    <a href="#subReports" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_reports else 'false' }}" id="reportToggle">
+      <i class="fas fa-chart-bar"></i> {{ _('View Reports') }}
+      <i class="fas fa-chevron-down arrow"></i>
     </a>
+    <div class="collapse {{ 'show' if ns.is_reports }}" id="subReports" data-bs-parent="#sidebar-nav">
+      <div class="report-search-wrapper">
+        <i class="fas fa-search report-search-icon"></i>
+        <input type="text" class="report-search-input" id="reportSearchInput" placeholder="{{ _('Find report...') }}">
+      </div>
+      <div class="reports-list" id="reportsList">
+        <a href="/reports#transport"
+           class="nav-link sub-link report-link"
+           data-report="transport">
+          <i class="fas fa-route"></i> {{ _('Transport Requests') }}
+        </a>
+        <a href="/reports#trip"
+           class="nav-link sub-link report-link"
+           data-report="trip">
+          <i class="fas fa-bus"></i> {{ _('Trip Operation') }}
+        </a>
+        <a href="/reports#daily"
+           class="nav-link sub-link report-link"
+           data-report="daily">
+          <i class="fas fa-file-alt"></i> {{ _('Daily Performance') }}
+        </a>
+        <a href="/reports#kpi"
+           class="nav-link sub-link report-link"
+           data-report="kpi">
+          <i class="fas fa-chart-line"></i> {{ _('KPI') }}
+        </a>
+        <a href="/reports#kpi_history"
+           class="nav-link sub-link report-link"
+           data-report="kpi_history">
+          <i class="fas fa-clock-rotate-left"></i> {{ _('KPI History') }}
+        </a>
+        <a href="/reports#kpi_evaluation"
+           class="nav-link sub-link report-link"
+           data-report="kpi_evaluation">
+          <i class="fas fa-file-invoice"></i> {{ _('KPI Evaluation') }}
+        </a>
+        <a href="/reports#penalties"
+           class="nav-link sub-link report-link"
+           data-report="penalties">
+          <i class="fas fa-gavel"></i> {{ _('Penalties') }}
+        </a>
+        <a href="/reports#employee_performance"
+           class="nav-link sub-link report-link"
+           data-report="employee_performance">
+          <i class="fas fa-user-check"></i> {{ _('Employee Performance') }}
+        </a>
+      </div>
+    </div>
     {% endif %}
-    {% if has_any_permission('position_view','position_create','position_edit','position_delete','position_download') %}
-    <a href="{{ url_for('positions') }}" class="nav-link {% if request.endpoint and 'position' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-briefcase"></i> {{ _('Positions') }}
-    </a>
-    {% endif %}
-    {% if has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
-    <a href="{{ url_for('list_roles') }}" class="nav-link {% if request.endpoint and 'role' in request.endpoint %}active{% endif %}">
-      <i class="fas fa-user-shield"></i> {{ _('Roles') }}
-    </a>
-    {% endif %}
+
+    <!-- ═══ ADMINISTRATION ═══ -->
+    {% if has_any_permission('user_view','user_create','user_edit','user_delete','user_download') or has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
+    <div class="nav-section">{{ _('Administration') }}</div>
     {% if has_any_permission('user_view','user_create','user_edit','user_delete','user_download') %}
-    <a href="{{ url_for('users') }}" class="nav-link {% if 'user' in (request.endpoint or '') %}active{% endif %}">
+    <a href="{{ url_for('users') }}" class="nav-link {% if ns.is_user %}active{% endif %}">
       <i class="fas fa-users"></i> {{ _('Users') }}
     </a>
     {% endif %}
+    {% if has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
+    <a href="{{ url_for('list_roles') }}" class="nav-link {% if ns.is_role %}active{% endif %}">
+      <i class="fas fa-user-shield"></i> {{ _('Roles & Permissions') }}
+    </a>
     {% endif %}
+    {% endif %}
+
+    <!-- ═══ SETTINGS ═══ -->
+    {% if current_user.role == 'admin' or has_any_permission('system_settings_view','department_view','position_view','role_view','user_view') %}
+    <div class="nav-section">{{ _('Settings') }}</div>
+    <a href="#subSettings" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_sett else 'false' }}">
+      <i class="fas fa-sliders"></i> {{ _('Configuration') }}
+      <i class="fas fa-chevron-down arrow"></i>
+    </a>
+    <div class="collapse {{ 'show' if ns.is_sett }}" id="subSettings" data-bs-parent="#sidebar-nav">
+      {% if has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
+      <a href="{{ url_for('dynamic_settings') }}" class="nav-link sub-link {% if ns.is_sys %}active{% endif %}">
+        <i class="fas fa-cogs"></i> {{ _('System Settings') }}
+      </a>
+      {% endif %}
+      {% if has_any_permission('department_view','department_create','department_edit','department_delete','department_download') %}
+      <a href="{{ url_for('departments') }}" class="nav-link sub-link {% if ns.is_dept %}active{% endif %}">
+        <i class="fas fa-building"></i> {{ _('Departments') }}
+      </a>
+      {% endif %}
+      {% if has_any_permission('position_view','position_create','position_edit','position_delete','position_download') %}
+      <a href="{{ url_for('positions') }}" class="nav-link sub-link {% if ns.is_pos %}active{% endif %}">
+        <i class="fas fa-briefcase"></i> {{ _('Positions') }}
+      </a>
+      {% endif %}
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('telegram_settings') }}" class="nav-link sub-link {% if ns.is_telegram %}active{% endif %}">
+        <i class="fab fa-telegram-plane"></i> {{ _('Telegram Notification') }}
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
   </div>
   <div class="user-box">
     <div class="d-flex align-items-center gap-2 mb-2">
@@ -358,6 +733,12 @@
       <button class="d-lg-none btn btn-sm btn-outline-secondary me-1" id="sidebarToggle">
         <i class="fas fa-bars"></i>
       </button>
+      {% set _back_fallback = back_fallback|default(url_for('dashboard')) %}
+      {% if request.endpoint and request.endpoint != 'dashboard' and request.endpoint != 'login' and request.endpoint != 'logout' %}
+      <a href="{{ _back_fallback }}" class="btn-back" onclick="var w=window;if(w.history.length>1){w.history.back();return false;}" title="{{ _('Back') }}">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      {% endif %}
       <h6 class="page-title">{% block page_title %}{{ _('Dashboard') }}{% endblock %}</h6>
     </div>
     <div class="topbar-right">
@@ -415,6 +796,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
@@ -460,7 +842,99 @@
     {% endif %}
   }
   setInterval(updateClock, 30000);
+
+  // ── Reports Accordion: remember state + search filter ──
+  (function() {
+    var reportsCollapse = document.getElementById('subReports');
+    var reportToggle = document.getElementById('reportToggle');
+    if (reportsCollapse) {
+      // Save collapse state on toggle
+      reportsCollapse.addEventListener('shown.bs.collapse', function() {
+        localStorage.setItem('reportsExpanded', 'true');
+        if (reportToggle) reportToggle.setAttribute('aria-expanded', 'true');
+      });
+      reportsCollapse.addEventListener('hidden.bs.collapse', function() {
+        localStorage.setItem('reportsExpanded', 'false');
+        if (reportToggle) reportToggle.setAttribute('aria-expanded', 'false');
+      });
+      // Restore from localStorage only if not auto-expanded by active report
+      var isActive = reportsCollapse.classList.contains('show');
+      if (!isActive && localStorage.getItem('reportsExpanded') === 'true') {
+        var bs = new bootstrap.Collapse(reportsCollapse, { toggle: false });
+        bs.show();
+        if (reportToggle) reportToggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // Search/filter reports in submenu
+    var searchInput = document.getElementById('reportSearchInput');
+    var reportsList = document.getElementById('reportsList');
+    if (searchInput && reportsList) {
+      searchInput.addEventListener('input', function() {
+        var query = this.value.toLowerCase().trim();
+        var links = reportsList.querySelectorAll('.report-link');
+        links.forEach(function(link) {
+          var text = link.textContent.toLowerCase();
+          link.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+      // Stop click propagation on search wrapper so collapse doesn't toggle
+      searchInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    }
+  })();
+</script>
+<script>
+// Global report link handler: use AJAX if on Reports page, otherwise navigate
+(function() {
+  var list = document.getElementById('reportsList');
+  if (!list) return;
+  list.addEventListener('click', function(e) {
+    var link = e.target.closest('.report-link');
+    if (!link) return;
+    var type = link.getAttribute('data-report');
+    if (!type) return;
+    if (typeof window.selectReport === 'function') {
+      e.preventDefault();
+      window.selectReport(type);
+    }
+    // else: let browser navigate to /reports#type naturally
+  });
+})();
 </script>
 {% block extra_js %}{% endblock %}
+<script>
+// Background file download without navigation (uses Blob to avoid Save-As dialog)
+function downloadFile(url) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'blob';
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var blob = xhr.response;
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+      var match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      link.download = match ? match[1].replace(/['"]/g, '') : 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          var err = JSON.parse(reader.result);
+          if (err.warning) { alert(err.error); }
+          else { alert('Download failed: ' + (err.error || xhr.statusText)); }
+        } catch(e) { alert('Download failed: ' + xhr.statusText); }
+      };
+      reader.readAsText(blob);
+    }
+  };
+  xhr.onerror = function() { alert('Download failed: Network error'); };
+  xhr.send();
+}
+</script>
 </body>
 </html>

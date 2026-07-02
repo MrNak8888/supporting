@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('list_roles') %}
 {% block title %}{{ 'Edit Role' if role else 'New Role' }}{% endblock %}
 {% block page_title %}{{ 'Edit Role' if role else 'New Role' }}{% endblock %}
 
@@ -112,6 +113,46 @@
                   <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_edit" id="p18" {{ 'checked' if role and 'trip_operation_report_edit' in role.permissions }}><label class="form-check-label" for="p18">Edit Report</label></div></div>
                   <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_delete" id="p19" {{ 'checked' if role and 'trip_operation_report_delete' in role.permissions }}><label class="form-check-label" for="p19">Delete Report</label></div></div>
                   <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="trip_operation_report_download" id="p20" {{ 'checked' if role and 'trip_operation_report_download' in role.permissions }}><label class="form-check-label" for="p20">Download Reports</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Performance Report Permissions -->
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDailyReport" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-file-alt me-2"></i>Daily Performance Report
+              </button>
+            </h2>
+            <div id="collapseDailyReport" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="daily_report_view" id="p_dr1" {{ 'checked' if role and 'daily_report_view' in role.permissions }}><label class="form-check-label" for="p_dr1">View Reports</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="daily_report_create" id="p_dr2" {{ 'checked' if role and 'daily_report_create' in role.permissions }}><label class="form-check-label" for="p_dr2">Create Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="daily_report_edit" id="p_dr3" {{ 'checked' if role and 'daily_report_edit' in role.permissions }}><label class="form-check-label" for="p_dr3">Edit Report</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="daily_report_delete" id="p_dr4" {{ 'checked' if role and 'daily_report_delete' in role.permissions }}><label class="form-check-label" for="p_dr4">Delete Report</label></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Evaluation Permissions -->
+          <div class="accordion-item mb-2" style="border:1px solid #e2e8f0;border-radius:8px;">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseKpi" style="font-size:.9rem;font-weight:600;">
+                <i class="fas fa-chart-line me-2"></i>KPI Evaluation
+              </button>
+            </h2>
+            <div id="collapseKpi" class="accordion-collapse collapse" data-bs-parent="#permAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_evaluation_view" id="p_k1" {{ 'checked' if role and 'kpi_evaluation_view' in role.permissions }}><label class="form-check-label" for="p_k1">View Evaluations</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_evaluation_create" id="p_k2" {{ 'checked' if role and 'kpi_evaluation_create' in role.permissions }}><label class="form-check-label" for="p_k2">Create Evaluation</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_evaluation_edit" id="p_k3" {{ 'checked' if role and 'kpi_evaluation_edit' in role.permissions }}><label class="form-check-label" for="p_k3">Edit Evaluation</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_evaluation_delete" id="p_k4" {{ 'checked' if role and 'kpi_evaluation_delete' in role.permissions }}><label class="form-check-label" for="p_k4">Delete Evaluation</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_dashboard_view" id="p_k5" {{ 'checked' if role and 'kpi_dashboard_view' in role.permissions }}><label class="form-check-label" for="p_k5">View KPI Dashboard</label></div></div>
+                  <div class="col-md-3"><div class="form-check"><input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="kpi_history_view" id="p_k6" {{ 'checked' if role and 'kpi_history_view' in role.permissions }}><label class="form-check-label" for="p_k6">View KPI History</label></div></div>
                 </div>
               </div>
             </div>

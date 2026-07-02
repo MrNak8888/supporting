@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('trip_operation_reports') %}
 {% block title %}{{ tor.report_id }}{% endblock %}
 {% block page_title %}{{ _('Trip Operation Report') }} — {{ tor.report_id }}{% endblock %}
 
@@ -19,10 +20,10 @@
   {% endif %}
   <div class="ms-auto">
     <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('export_trip_reports_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
         <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
         </a>
-        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger">
+        <a href="{{ url_for('export_trip_reports_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
           <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
       </a>
     </div>
@@ -64,12 +65,12 @@
         {% set fields = [
           (_('Travel Direction'), tor.travel_direction),
           (_('Departure Time'), tor.departure_time if tor.departure_time else '—'),
-          (_('Power Off Time'), tor.power_off_time if tor.power_off_time else '—'),
-          (_('Power On Time'), tor.power_on_time if tor.power_on_time else '—'),
+          (_('Power'), tor.power_off_time if tor.power_off_time else '—'),
           (_('Vehicle Number'), tor.vehicle_number),
           (_('Driver Phone'), tor.driver_phone if tor.driver_phone else '—'),
           (_('Arrival at Station'), tor.arrival_at_station if tor.arrival_at_station else '—'),
           (_('Departure from Station'), tor.departure_from_station if tor.departure_from_station else '—'),
+          (_('LET Duration'), tor.layover_duration if tor.layover_duration else '—'),
           (_('Delay Duration'), (tor.travel_delay_duration|string ~ ' min') if tor.travel_delay_duration else '0 min'),
           (_('Passenger Count'), tor.passenger_count|string),
           (_('Coordinator'), tor.coordinator_name if tor.coordinator_name else '—'),

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Daily Performance Reports') }}{% endblock %}
+{% block page_title %}{{ _('Daily Performance Reports') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Submit and manage daily performance reports') }}</p>
+  </div>
+      <div class="d-flex gap-2">
+    <a href="{{ url_for('export_daily_reports_excel') }}" class="btn btn-outline-success btn-sm" onclick="event.preventDefault();downloadFile(this.href);">
+      <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
+    </a>
+    <a href="{{ url_for('export_daily_reports_pdf') }}" class="btn btn-outline-danger btn-sm" onclick="event.preventDefault();downloadFile(this.href);">
+      <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
+    </a>
+    <a href="{{ url_for('new_daily_report') }}" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i> {{ _('New Report') }}
+    </a>
+  </div>
+</div>
+
+<!-- Today's Summary Cards -->
+<div class="row g-2 mb-4">
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#0891b2;">{{ today_tickets }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Tickets Today') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#059669;">${{ "%.0f"|format(today_sales) }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Sales Today') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#6366f1;">{{ today_bookings }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Bookings Today') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#f59e0b;">{{ today_errors }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Errors Today') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#ef4444;">{{ today_complaints }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Complaints Today') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-2">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by name or ID...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">{{ _('Department') }}</label>
+      <select name="department" class="form-select">
+        <option value="">{{ _('All Departments') }}</option>
+        {% for b in branches %}
+        <option value="{{ b.data.name }}" {% if department_filter == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">{{ _('From') }}</label>
+      <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">{{ _('To') }}</label>
+      <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">{{ _('Staff') }}</label>
+      <select name="staff" class="form-select">
+        <option value="">{{ _('All Staff') }}</option>
+        {% for s in staff_list %}
+        <option value="{{ s[0] }}" {% if staff_filter == s[0] %}selected{% endif %}>{{ s[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+    </div>
+    <div class="col-md-1">
+      <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:var(--text-secondary);">{{ _('Showing %(count)d record(s)', count=reports|length) }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Date') }}</th>
+          <th>{{ _('Staff Name') }}</th>
+          <th>{{ _('Staff ID') }}</th>
+          <th>{{ _('Tickets') }}</th>
+          <th>{{ _('Sales ($)') }}</th>
+          <th>{{ _('Bookings') }}</th>
+          <th>{{ _('Errors') }}</th>
+          <th>{{ _('Complaints') }}</th>
+          <th>{{ _('Time In') }}</th>
+          <th>{{ _('Time Out') }}</th>
+          <th>{{ _('Attendance') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td>{{ r.report_date }}</td>
+          <td><a href="{{ url_for('view_daily_report', id=r.id) }}" style="color:#0891b2;font-weight:600;text-decoration:none;">{{ r.staff_name }}</a></td>
+          <td style="color:var(--text-secondary);">{{ r.staff_id }}</td>
+          <td>{{ r.tickets_sold }}</td>
+          <td>${{ "%.2f"|format(r.total_sales_amount) }}</td>
+          <td>{{ r.bookings }}</td>
+          <td>{{ r.booking_errors }}</td>
+          <td>{{ r.complaints }}</td>
+          <td>{{ r.time_check_in or '—' }}</td>
+          <td>{{ r.time_check_out or '—' }}</td>
+          <td>{{ r.attendance_status or '—' }}</td>
+          <td><span class="status-badge {% if r.status == 'Submitted' %}badge-approved{% else %}badge-pending{% endif %}">{{ r.status }}</span></td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_daily_report', id=r.id) }}" class="btn btn-sm btn-outline-primary" title="{{ _('View') }}">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if r.status == 'Draft' %}
+              <a href="{{ url_for('edit_daily_report', id=r.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              <form method="POST" action="{{ url_for('delete_daily_report', id=r.id) }}" onsubmit="return confirm('{{ _('Delete this report?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="text-center py-5 text-muted">
+          <i class="fas fa-file-alt fa-2x mb-2 d-block"></i>{{ _('No reports found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

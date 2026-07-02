@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('kpi_evaluations') %}
+{% block title %}{% if evaluation %}{{ _('Edit KPI Evaluation') }}{% else %}{{ _('New KPI Evaluation') }}{% endif %}{% endblock %}
+{% block page_title %}{% if evaluation %}{{ _('Edit KPI Evaluation') }}{% else %}{{ _('New KPI Evaluation') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('kpi_evaluations') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to KPI Evaluations') }}
+  </a>
+</div>
+
+<form method="POST" id="kpiForm">
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    <!-- Employee Information -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-user me-2"></i>{{ _('Employee Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Staff Name') }} <span class="text-danger">*</span></label>
+          <input type="text" name="staff_name" class="form-control" required
+            value="{{ evaluation.staff_name if evaluation else '' }}"
+            placeholder="{{ _('Full name') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('Staff ID') }} <span class="text-danger">*</span></label>
+          <input type="text" name="staff_id" class="form-control" required
+            value="{{ evaluation.staff_id if evaluation else '' }}"
+            placeholder="{{ _('e.g., EMP001') }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Branch') }}</label>
+          <select name="branch" class="form-select">
+            <option value="">{{ _('— Select Branch —') }}</option>
+            {% for b in branches %}
+            <option value="{{ b.data.name }}" {% if evaluation and evaluation.branch == b.data.name %}selected{% elif not evaluation and current_user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Company') }}</label>
+          <select name="company" class="form-select">
+            <option value="">{{ _('— Select Company —') }}</option>
+            {% for c in companies %}
+            <option value="{{ c.data.name }}" {% if evaluation and evaluation.company == c.data.name %}selected{% endif %}>{{ c.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Evaluation Month') }} <span class="text-danger">*</span></label>
+          <select name="evaluation_month" class="form-select" required>
+            <option value="">{{ _('— Select —') }}</option>
+            {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if evaluation and evaluation.evaluation_month == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ _('Evaluation Year') }} <span class="text-danger">*</span></label>
+          <select name="evaluation_year" class="form-select" required>
+            <option value="">{{ _('— Select —') }}</option>
+            {% for y in range(2020, 2031) %}
+            <option value="{{ y }}" {% if evaluation and evaluation.evaluation_year == y %}selected{% elif not evaluation and y == now.year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Ticket Sales Performance (40%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-ticket-alt me-2"></i>{{ _('1. Ticket Sales Performance') }} <span class="badge bg-primary ms-2">40%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Monthly Target') }}</label>
+          <input type="number" name="ticket_sales_target" id="tsTarget" class="form-control" step="1" min="0"
+            value="{{ evaluation.ticket_sales_target if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Actual Sold') }}</label>
+          <input type="number" name="actual_tickets_sold" id="tsActual" class="form-control" step="1" min="0"
+            value="{{ evaluation.actual_tickets_sold if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('Achievement') }} %</label>
+          <input type="text" id="tsAchievement" class="form-control" readonly
+            value="{{ evaluation.achievement_pct if evaluation else 0 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ _('Score') }} <small>(40%)</small></label>
+          <input type="text" id="tsScore" class="form-control" readonly
+            value="{{ evaluation.ticket_sales_score if evaluation else 0 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Booking Accuracy (20%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-check-circle me-2"></i>{{ _('2. Booking Accuracy') }} <span class="badge bg-success ms-2">20%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Accuracy') }} (%)</label>
+          <input type="number" name="booking_accuracy_pct" id="baPct" class="form-control" step="0.1" min="0" max="100"
+            value="{{ evaluation.booking_accuracy_pct if evaluation else 100 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Booking Errors') }}</label>
+          <input type="number" name="booking_errors" id="baErrors" class="form-control" step="1" min="0"
+            value="{{ evaluation.booking_errors if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Score') }} <small>(20%)</small></label>
+          <input type="text" id="baScore" class="form-control" readonly
+            value="{{ evaluation.booking_accuracy_score if evaluation else 0 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Customer Service (15%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-headset me-2"></i>{{ _('3. Customer Service Quality') }} <span class="badge bg-info ms-2">15%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Satisfaction') }} (%)</label>
+          <input type="number" name="customer_satisfaction" id="csSat" class="form-control" step="0.1" min="0" max="100"
+            value="{{ evaluation.customer_satisfaction if evaluation else 100 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Complaints Handled') }}</label>
+          <input type="number" name="complaints_handled" id="csComp" class="form-control" step="1" min="0"
+            value="{{ evaluation.complaints_handled if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Score') }} <small>(15%)</small></label>
+          <input type="text" id="csScore" class="form-control" readonly
+            value="{{ evaluation.customer_service_score if evaluation else 0 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Attendance & Punctuality (10%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-clock me-2"></i>{{ _('4. Attendance & Punctuality') }} <span class="badge bg-warning text-dark ms-2">10%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Late Arrivals') }}</label>
+          <input type="number" name="late_arrivals" id="attLate" class="form-control" step="1" min="0"
+            value="{{ evaluation.late_arrivals if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Unexcused Absences') }}</label>
+          <input type="number" name="unexcused_absences" id="attAbsent" class="form-control" step="1" min="0"
+            value="{{ evaluation.unexcused_absences if evaluation else 0 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Score') }} <small>(10%)</small></label>
+          <input type="text" id="attScore" class="form-control" readonly
+            value="{{ evaluation.attendance_score if evaluation else 0 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Daily Reporting (10%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-file-alt me-2"></i>{{ _('5. Daily Reporting') }} <span class="badge bg-secondary ms-2">10%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Report Submission') }}</label>
+          <select name="report_submission" id="drSub" class="form-select" onchange="calcKpi()">
+            {% for rs in report_submission_statuses %}
+            <option value="{{ rs.data.name }}" {% if evaluation and evaluation.report_submission == rs.data.name %}selected{% elif not evaluation and rs.data.name == 'On Time' %}selected{% endif %}>{{ _(rs.data.name) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Score (0-100)') }}</label>
+          <input type="number" name="daily_report_score" id="drScore" class="form-control" step="1" min="0" max="100"
+            value="{{ evaluation.daily_report_score|default(100) / 0.10 if evaluation else 100 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Weighted Score') }} <small>(10%)</small></label>
+          <input type="text" id="drWeighted" class="form-control" readonly
+            value="{{ evaluation.daily_report_score if evaluation else 10 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. SOP Compliance (5%) -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-shield-alt me-2"></i>{{ _('6. SOP Compliance') }} <span class="badge bg-danger ms-2">5%</span>
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Compliance') }} (%)</label>
+          <input type="number" name="sop_compliance" id="sopPct" class="form-control" step="0.1" min="0" max="100"
+            value="{{ evaluation.sop_compliance if evaluation else 100 }}" onchange="calcKpi()">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Score') }} <small>(5%)</small></label>
+          <input type="text" id="sopScore" class="form-control" readonly
+            value="{{ evaluation.sop_compliance_score if evaluation else 5 }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments & Improvement -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-comment me-2"></i>{{ _('Comments & Improvement Plan') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ _('Evaluator Name') }}</label>
+          <input type="text" name="evaluator_name" class="form-control"
+            value="{{ evaluation.evaluator_name if evaluation else current_user.full_name }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Comments') }}</label>
+          <textarea name="comments" class="form-control" rows="3" placeholder="{{ _('Additional comments...') }}">{{ evaluation.comments if evaluation else '' }}</textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Improvement Plan') }}</label>
+          <textarea name="improvement_plan" class="form-control" rows="3" placeholder="{{ _('Plan for improvement...') }}">{{ evaluation.improvement_plan if evaluation else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <div class="form-card" style="position:sticky;top:80px;">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #6366f1;padding-bottom:8px;">
+        <i class="fas fa-chart-line me-2"></i>{{ _('Performance Summary') }}
+      </h6>
+
+      <div class="mb-3 p-3 rounded text-center" style="background:#f0f9ff;border:1px solid #bae6fd;">
+        <div style="font-size:2rem;font-weight:800;" id="totalScoreDisplay">{{ evaluation.total_score if evaluation else 0 }}</div>
+        <div style="font-size:.8rem;color:#64748b;">{{ _('Total Score') }}</div>
+      </div>
+
+      <div class="mb-3 p-3 rounded text-center" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+        <div style="font-size:1.2rem;font-weight:700;" id="ratingDisplay">{{ evaluation.performance_rating if evaluation else '—' }}</div>
+        <div style="font-size:.8rem;color:#64748b;">{{ _('Performance Rating') }}</div>
+      </div>
+
+      <div class="mb-3" style="font-size:.8rem;color:#64748b;">
+        <div class="d-flex justify-content-between mb-1"><span>{{ _('Ticket Sales') }} (40%)</span><span id="tsScoreDisplay">{{ evaluation.ticket_sales_score if evaluation else 0 }}</span></div>
+        <div class="d-flex justify-content-between mb-1"><span>{{ _('Booking Accuracy') }} (20%)</span><span id="baScoreDisplay">{{ evaluation.booking_accuracy_score if evaluation else 0 }}</span></div>
+        <div class="d-flex justify-content-between mb-1"><span>{{ _('Customer Service') }} (15%)</span><span id="csScoreDisplay">{{ evaluation.customer_service_score if evaluation else 0 }}</span></div>
+        <div class="d-flex justify-content-between mb-1"><span>{{ _('Attendance') }} (10%)</span><span id="attScoreDisplay">{{ evaluation.attendance_score if evaluation else 0 }}</span></div>
+        <div class="d-flex justify-content-between mb-1"><span>{{ _('Daily Reporting') }} (10%)</span><span id="drScoreDisplay">{{ evaluation.daily_report_score if evaluation else 0 }}</span></div>
+        <div class="d-flex justify-content-between"><span>{{ _('SOP Compliance') }} (5%)</span><span id="sopScoreDisplay">{{ evaluation.sop_compliance_score if evaluation else 0 }}</span></div>
+      </div>
+
+      <div class="mb-3 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;font-size:.75rem;">
+        <strong>{{ _('Rating Guide:') }}</strong><br>
+        95-100: {{ _('Excellent') }}<br>
+        85-94: {{ _('Very Good') }}<br>
+        75-84: {{ _('Good') }}<br>
+        60-74: {{ _('Need Improvement') }}<br>
+        &lt;60: {{ _('Unsatisfactory') }}
+      </div>
+
+      <input type="hidden" name="status" id="statusInput" value="{{ evaluation.status if evaluation else 'Draft' }}">
+      <input type="hidden" name="ticket_sales_score" id="tsScoreHidden" value="{{ evaluation.ticket_sales_score if evaluation else 0 }}">
+      <input type="hidden" name="booking_accuracy_score" id="baScoreHidden" value="{{ evaluation.booking_accuracy_score if evaluation else 0 }}">
+      <input type="hidden" name="customer_service_score" id="csScoreHidden" value="{{ evaluation.customer_service_score if evaluation else 0 }}">
+      <input type="hidden" name="attendance_score" id="attScoreHidden" value="{{ evaluation.attendance_score if evaluation else 0 }}">
+      <input type="hidden" name="daily_report_score" id="drScoreHidden" value="{{ evaluation.daily_report_score if evaluation else 0 }}">
+      <input type="hidden" name="sop_compliance_score" id="sopScoreHidden" value="{{ evaluation.sop_compliance_score if evaluation else 0 }}">
+
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('statusInput').value='Draft'">
+          <i class="fas fa-save me-2"></i> {{ _('Save Draft') }}
+        </button>
+        <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('statusInput').value='Submitted'">
+          <i class="fas fa-check-circle me-2"></i> {{ _('Submit Evaluation') }}
+        </button>
+        <a href="{{ url_for('kpi_evaluations') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calcKpi() {
+  var total = 0;
+
+  // Ticket Sales
+  var target = parseFloat(document.getElementById('tsTarget').value) || 0;
+  var actual = parseFloat(document.getElementById('tsActual').value) || 0;
+  var ach = target > 0 ? Math.min((actual / target) * 100, 100) : 0;
+  var tsScore = ach * 0.40;
+  document.getElementById('tsAchievement').value = ach.toFixed(2);
+  document.getElementById('tsScore').value = tsScore.toFixed(2);
+  document.getElementById('tsScoreDisplay').textContent = tsScore.toFixed(2);
+  document.getElementById('tsScoreHidden').value = tsScore.toFixed(2);
+  total += tsScore;
+
+  // Booking Accuracy
+  var baPct = parseFloat(document.getElementById('baPct').value) || 0;
+  var baScore = Math.min(baPct, 100) * 0.20;
+  document.getElementById('baScore').value = baScore.toFixed(2);
+  document.getElementById('baScoreDisplay').textContent = baScore.toFixed(2);
+  document.getElementById('baScoreHidden').value = baScore.toFixed(2);
+  total += baScore;
+
+  // Customer Service
+  var csSat = parseFloat(document.getElementById('csSat').value) || 0;
+  var csScore = Math.min(csSat, 100) * 0.15;
+  document.getElementById('csScore').value = csScore.toFixed(2);
+  document.getElementById('csScoreDisplay').textContent = csScore.toFixed(2);
+  document.getElementById('csScoreHidden').value = csScore.toFixed(2);
+  total += csScore;
+
+  // Attendance
+  var late = parseInt(document.getElementById('attLate').value) || 0;
+  var absent = parseInt(document.getElementById('attAbsent').value) || 0;
+  var attRaw = Math.max(100 - (late * 2 + absent * 5), 0);
+  var attScore = attRaw * 0.10;
+  document.getElementById('attScore').value = attScore.toFixed(2);
+  document.getElementById('attScoreDisplay').textContent = attScore.toFixed(2);
+  document.getElementById('attScoreHidden').value = attScore.toFixed(2);
+  total += attScore;
+
+  // Daily Reporting
+  var dr = parseFloat(document.getElementById('drScore').value) || 0;
+  var drScore = Math.min(dr, 100) * 0.10;
+  document.getElementById('drWeighted').value = drScore.toFixed(2);
+  document.getElementById('drScoreDisplay').textContent = drScore.toFixed(2);
+  document.getElementById('drScoreHidden').value = drScore.toFixed(2);
+  total += drScore;
+
+  // SOP Compliance
+  var sop = parseFloat(document.getElementById('sopPct').value) || 0;
+  var sopScore = Math.min(sop, 100) * 0.05;
+  document.getElementById('sopScore').value = sopScore.toFixed(2);
+  document.getElementById('sopScoreDisplay').textContent = sopScore.toFixed(2);
+  document.getElementById('sopScoreHidden').value = sopScore.toFixed(2);
+  total += sopScore;
+
+  // Total
+  total = Math.round(total * 100) / 100;
+  document.getElementById('totalScoreDisplay').textContent = total.toFixed(2);
+
+  // Rating
+  var rating = '';
+  if (total >= 95) rating = 'Excellent';
+  else if (total >= 85) rating = 'Very Good';
+  else if (total >= 75) rating = 'Good';
+  else if (total >= 60) rating = 'Need Improvement';
+  else rating = 'Unsatisfactory';
+  document.getElementById('ratingDisplay').textContent = rating;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Vehicle Performance Analysis') }}{% endblock %}
+{% block page_title %}{{ _('Vehicle Performance Analysis') }}{% endblock %}
+
+{% block content %}
+<div id="vpApp">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1" style="font-size:1.6rem;color:var(--text-primary);">{{ _('Vehicle Performance Analysis') }}</h2>
+      <p class="mb-0" style="color:var(--text-secondary);font-size:.85rem;">
+        <i class="fas fa-bus me-1"></i> <span id="vpVehicleDisplay">{{ _('Select a vehicle') }}</span>
+        <span id="vpPeriodDisplay"></span>
+      </p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary" onclick="refreshVP()" title="{{ _('Refresh') }}" style="border-radius:10px;">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="dash-filter-panel mb-4">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <div class="filter-label">{{ _('Vehicle Number') }}</div>
+        <select class="form-select form-select-sm" id="vpVehicle" onchange="onVehicleChange()">
+          <option value="">{{ _('Select Vehicle') }}</option>
+          <option value="__all__">{{ _('Select All') }}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <div class="filter-label">{{ _('Period') }}</div>
+        <select class="form-select form-select-sm" id="vpRange" onchange="onRangeChange()">
+          <option value="today">{{ _('Today') }}</option>
+          <option value="yesterday">{{ _('Yesterday') }}</option>
+          <option value="week">{{ _('This Week') }}</option>
+          <option value="month" selected>{{ _('This Month') }}</option>
+          <option value="custom">{{ _('Custom Range') }}</option>
+        </select>
+      </div>
+      <div class="col-md-2" id="vpCustomRange" style="display:none;">
+        <div class="row g-1">
+          <div class="col-6">
+            <div class="filter-label">{{ _('From') }}</div>
+            <input type="date" class="form-control form-control-sm" id="vpStart">
+          </div>
+          <div class="col-6">
+            <div class="filter-label">{{ _('To') }}</div>
+            <input type="date" class="form-control form-control-sm" id="vpEnd">
+          </div>
+        </div>
+      </div>
+      <div class="col-md-1">
+        <div class="filter-label">&nbsp;</div>
+        <button class="btn btn-sm btn-primary w-100" onclick="refreshVP()" style="border-radius:10px;">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="vpSkeleton" style="display:none;">
+    <div class="row g-3 mb-4">
+      {% for i in range(8) %}
+      <div class="col-xl-3 col-md-4 col-sm-6">
+        <div class="kpi-card-v2" style="padding:20px;min-height:110px;">
+          <div class="skeleton-box" style="width:60%;height:14px;margin-bottom:10px;border-radius:4px;background:var(--card-border);"></div>
+          <div class="skeleton-box" style="width:40%;height:28px;border-radius:4px;background:var(--card-border);"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="vpContent" style="display:none;">
+    <div id="vpEmpty" style="display:none;">
+      <div class="text-center py-5">
+        <i class="fas fa-bus fa-3x text-muted mb-3"></i>
+        <h5>{{ _('No Data Available') }}</h5>
+        <p class="text-muted">{{ _('Select a vehicle and period to view analysis.') }}</p>
+      </div>
+    </div>
+
+    <div id="vpData">
+      <div class="row g-3 mb-4" id="vpSummaryCards"></div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="data-table">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+              <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);">
+                <i class="fas fa-tag me-2" style="color:#1d4ed8;"></i>{{ _('Vehicle Status Summary') }}
+              </h6>
+            </div>
+            <div class="p-3" id="vpStatusSummary"></div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="chart-card-v2">
+                <div class="chart-title"><i class="fas fa-clock" style="color:#0891b2;"></i> {{ _('LET Duration by Day') }}</div>
+                <div id="vpLetChart"></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="chart-card-v2">
+                <div class="chart-title"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> {{ _('Delay Minutes by Day') }}</div>
+                <div id="vpDelayChart"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-12">
+          <div class="chart-card-v2">
+            <div class="chart-title"><i class="fas fa-chart-line" style="color:#059669;"></i> {{ _('Trips per Day') }}</div>
+            <div id="vpTripsChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vpAllVehiclesSection" style="display:none;">
+        <div class="data-table mb-4">
+          <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color:var(--card-border);">
+            <h6 class="mb-0 fw-bold" style="font-size:.85rem;color:var(--text-primary);">
+              <i class="fas fa-list me-2" style="color:#1d4ed8;"></i>{{ _('Per-Vehicle Comparison') }}
+            </h6>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+              <thead>
+                <tr style="background:var(--card-border);color:var(--text-primary);">
+                  <th>{{ _('Vehicle') }}</th>
+                  <th class="text-center">{{ _('Trips') }}</th>
+                  <th class="text-center">{{ _('Total LET Duration Count') }}</th>
+                  <th class="text-center">{{ _('Avg LET (min)') }}</th>
+                  <th class="text-center">{{ _('Max LET (min)') }}</th>
+                  <th class="text-center">{{ _('Total Delay (min)') }}</th>
+                  <th class="text-center">{{ _('Delay Records') }}</th>
+                  <th class="text-center">{{ _('Avg Delay (min)') }}</th>
+                  <th class="text-center">{{ _('Passengers') }}</th>
+                </tr>
+              </thead>
+              <tbody id="vpVehicleComparisonBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .skeleton-box {
+    background: var(--card-border);
+    animation: shimmer 1.5s infinite;
+    background: linear-gradient(90deg, var(--card-border) 25%, var(--bg) 50%, var(--card-border) 75%);
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .chart-card-v2 {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+  }
+  .chart-title {
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+  .chart-title i {
+    margin-right: 6px;
+  }
+  .vp-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: .85rem;
+  }
+  .vp-stat-item:last-child {
+    border-bottom: none;
+  }
+  .vp-stat-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .vp-stat-value {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+  .vp-status-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let vpChartInstances = {};
+
+function vpDestroyChart(id) {
+  if (vpChartInstances[id]) {
+    vpChartInstances[id].destroy();
+    delete vpChartInstances[id];
+  }
+}
+
+function getVPFilters() {
+  const p = new URLSearchParams();
+  const v = document.getElementById('vpVehicle').value;
+  const r = document.getElementById('vpRange').value;
+  if (!v) return null;
+  p.set('vehicle', v);
+  p.set('range', r);
+  if (r === 'custom') {
+    p.set('start_date', document.getElementById('vpStart').value);
+    p.set('end_date', document.getElementById('vpEnd').value);
+  }
+  return p.toString();
+}
+
+function onVehicleChange() {
+  const v = document.getElementById('vpVehicle').value;
+  if (v === '__all__') {
+    document.getElementById('vpVehicleDisplay').textContent = '{{ _("All Vehicles") }}';
+  } else {
+    document.getElementById('vpVehicleDisplay').textContent = v || '{{ _("Select a vehicle") }}';
+  }
+  if (v) refreshVP();
+}
+
+function onRangeChange() {
+  const r = document.getElementById('vpRange').value;
+  document.getElementById('vpCustomRange').style.display = r === 'custom' ? '' : 'none';
+  const v = document.getElementById('vpVehicle').value;
+  if (v) refreshVP();
+}
+
+function renderVPVehicleComparison(data) {
+  const section = document.getElementById('vpAllVehiclesSection');
+  const tbody = document.getElementById('vpVehicleComparisonBody');
+  if (!data.is_all || !data.vehicles || !data.vehicles.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  let html = '';
+  data.vehicles.forEach(v => {
+    const s = v.summary;
+    html += '<tr>' +
+      '<td><strong>' + v.vehicle + '</strong></td>' +
+      '<td class="text-center">' + s.totalTrips + '</td>' +
+      '<td class="text-center">' + s.totalLETDurationCount + '</td>' +
+      '<td class="text-center">' + s.averageLET + '</td>' +
+      '<td class="text-center">' + s.maxLET + '</td>' +
+      '<td class="text-center">' + s.totalDelay + '</td>' +
+      '<td class="text-center">' + s.delayRecords + '</td>' +
+      '<td class="text-center">' + s.avgDelayPerTrip + '</td>' +
+      '<td class="text-center">' + s.totalPassengers + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+async function refreshVP() {
+  const params = getVPFilters();
+  if (!params) {
+    document.getElementById('vpSkeleton').style.display = 'none';
+    document.getElementById('vpContent').style.display = '';
+    document.getElementById('vpEmpty').style.display = '';
+    document.getElementById('vpData').style.display = 'none';
+    return;
+  }
+
+  const skel = document.getElementById('vpSkeleton');
+  const content = document.getElementById('vpContent');
+  const searchBtn = document.querySelector('#vpApp .btn-primary i');
+  skel.style.display = '';
+  content.style.display = 'none';
+  if (searchBtn) {
+    searchBtn.className = 'fas fa-spinner fa-spin';
+  }
+
+  try {
+    const resp = await fetch('/api/vehicle-performance/data?' + params);
+    if (!resp.ok) throw new Error('API error');
+    const data = await resp.json();
+
+    document.getElementById('vpPeriodDisplay').textContent = ' &middot; ' + data.period;
+
+    renderVPSummary(data);
+    renderVPStatusSummary(data);
+    renderVPCharts(data);
+    renderVPVehicleComparison(data);
+
+    skel.style.display = 'none';
+    content.style.display = '';
+    document.getElementById('vpEmpty').style.display = 'none';
+    document.getElementById('vpData').style.display = '';
+  } catch (e) {
+    skel.style.display = 'none';
+    content.style.display = '';
+    document.getElementById('vpEmpty').style.display = '';
+    document.getElementById('vpData').style.display = 'none';
+    console.error('VP load error:', e);
+  } finally {
+    if (searchBtn) {
+      searchBtn.className = 'fas fa-search';
+    }
+  }
+}
+
+function renderVPSummary(data) {
+  const s = data.summary;
+  const cards = [
+    { icon: 'fa-route', color: '#1d4ed8', bg: '#dbeafe', label: '{{ _("Total Trips") }}', value: s.totalTrips },
+    { icon: 'fa-clock', color: '#0891b2', bg: '#cffafe', label: '{{ _("Total LET Duration Count") }}', value: s.totalLETDurationCount + ' {{ _("Times") }}' },
+    { icon: 'fa-hourglass-half', color: '#0e7490', bg: '#e0f2fe', label: '{{ _("Average LET") }}', value: s.averageLET + ' {{ _("min") }}' },
+    { icon: 'fa-arrow-up', color: '#0369a1', bg: '#e0f2fe', label: '{{ _("Max LET") }}', value: s.maxLET + ' {{ _("min") }}' },
+    { icon: 'fa-exclamation-triangle', color: '#dc2626', bg: '#fee2e2', label: '{{ _("Total Delay") }}', value: s.totalDelay + ' {{ _("min") }}' },
+    { icon: 'fa-list', color: '#ea580c', bg: '#ffedd5', label: '{{ _("Delay Records") }}', value: s.delayRecords + ' {{ _("trips") }}' },
+    { icon: 'fa-chart-simple', color: '#d97706', bg: '#fef3c7', label: '{{ _("Avg Delay/Trip") }}', value: s.avgDelayPerTrip + ' {{ _("min") }}' },
+    { icon: 'fa-users', color: '#7c3aed', bg: '#ede9fe', label: '{{ _("Total Passengers") }}', value: s.totalPassengers },
+  ];
+
+  let html = '';
+  cards.forEach(c => {
+    html += '<div class="col-xl-3 col-md-4 col-sm-6">' +
+      '<div class="kpi-card-v2">' +
+        '<div class="kpi-v2-glow" style="background:' + c.color + ';"></div>' +
+        '<div class="kpi-v2-header">' +
+          '<div class="kpi-v2-icon" style="background:' + c.bg + ';color:' + c.color + ';"><i class="fas ' + c.icon + '"></i></div>' +
+        '</div>' +
+        '<div class="kpi-v2-value">' + c.value + '</div>' +
+        '<div class="kpi-v2-label">' + c.label + '</div>' +
+      '</div></div>';
+  });
+
+  document.getElementById('vpSummaryCards').innerHTML = html;
+}
+
+function renderVPStatusSummary(data) {
+  const statusArr = data.charts.status || [];
+  if (!statusArr.length) {
+    document.getElementById('vpStatusSummary').innerHTML = '<p class="text-muted mb-0" style="font-size:.85rem;">{{ _("No status data") }}</p>';
+    return;
+  }
+
+  const colors = {
+    'Departed': '#059669',
+    'Not Departed': '#dc2626',
+    'Normal': '#059669',
+    'Late': '#d97706',
+    'Breakdown': '#dc2626',
+    'Delayed': '#d97706',
+    'Cancelled': '#6b7280',
+  };
+
+  const total = statusArr.reduce((a, item) => a + item.value, 0);
+  let html = '';
+  statusArr.forEach(item => {
+    const c = colors[item.name] || '#6b7280';
+    const pct = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+    html += '<div class="vp-stat-item">' +
+      '<span class="vp-stat-label"><span class="vp-status-badge" style="background:' + c + '20;color:' + c + ';">' + item.name + '</span></span>' +
+      '<div><span class="vp-stat-value">' + item.value + '</span>' +
+      ' <small class="text-muted">(' + pct + '%)</small></div>' +
+      '</div>';
+  });
+  html += '<div class="vp-stat-item" style="border-top:2px solid var(--card-border);margin-top:4px;padding-top:12px;">' +
+    '<span class="vp-stat-label fw-bold">{{ _("Total") }}</span>' +
+    '<span class="vp-stat-value">' + total + '</span></div>';
+
+  document.getElementById('vpStatusSummary').innerHTML = html;
+}
+
+function renderVPNoDataChart(containerId) {
+  vpDestroyChart(containerId);
+  const el = document.getElementById(containerId);
+  el.innerHTML = '<div class="text-center py-5"><i class="fas fa-chart-bar fa-2x text-muted mb-2"></i><p class="text-muted mb-0" style="font-size:.85rem;">{{ _("No data available") }}</p></div>';
+}
+
+function renderVPCharts(data) {
+  const charts = data.charts;
+  if (!charts.labels || !charts.labels.length) {
+    renderVPNoDataChart('vpLetChart');
+    renderVPNoDataChart('vpDelayChart');
+    renderVPNoDataChart('vpTripsChart');
+    return;
+  }
+
+  vpDestroyChart('vpLetChart');
+  vpDestroyChart('vpDelayChart');
+  vpDestroyChart('vpTripsChart');
+
+  const chartBase = {
+    chart: { toolbar: { show: false }, zoom: { enabled: false } },
+    xaxis: { categories: charts.labels, labels: { style: { fontSize: '10px' }, rotate: -45 } },
+    yaxis: { labels: { style: { fontSize: '10px' } }, min: 0 },
+    grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+    tooltip: { enabled: true, theme: 'light' },
+    dataLabels: { enabled: false },
+  };
+
+  vpChartInstances['vpLetChart'] = new ApexCharts(document.getElementById('vpLetChart'), {
+    ...chartBase,
+    chart: { ...chartBase.chart, type: 'bar', height: 280 },
+    series: [{ name: '{{ _("LET Minutes") }}', data: charts.letByDay, color: '#0891b2' }],
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '65%' } },
+  });
+  vpChartInstances['vpLetChart'].render();
+
+  vpChartInstances['vpDelayChart'] = new ApexCharts(document.getElementById('vpDelayChart'), {
+    ...chartBase,
+    chart: { ...chartBase.chart, type: 'bar', height: 280 },
+    series: [{ name: '{{ _("Delay Minutes") }}', data: charts.delayByDay, color: '#dc2626' }],
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '65%' } },
+  });
+  vpChartInstances['vpDelayChart'].render();
+
+  vpChartInstances['vpTripsChart'] = new ApexCharts(document.getElementById('vpTripsChart'), {
+    ...chartBase,
+    chart: { ...chartBase.chart, type: 'line', height: 300 },
+    series: [{ name: '{{ _("Trips") }}', data: charts.tripsByDay, color: '#059669' }],
+    stroke: { curve: 'smooth', width: 3 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0 } },
+    markers: { size: 5, hover: { size: 7 } },
+  });
+  vpChartInstances['vpTripsChart'].render();
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const resp = await fetch('/api/vehicle-performance/vehicles');
+    const vehicles = await resp.json();
+    const sel = document.getElementById('vpVehicle');
+    vehicles.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+    sel.value = '__all__';
+    document.getElementById('vpVehicleDisplay').textContent = '{{ _("All Vehicles") }}';
+    refreshVP();
+  } catch (e) {
+    console.error('Failed to load vehicles:', e);
+  }
+});
+</script>
+{% endblock %}

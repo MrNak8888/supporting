@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Transport Requests') }}{% endblock %}
+{% block page_title %}{{ _('Transportation Route Request Management') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage and track all transportation route requests') }}</p>
+  </div>
+  {% if has_permission('transport_request_create') %}
+  <a href="{{ url_for('new_transport_request') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> {{ _('+ New Request') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div>
+          <div class="kpi-value">{{ total_count }}</div>
+          <div class="kpi-label">{{ _('Total Requests') }}</div>
+        </div>
+        <div class="kpi-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-route"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div>
+          <div class="kpi-value">{{ pending_count }}</div>
+          <div class="kpi-label">{{ _('Pending') }}</div>
+        </div>
+        <div class="kpi-icon" style="background:#fef3c7;color:#f59e0b;"><i class="fas fa-clock"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div>
+          <div class="kpi-value">{{ approved_count }}</div>
+          <div class="kpi-label">{{ _('Approved') }}</div>
+        </div>
+        <div class="kpi-icon" style="background:#d1fae5;color:#10b981;"><i class="fas fa-check-circle"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div>
+          <div class="kpi-value">{{ rejected_count }}</div>
+          <div class="kpi-label">{{ _('Rejected') }}</div>
+        </div>
+        <div class="kpi-icon" style="background:#fee2e2;color:#ef4444;"><i class="fas fa-times-circle"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by ID, name, route, company...') }}" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Status') }}</label>
+      <select name="status" class="form-select">
+        <option value="">{{ _('All Status') }}</option>
+        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>{{ _('Approved') }}</option>
+        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Request Type') }}</label>
+      <select name="request_type" class="form-select">
+        <option value="">{{ _('All Types') }}</option>
+        <option value="create_journey" {% if type_filter=='create_journey' %}selected{% endif %}>{{ _('Create Journey') }}</option>
+        <option value="open_route" {% if type_filter=='open_route' %}selected{% endif %}>{{ _('Open Route') }}</option>
+        <option value="change_route" {% if type_filter=='change_route' %}selected{% endif %}>{{ _('Change Route') }}</option>
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+    </div>
+    <div class="col-md-1">
+      <a href="{{ url_for('transport_requests') }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:var(--text-secondary);">{{ _('Showing %(count)d record(s)', count=requests|length) }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ _('Request ID') }}</th>
+          <th>{{ _('Date') }}</th>
+          <th>{{ _('Type') }}</th>
+          <th>{{ _('Requester') }}</th>
+          <th>{{ _('Route') }}</th>
+          <th>{{ _('Transportation Type') }}</th>
+          <th>{{ _('Route Code') }}</th>
+          <th>{{ _('Company') }}</th>
+          <th>{{ _('Price') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Approved By') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in requests %}
+        <tr>
+          <td><a href="{{ url_for('view_transport_request', id=tr.id) }}" style="color:#1d4ed8;font-weight:600;text-decoration:none;">{{ tr.request_id }}</a></td>
+          <td style="color:var(--text-secondary);">{{ tr.request_date }}</td>
+          <td>
+            {% if tr.request_type == 'create_journey' %}
+            <span class="status-badge" style="background:#dbeafe;color:#1d4ed8;">{{ _('Create Journey') }}</span>
+            {% elif tr.request_type == 'open_route' %}
+            <span class="status-badge" style="background:#ede9fe;color:#7c3aed;">{{ _('Open Route') }}</span>
+            {% elif tr.request_type == 'change_route' %}
+            <span class="status-badge" style="background:#fce7f3;color:#db2777;">{{ _('Change Route') }}</span>
+            {% endif %}
+          </td>
+          <td>{{ tr.requester_name }}</td>
+          <td>
+            <span style="font-size:.8rem;">
+              <i class="fas fa-map-marker-alt text-danger me-1"></i>{{ tr.destination_from }}<br>
+              <i class="fas fa-flag-checkered text-success me-1"></i>{{ tr.destination_to }}
+            </span>
+          </td>
+          <td>{{ tr.transportation_type or '—' }}</td>
+          <td>{{ tr.route_code or '—' }}</td>
+          <td>{{ tr.company or '—' }}</td>
+          <td>${{ "%.2f"|format(tr.price or 0) }}</td>
+          <td><span class="status-badge badge-{{ tr.status.lower() }}">{{ tr.status }}</span></td>
+          <td>{% if tr.reviewer %}{{ tr.reviewer.full_name }}{% else %}—{% endif %}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('view_transport_request', id=tr.id) }}" class="btn btn-sm btn-outline-primary" title="{{ _('View') }}">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if tr.status == 'Pending' and has_permission('transport_request_edit') %}
+              <a href="{{ url_for('edit_transport_request', id=tr.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+              {% if has_permission('transport_request_delete') %}
+              <form method="POST" action="{{ url_for('delete_transport_request', id=tr.id) }}" onsubmit="return confirm('{{ _('Delete this request?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="12" class="text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No requests found') }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

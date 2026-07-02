@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% set back_fallback = url_for('departments') %}
 {% block title %}{% if dept %}{{ _('Edit Department') }}{% else %}{{ _('New Department') }}{% endif %}{% endblock %}
 {% block page_title %}{% if dept %}{{ _('Edit Department') }} — {{ dept.name }}{% else %}{{ _('New Department') }}{% endif %}{% endblock %}
 
@@ -25,8 +26,9 @@
         <div class="col-md-6">
           <label class="form-label">{{ _('Status') }}</label>
           <select name="status" class="form-select">
-            <option value="Active" {% if dept and dept.status == 'Active' %}selected{% endif %}>{{ _('Active') }}</option>
-            <option value="Inactive" {% if dept and dept.status == 'Inactive' %}selected{% endif %}>{{ _('Inactive') }}</option>
+            {% for s in entity_statuses %}
+            <option value="{{ s.data.name }}" {% if dept and dept.status == s.data.name %}selected{% endif %}>{{ _(s.data.name) }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-12">

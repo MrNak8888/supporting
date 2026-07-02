@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('KPI Dashboard') }}{% endblock %}
+{% block page_title %}{{ _('Monthly KPI Dashboard') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('View monthly KPI scores and rankings for ticket officers') }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('kpi_history') }}" class="btn btn-outline-primary">
+      <i class="fas fa-history me-1"></i> {{ _('KPI History') }}
+    </a>
+    <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-file-alt me-1"></i> {{ _('Daily Reports') }}
+    </a>
+  </div>
+</div>
+
+<!-- Period Filter -->
+<div class="form-card mb-4">
+  <form method="GET" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Year') }}</label>
+      <select name="year" class="form-select" onchange="this.form.submit()">
+        {% for y in range(2020, 2031) %}
+        <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Month') }}</label>
+      <select name="month" class="form-select" onchange="this.form.submit()">
+        {% for m in range(1, 13) %}
+        <option value="{{ m }}" {% if month == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{{ _('Branch') }}</label>
+      <select name="branch" class="form-select" onchange="this.form.submit()">
+        <option value="">{{ _('All Branches') }}</option>
+        {% for b in branch_list %}
+        <option value="{{ b }}" {% if branch_filter == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+{% set ns = namespace(total_tickets=0, total_sales=0, total_bookings=0, total_errors=0) %}
+{% for kr in kpi_results %}
+{% set ns.total_tickets = ns.total_tickets + kr.tickets %}
+{% set ns.total_sales = ns.total_sales + kr.sales %}
+{% set ns.total_bookings = ns.total_bookings + kr.bookings %}
+{% set ns.total_errors = ns.total_errors + kr.errors %}
+{% endfor %}
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-4">
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#0891b2;">{{ ns.total_tickets }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Total Tickets Sold') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#059669;">${{ "%.0f"|format(ns.total_sales) }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Total Sales') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#6366f1;">{{ ns.total_bookings }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Total Bookings') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#f59e0b;">{{ ns.total_errors }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Total Errors') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#8b5cf6;">{{ kpi_results|length }}</div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Staff Evaluated') }}</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card p-3 text-center">
+      <div style="font-size:1.5rem;font-weight:800;color:#ef4444;">
+        {% set top_count = kpi_results|selectattr('rating', 'equalto', 'Excellent')|list|length %}
+        {{ top_count }}
+      </div>
+      <div style="font-size:.7rem;color:var(--text-secondary);">{{ _('Top Performers') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Performers Spotlight -->
+{% if kpi_results and kpi_results[0].rating == 'Excellent' %}
+<div class="alert alert-success d-flex align-items-center gap-3 mb-4" role="alert" style="border-left:4px solid #059669;">
+  <i class="fas fa-trophy" style="font-size:1.5rem;color:#059669;"></i>
+  <div>
+    <strong>{{ _('Top Performer:') }}</strong> {{ kpi_results[0].staff_name }}
+    ({{ _('Score:') }} {{ kpi_results[0].total }}) —
+    <strong>{{ _('Rating:') }} {{ kpi_results[0].rating }}</strong>
+  </div>
+</div>
+{% endif %}
+
+{% if kpi_results %}
+<!-- KPI Ranking Table -->
+<div class="data-table">
+  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+    <span style="font-size:.875rem;color:var(--text-secondary);">{{ _('KPI Ranking — %(month)s/%(year)s', month=month, year=year) }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{{ _('Staff Name') }}</th>
+          <th>{{ _('Branch') }}</th>
+          <th>{{ _('Tickets') }}</th>
+          <th>{{ _('Sales') }}</th>
+          <th>{{ _('TS') }} (40%)</th>
+          <th>{{ _('BA') }} (20%)</th>
+          <th>{{ _('CS') }} (15%)</th>
+          <th>{{ _('AT') }} (10%)</th>
+          <th>{{ _('DR') }} (10%)</th>
+          <th>{{ _('SOP') }} (5%)</th>
+          <th>{{ _('Total') }}</th>
+          <th>{{ _('Rating') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for kr in kpi_results %}
+        {% if not branch_filter or kr.branch == branch_filter %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td style="font-weight:600;">{{ kr.staff_name }}</td>
+          <td style="color:var(--text-secondary);">{{ kr.branch or '—' }}</td>
+          <td>{{ kr.tickets }}</td>
+          <td>${{ "%.0f"|format(kr.sales) }}</td>
+          <td>{{ kr.ts_score }}</td>
+          <td>{{ kr.ba_score }}</td>
+          <td>{{ kr.cs_score }}</td>
+          <td>{{ kr.att_score }}</td>
+          <td>{{ kr.dr_score }}</td>
+          <td>{{ kr.sop_score }}</td>
+          <td style="font-weight:700;">{{ kr.total }}</td>
+          <td>
+            <span class="status-badge" style="
+              {% if kr.rating == 'Excellent' %}background:#d1fae5;color:#065f46;
+              {% elif kr.rating == 'Very Good' %}background:#dbeafe;color:#1d4ed8;
+              {% elif kr.rating == 'Good' %}background:#fef3c7;color:#92400e;
+              {% elif kr.rating == 'Need Improvement' %}background:#fce7f3;color:#db2777;
+              {% else %}background:#fee2e2;color:#991b1b;
+              {% endif %}">
+              {{ kr.rating }}
+            </span>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="fas fa-chart-line fa-3x mb-3 d-block"></i>
+  <p>{{ _('No submitted reports found for this period.') }}</p>
+  <a href="{{ url_for('daily_reports') }}" class="btn btn-primary">{{ _('Go to Daily Reports') }}</a>
+</div>
+{% endif %}
+{% endblock %}

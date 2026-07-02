@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('transport_requests') %}
+{% block title %}{% if request_obj %}{{ _('Edit') }}{% else %}{{ _('New') }}{% endif %} {{ _('Transport Request') }}{% endblock %}
+{% block page_title %}{% if request_obj %}{{ _('Edit Request') }} — {{ request_obj.request_id }}{% else %}{{ _('New Transport Request') }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{{ url_for('transport_requests') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Requests') }}
+  </a>
+</div>
+
+{% if not request_obj %}
+<!-- Request Type Selector -->
+<div class="form-card mb-4" id="typeSelector">
+  <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+    <i class="fas fa-tag me-2"></i>{{ _('Select Request Type') }}
+  </h6>
+  <div class="row g-3">
+    {% for rt in request_types %}
+    <div class="col-md-4">
+      <div class="type-option" data-type="{{ rt.data.code }}" onclick="selectType('{{ rt.data.code }}')" style="cursor:pointer;border:2px solid #e2e8f0;border-radius:16px;padding:24px;text-align:center;transition:.2s;background:var(--card-bg);">
+        <div style="font-size:2rem;color:#1d4ed8;margin-bottom:8px;"><i class="fas {{ rt.data.icon }}"></i></div>
+        <div style="font-weight:700;color:var(--text-primary);">{{ _(rt.data.name) }}</div>
+        <div style="font-size:.78rem;color:var(--text-secondary);margin-top:4px;">{{ _(rt.data.description) }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<form method="POST" enctype="multipart/form-data" id="transportForm" style="{% if not request_obj %}display:none;{% endif %}">
+  <input type="hidden" name="request_type" id="requestTypeInput" value="{{ request_obj.request_type if request_obj else '' }}">
+  <input type="hidden" name="attachments" id="attachmentsInput" value="{{ request_obj.attachments|tojson|safe if request_obj and request_obj.attachments else '[]' }}">
+
+<div class="row g-4">
+  <!-- Left Column -->
+  <div class="col-lg-8">
+
+    <!-- Route Information -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-route me-2"></i>{{ _('Route Information') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ _('From (Origin)') }} <span class="text-danger">*</span></label>
+          <select name="destination_from" class="form-select" required>
+            <option value="">— {{ _('Select Origin') }} —</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if request_obj and request_obj.destination_from == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('To (Destination)') }} <span class="text-danger">*</span></label>
+          <select name="destination_to" class="form-select" required>
+            <option value="">— {{ _('Select Destination') }} —</option>
+            {% for d in destinations %}
+            <option value="{{ d.data.name }}" {% if request_obj and request_obj.destination_to == d.data.name %}selected{% endif %}>{{ d.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Transportation Type') }}</label>
+          <select name="transportation_type" class="form-select">
+            <option value="">— {{ _('Select Type') }} —</option>
+            {% for t in transport_types %}
+            <option value="{{ t.data.name }}" {% if request_obj and request_obj.transportation_type == t.data.name %}selected{% endif %}>{{ t.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 field-change-route" style="display:none;">
+          <label class="form-label">{{ _('Change Transportation Type To') }}</label>
+          <select name="change_transportation_type_to" class="form-select">
+            <option value="">— {{ _('Select Type') }} —</option>
+            {% for t in transport_types %}
+            <option value="{{ t.data.name }}" {% if request_obj and request_obj.change_transportation_type_to == t.data.name %}selected{% endif %}>{{ t.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Company') }}</label>
+          <select name="company" class="form-select">
+            <option value="">— {{ _('Select Company') }} —</option>
+            {% for c in companies %}
+            <option value="{{ c.data.name }}" {% if request_obj and request_obj.company == c.data.name %}selected{% endif %}>{{ c.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 field-change-route" style="display:none;">
+          <label class="form-label">{{ _('Change Company To') }}</label>
+          <select name="change_company_to" class="form-select">
+            <option value="">— {{ _('Select Company') }} —</option>
+            {% for c in companies %}
+            <option value="{{ c.data.name }}" {% if request_obj and request_obj.change_company_to == c.data.name %}selected{% endif %}>{{ c.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Branch Location') }}</label>
+          <select name="branch_location" class="form-select">
+            <option value="">— {{ _('Select Branch') }} —</option>
+            {% for b in branches %}
+            <option value="{{ b.data.name }}" {% if request_obj and request_obj.branch_location == b.data.name %}selected{% elif not request_obj and current_user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('National Road') }}</label>
+          <input type="text" name="national_road" class="form-control" placeholder="{{ _('e.g., NR6') }}" value="{{ request_obj.national_road if request_obj else '' }}">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Price ($)') }}</label>
+          <input type="number" name="price" class="form-control" step="0.01" min="0" value="{{ request_obj.price if request_obj else 0 }}">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Vehicle No') }}</label>
+          <input type="text" name="vehicle_no" class="form-control" placeholder="{{ _('e.g., BUS-001') }}" value="{{ request_obj.vehicle_no if request_obj else '' }}">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Route Code') }}</label>
+          <input type="text" name="route_code" class="form-control" placeholder="{{ _('e.g., RC-001') }}" value="{{ request_obj.route_code if request_obj else '' }}">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Gender Required') }}</label>
+          <select name="gender_required" class="form-select">
+            <option value="">{{ _('Select') }}</option>
+            <option value="Yes" {% if request_obj and request_obj.gender_required == 'Yes' %}selected{% endif %}>{{ _('Yes') }}</option>
+            <option value="No" {% if request_obj and request_obj.gender_required == 'No' %}selected{% endif %}>{{ _('No') }}</option>
+          </select>
+        </div>
+        <!-- Change Route specific fields -->
+        <div class="col-md-6 field-change-route" style="display:none;">
+          <label class="form-label">{{ _('Old Route Code') }}</label>
+          <input type="text" name="old_route_code" class="form-control" placeholder="{{ _('e.g., RC-001') }}" value="{{ request_obj.old_route_code if request_obj else '' }}">
+        </div>
+        <div class="col-md-3 field-change-route" style="display:none;">
+          <label class="form-label">{{ _('Old Price ($)') }}</label>
+          <input type="number" name="old_price" class="form-control" step="0.01" min="0" value="{{ request_obj.old_price if request_obj else 0 }}">
+        </div>
+        <div class="col-md-3 field-change-route" style="display:none;">
+          <label class="form-label">{{ _('New Price ($)') }}</label>
+          <input type="number" name="new_price" class="form-control" step="0.01" min="0" value="{{ request_obj.new_price if request_obj else 0 }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule -->
+    <div class="form-card mb-4">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-calendar-alt me-2"></i>{{ _('Schedule') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Departure Time') }}</label>
+          <input type="time" name="departure_time" id="departureTime" class="form-control" value="{{ request_obj.departure_time if request_obj else '' }}" onchange="calcDuration()">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Arrival Time') }}</label>
+          <input type="time" name="arrival_time" id="arrivalTime" class="form-control" value="{{ request_obj.arrival_time if request_obj else '' }}" onchange="calcDuration()">
+        </div>
+        <div class="col-md-4 field-create-journey field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Duration') }}</label>
+          <input type="text" name="duration" id="durationField" class="form-control" value="{{ request_obj.duration if request_obj else '' }}" readonly style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Active Start Date') }}</label>
+          <input type="date" name="active_start_date" class="form-control" value="{{ request_obj.active_start_date if request_obj else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ _('Active End Date') }}</label>
+          <input type="date" name="active_end_date" class="form-control" value="{{ request_obj.active_end_date if request_obj else '' }}">
+        </div>
+        <div class="col-md-4 field-open-route" style="display:none;">
+          <label class="form-label">{{ _('Number of Days') }}</label>
+          <input type="number" name="number_of_days" class="form-control" min="1" placeholder="{{ _('e.g., 30') }}" value="{{ request_obj.number_of_days if request_obj else '' }}">
+        </div>
+        <div class="col-md-4" id="promotionPriceField">
+          <label class="form-label">{{ _('Promotion Price') }}</label>
+          <input type="number" name="promotion_price" class="form-control" step="0.01" min="0" value="{{ request_obj.promotion_price if request_obj else 0 }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Attachments & Notes -->
+    <div class="form-card">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-paperclip me-2"></i>{{ _('Attachments & Notes') }}
+      </h6>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ _('Documents & Files Upload') }}</label>
+          <div class="file-upload-wrapper">
+            <div class="drop-zone" id="dropZone" style="border:2px dashed var(--input-border);border-radius:12px;padding:32px;text-align:center;background:var(--bg);cursor:pointer;transition:.2s;">
+              <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--text-muted);"></i>
+              <div style="margin-top:8px;color:var(--text-secondary);font-weight:500;">{{ _('Drop files here or click to browse') }}</div>
+              <div style="font-size:.75rem;color:var(--text-muted);margin-top:4px;">{{ _('All file types supported. No size limit.') }}</div>
+              <input type="file" id="fileInput" multiple style="display:none;" accept="*/*">
+            </div>
+            <div id="fileList" class="mt-3">
+              {% if request_obj and request_obj.attachments %}
+              {% for att in request_obj.attachments %}
+              <div class="file-item d-flex align-items-center justify-content-between p-2 mb-2 rounded" style="background:var(--badge-bg);border:1px solid var(--input-border);" data-filename="{{ att }}">
+                <div>
+                  <i class="fas fa-file me-2" style="color:var(--text-muted);"></i>
+                  <span style="font-size:.85rem;color:var(--text-primary);">{{ att }}</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <a href="{{ url_for('transport_download_file', filename=att) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-download"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUploadedFile('{{ att }}', this)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Requester Name') }}</label>
+          <input type="text" class="form-control" readonly
+            value="{{ request_obj.requester_name if request_obj else current_user.full_name }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ _('Remarks') }}</label>
+          <textarea name="remarks" class="form-control" rows="3" placeholder="{{ _('Additional notes...') }}">{{ request_obj.remarks if request_obj else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <div class="form-card" style="position:sticky;top:80px;">
+      <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+        <i class="fas fa-info-circle me-2"></i>{{ _('Summary') }}
+      </h6>
+      {% if request_obj %}
+      <div class="mb-3 p-3 rounded" style="background:var(--badge-bg);border:1px solid var(--input-border);">
+        <div class="mb-2"><strong>{{ _('ID:') }}</strong> {{ request_obj.request_id }}</div>
+        <div class="mb-2"><strong>{{ _('Submitted:') }}</strong> {{ request_obj.request_date }}</div>
+        <div class="mb-2"><strong>{{ _('Type:') }}</strong>
+          {% if request_obj.request_type == 'create_journey' %}{{ _('Create Journey') }}
+          {% elif request_obj.request_type == 'open_route' %}{{ _('Open Route') }}
+          {% elif request_obj.request_type == 'change_route' %}{{ _('Change Route') }}
+          {% endif %}
+        </div>
+        <div><strong>{{ _('Status:') }}</strong> <span class="status-badge badge-{{ request_obj.status.lower() }} ms-1">{{ request_obj.status }}</span></div>
+      </div>
+      {% else %}
+      <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <i class="fas fa-info-circle text-success me-1"></i>
+        <small class="text-success">{{ _('A unique Request ID will be auto-generated upon submission.') }}</small>
+      </div>
+      {% endif %}
+
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-{{ 'save' if request_obj else 'paper-plane' }} me-2"></i>
+          {{ _('Save Changes') if request_obj else _('Submit Request') }}
+        </button>
+        <a href="{{ url_for('transport_requests') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Type Selection ──
+{% if not request_obj %}
+function selectType(type) {
+  document.querySelectorAll('.type-option').forEach(el => {
+    el.style.borderColor = '#e2e8f0';
+    el.style.transform = 'none';
+    el.style.boxShadow = 'none';
+  });
+  const selected = document.querySelector(`.type-option[data-type="${type}"]`);
+  if (selected) {
+    selected.style.borderColor = '#1a3c5e';
+    selected.style.transform = 'translateY(-2px)';
+    selected.style.boxShadow = '0 6px 20px rgba(0,0,0,.1)';
+  }
+  document.getElementById('requestTypeInput').value = type;
+  document.getElementById('typeSelector').style.display = 'none';
+  document.getElementById('transportForm').style.display = 'block';
+  updateFields(type);
+}
+{% endif %}
+
+function updateFields(type) {
+  // Map type to CSS class name (replace _ with -)
+  var typeClass = 'field-' + type.replace(/_/g, '-');
+  document.querySelectorAll('[class*="field-"]').forEach(function(el) {
+    if (el.classList.contains(typeClass)) {
+      el.style.display = 'block';
+    } else if (el.classList.contains('field-create-journey') || el.classList.contains('field-open-route') || el.classList.contains('field-change-route')) {
+      el.style.display = 'none';
+    }
+  });
+}
+
+{% if request_obj %}
+document.addEventListener('DOMContentLoaded', function() {
+  updateFields('{{ request_obj.request_type }}');
+});
+{% endif %}
+
+// ── File Upload ──
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const attachmentsInput = document.getElementById('attachmentsInput');
+
+if (dropZone) {
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#1a3c5e';
+    dropZone.style.background = 'var(--table-hover)';
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = 'var(--input-border)';
+    dropZone.style.background = 'var(--bg)';
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--input-border)';
+    dropZone.style.background = 'var(--bg)';
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+}
+
+function handleFiles(files) {
+  for (let file of files) {
+    uploadFile(file);
+  }
+}
+
+function uploadFile(file) {
+  let formData = new FormData();
+  formData.append('file', file);
+  fetch('{{ url_for("transport_upload_file") }}', {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.filename) {
+      addFileToList(data.filename, file.name);
+    } else {
+      alert('{{ _("Failed to upload file") }}: ' + (data.error || ''));
+    }
+  })
+  .catch(() => alert('{{ _("Upload failed") }}'));
+}
+
+function addFileToList(filename, originalName) {
+  let attachments = JSON.parse(attachmentsInput.value || '[]');
+  attachments.push(filename);
+  attachmentsInput.value = JSON.stringify(attachments);
+
+  let div = document.createElement('div');
+  div.className = 'file-item d-flex align-items-center justify-content-between p-2 mb-2 rounded';
+  div.style.cssText = 'background:var(--badge-bg);border:1px solid var(--input-border);';
+  div.dataset.filename = filename;
+  div.innerHTML = `
+    <div>
+      <i class="fas fa-file me-2" style="color:var(--text-muted);"></i>
+      <span style="font-size:.85rem;color:var(--text-primary);">${originalName}</span>
+    </div>
+    <div>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUploadedFile('${filename}', this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  fileList.appendChild(div);
+}
+
+function deleteUploadedFile(filename, btn) {
+  if (!confirm('{{ _("Delete this file?") }}')) return;
+  let formData = new FormData();
+  formData.append('filename', filename);
+  fetch('{{ url_for("transport_delete_file") }}', {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      let item = btn.closest('.file-item');
+      if (item) item.remove();
+      let attachments = JSON.parse(attachmentsInput.value || '[]');
+      attachments = attachments.filter(f => f !== filename);
+      attachmentsInput.value = JSON.stringify(attachments);
+    }
+  });
+}
+
+// ── Duration Auto-Calculate ──
+function calcDuration() {
+  var dep = document.getElementById('departureTime');
+  var arr = document.getElementById('arrivalTime');
+  var dur = document.getElementById('durationField');
+  if (!dep || !arr || !dur) return;
+  if (!dep.value || !arr.value) {
+    dur.value = '';
+    return;
+  }
+  var depParts = dep.value.split(':');
+  var arrParts = arr.value.split(':');
+  var depMin = parseInt(depParts[0]) * 60 + parseInt(depParts[1]);
+  var arrMin = parseInt(arrParts[0]) * 60 + parseInt(arrParts[1]);
+  if (arrMin <= depMin) {
+    arrMin += 1440;
+  }
+  var diff = arrMin - depMin;
+  if (diff > 1440) {
+    dur.value = '';
+    return;
+  }
+  var hours = Math.floor(diff / 60);
+  var mins = diff % 60;
+  if (hours > 0 && mins > 0) {
+    dur.value = hours + 'h ' + mins + 'm';
+  } else if (hours > 0) {
+    dur.value = hours + 'h';
+  } else {
+    dur.value = mins + 'm';
+  }
+}
+
+// Form validation – ensure duration is valid before submit
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.getElementById('transportForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      var dur = document.getElementById('durationField');
+      var dep = document.getElementById('departureTime');
+      var arr = document.getElementById('arrivalTime');
+      if (dep && arr && dep.value && arr.value) {
+        calcDuration();
+        if (dur && !dur.value) {
+          e.preventDefault();
+          alert('{{ _("Duration cannot exceed 24 hours. Please check departure and arrival times.") }}');
+          return false;
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

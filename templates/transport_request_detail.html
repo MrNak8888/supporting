@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% set back_fallback = url_for('transport_requests') %}
+{% block title %}{{ tr.request_id }}{% endblock %}
+{% block page_title %}{{ _('Transport Request Detail') }} — {{ tr.request_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('transport_requests') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
+  </a>
+  {% if tr.status == 'Pending' and has_permission('transport_request_edit') %}
+  <a href="{{ url_for('edit_transport_request', id=tr.id) }}" class="btn btn-outline-warning btn-sm">
+    <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
+  </a>
+  {% endif %}
+  {% if has_permission('transport_request_delete') %}
+  <form method="POST" action="{{ url_for('delete_transport_request', id=tr.id) }}" onsubmit="return confirm('{{ _('Delete this request?') }}');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="form-card mb-4">
+      <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <h5 class="fw-bold mb-1" style="color:#1a3c5e;">{{ tr.request_id }}</h5>
+          <small class="text-muted">{{ _('Submitted on') }} {{ tr.request_date }}</small>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="status-badge" style="
+            {% if tr.request_type == 'create_journey' %}background:#dbeafe;color:#1d4ed8;
+            {% elif tr.request_type == 'open_route' %}background:#ede9fe;color:#7c3aed;
+            {% elif tr.request_type == 'change_route' %}background:#fce7f3;color:#db2777;
+            {% endif %}
+          ">
+            {% if tr.request_type == 'create_journey' %}{{ _('Create Journey') }}
+            {% elif tr.request_type == 'open_route' %}{{ _('Open Route') }}
+            {% elif tr.request_type == 'change_route' %}{{ _('Change Route') }}
+            {% endif %}
+          </span>
+          <span class="status-badge badge-{{ tr.status.lower() }}" style="font-size:.9rem;padding:8px 16px;">{{ tr.status }}</span>
+        </div>
+      </div>
+
+      <!-- Route Visual -->
+      <div class="p-3 mb-4 rounded" style="background:linear-gradient(90deg,#f0f9ff,#f0fdf4);border:1px dashed #93c5fd;">
+        <div class="d-flex align-items-center gap-4">
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ tr.destination_from }}</div>
+            <small class="text-muted">{{ _('Origin') }}</small>
+          </div>
+          <div class="flex-1 text-center" style="flex:1;">
+            <div style="height:2px;background:linear-gradient(90deg,#1a3c5e,#f59e0b);border-radius:2px;position:relative;">
+              <i class="fas fa-{{ 'exchange-alt' if tr.request_type == 'change_route' else 'bus' }}" style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#fff;padding:2px 4px;color:#1a3c5e;font-size:.75rem;"></i>
+            </div>
+            <small class="text-muted d-block mt-1">{{ tr.transportation_type or 'N/A' }}
+              {% if tr.change_transportation_type_to %} → {{ tr.change_transportation_type_to }}{% endif %}
+            </small>
+          </div>
+          <div class="text-center">
+            <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ tr.destination_to }}</div>
+            <small class="text-muted">{{ _('Destination') }}</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="row g-3">
+        {% set fields = [
+          (_('Requester'), tr.requester_name),
+          (_('Branch Location'), tr.branch_location),
+          (_('Company'), tr.company),
+          (_('Transportation Type'), tr.transportation_type),
+        ] %}
+        {% if tr.request_type in ('create_journey', 'open_route') %}
+          {% set fields = fields + [
+            (_('National Road'), tr.national_road),
+            (_('Price'), '$%s'|format('%.2f'|format(tr.price or 0))),
+            (_('Vehicle No'), tr.vehicle_no),
+            (_('Route Code'), tr.route_code),
+            (_('Gender Required'), tr.gender_required),
+          ] %}
+        {% endif %}
+        {% if tr.request_type == 'change_route' %}
+          {% set fields = fields + [
+            (_('Change Transportation To'), tr.change_transportation_type_to),
+            (_('Change Company To'), tr.change_company_to),
+            (_('Old Route Code'), tr.old_route_code),
+            (_('Old Price'), '$%s'|format('%.2f'|format(tr.old_price or 0))),
+            (_('New Price'), '$%s'|format('%.2f'|format(tr.new_price or 0))),
+          ] %}
+        {% endif %}
+        {% for label, value in fields %}
+        <div class="col-md-6">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ value or '—' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="col-12">
+          <h6 class="fw-bold mt-3 mb-3" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
+            <i class="fas fa-calendar-alt me-2"></i>{{ _('Schedule') }}
+          </h6>
+        </div>
+        {% set sched_fields = [
+          (_('Departure Time'), tr.departure_time),
+          (_('Arrival Time'), tr.arrival_time),
+          (_('Duration'), tr.duration),
+          (_('Active Start Date'), tr.active_start_date|string if tr.active_start_date else ''),
+          (_('Active End Date'), tr.active_end_date|string if tr.active_end_date else ''),
+          (_('Number of Days'), tr.number_of_days|string if tr.number_of_days else ''),
+          (_('Promotion Price'), '$%s'|format('%.2f'|format(tr.promotion_price or 0)) if tr.promotion_price else ''),
+        ] %}
+        {% for label, value in sched_fields %}
+        {% if value and value != '$0.00' %}
+        <div class="col-md-6">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ label }}</div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ value }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {% if tr.remarks %}
+        <div class="col-12">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:3px;">{{ _('Remarks') }}</div>
+            <div style="color:var(--text-primary);">{{ tr.remarks }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if tr.attachments %}
+        <div class="col-12">
+          <div style="background:var(--badge-bg);border-radius:8px;padding:12px 14px;border:1px solid var(--input-border);">
+            <div style="font-size:.73rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em;margin-bottom:8px;">{{ _('Attachments') }}</div>
+            {% for att in tr.attachments %}
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="fas fa-paperclip text-primary"></i>
+              <a href="{{ url_for('transport_download_file', filename=att) }}" target="_blank" style="font-size:.85rem;">{{ att }}</a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if tr.review_note %}
+    <div class="form-card" style="border-left:4px solid {% if tr.status=='Approved' %}#10b981{% else %}#ef4444{% endif %};">
+      <h6 class="fw-bold mb-2">{{ _('Review Note') }}</h6>
+      <p class="mb-1 text-muted" style="font-size:.875rem;">{{ tr.review_note }}</p>
+      {% if tr.reviewer %}
+      <small class="text-muted">— {{ tr.reviewer.full_name }}</small>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    {% if tr.status == 'Pending' and has_any_permission('transport_request_approve', 'transport_request_reject') %}
+    <div class="form-card mb-3" style="border-top:4px solid #f59e0b;">
+      <h6 class="fw-bold mb-3"><i class="fas fa-gavel me-2 text-warning"></i>{{ _('Review Request') }}</h6>
+      <form method="POST" action="{{ url_for('review_transport_request', id=tr.id) }}">
+        <div class="mb-3">
+          <label class="form-label">{{ _('Review Note') }} ({{ _('optional') }})</label>
+          <textarea name="review_note" class="form-control" rows="3" placeholder="{{ _('Add a note...') }}"></textarea>
+        </div>
+        <div class="d-grid gap-2">
+          <button type="submit" name="action" value="Approved" class="btn btn-success">
+            <i class="fas fa-check me-1"></i> {{ _('Approve') }}
+          </button>
+          <button type="submit" name="action" value="Rejected" class="btn btn-danger">
+            <i class="fas fa-times me-1"></i> {{ _('Reject') }}
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="form-card">
+      <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>{{ _('Timeline') }}</h6>
+      <div style="font-size:.82rem;">
+        <div class="d-flex gap-3 mb-3">
+          <div style="width:8px;height:8px;background:#1a3c5e;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600">{{ _('Request Submitted') }}</div><div class="text-muted">{{ tr.created_date.strftime('%d %b %Y %H:%M') }}</div></div>
+        </div>
+        {% if tr.status != 'Pending' %}
+        <div class="d-flex gap-3">
+          <div style="width:8px;height:8px;background:{% if tr.status=='Approved' %}#10b981{% else %}#ef4444{% endif %};border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div>
+            <div class="fw-600">{{ tr.status }}</div>
+            <div class="text-muted">{{ tr.updated_date.strftime('%d %b %Y %H:%M') if tr.updated_date else '' }}</div>
+            {% if tr.reviewer %}<div class="text-muted">{{ _('by') }} {{ tr.reviewer.full_name }}</div>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="d-flex gap-3">
+          <div style="width:8px;height:8px;background:#e2e8f0;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+          <div><div class="fw-600 text-muted">{{ _('Awaiting Review') }}</div></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
