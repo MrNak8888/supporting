@@ -1,6 +1,6 @@
 from urllib.parse import quote_plus
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +8,9 @@ from datetime import datetime, date, timezone, timedelta
 from functools import wraps
 from collections import defaultdict
 from sqlalchemy import text, or_
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('rbac_debug')
 from flask_babel import Babel, _
 from cryptography.fernet import Fernet
 import os
@@ -17,7 +20,6 @@ import uuid
 import re
 import calendar
 import logging
-import secrets
 from fpdf import FPDF
 from flask_wtf.csrf import CSRFProtect
 import openpyxl
@@ -381,6 +383,236 @@ def inject_permission_helpers():
     return dict(has_permission=lambda p: current_user.is_authenticated and current_user.has_permission(p),
                 has_any_permission=lambda *ps: current_user.is_authenticated and current_user.has_any_permission(*ps))
 
+# ─────────────────────────────────────────
+#  SIDEBAR CONFIGURATION
+# ─────────────────────────────────────────
+
+def _sb_link(label, endpoint, icon, permission=None, any_permission=None):
+    return {'type': 'link', 'label': label, 'endpoint': endpoint, 'icon': icon,
+            'permission': permission, 'any_permission': any_permission}
+
+def _sb_group(label, icon, active_match, children, any_permission=None):
+    return {'type': 'group', 'label': label, 'icon': icon, 'active_match': active_match,
+            'children': children, 'any_permission': any_permission}
+
+SIDEBAR_REPORT_ITEMS = [
+    {'label': 'Transport Requests', 'anchor': 'transport', 'icon': 'fa-route', 'permission': 'transport_request_view'},
+    {'label': 'Trip Operation', 'anchor': 'trip', 'icon': 'fa-bus', 'permission': 'trip_operation_report_view'},
+    {'label': 'Daily Performance', 'anchor': 'daily', 'icon': 'fa-file-alt', 'permission': 'daily_report_view'},
+    {'label': 'KPI', 'anchor': 'kpi', 'icon': 'fa-chart-line', 'any_permission': ['kpi_dashboard_view', 'kpi_evaluation_view']},
+    {'label': 'KPI History', 'anchor': 'kpi_history', 'icon': 'fa-clock-rotate-left', 'permission': 'kpi_history_view'},
+    {'label': 'KPI Evaluation', 'anchor': 'kpi_evaluation', 'icon': 'fa-file-invoice', 'permission': 'kpi_evaluation_view'},
+    {'label': 'Penalties', 'anchor': 'penalties', 'icon': 'fa-gavel', 'permission': 'penalty_view'},
+    {'label': 'Employee Performance', 'anchor': 'employee_performance', 'icon': 'fa-user-check', 'any_permission': ['kpi_evaluation_view']},
+]
+
+def _sb_reports():
+    return {'type': 'reports', 'children': list(SIDEBAR_REPORT_ITEMS)}
+
+SIDEBAR_CONFIG = [
+    {
+        'section': 'Overview',
+        'items': [
+            _sb_link('Dashboard', 'dashboard', 'fa-th-large', permission='dashboard_view'),
+        ],
+    },
+    {
+        'section': 'Transportation',
+        'any_permission': [
+            'transport_request_view', 'transport_request_create', 'transport_request_edit',
+            'transport_request_delete', 'transport_request_approve', 'transport_request_reject',
+            'transport_request_download',
+        ],
+        'items': [
+            _sb_group('Transport Requests', 'fa-truck', 'transport', any_permission=[
+                'transport_request_view', 'transport_request_create', 'transport_request_edit',
+                'transport_request_delete', 'transport_request_approve', 'transport_request_reject',
+                'transport_request_download',
+            ], children=[
+                _sb_link('All Requests', 'transport_requests', 'fa-list', permission='transport_request_view'),
+                _sb_link('New Request', 'new_transport_request', 'fa-plus', permission='transport_request_create'),
+            ]),
+        ],
+    },
+    {
+        'section': 'Operations',
+        'any_permission': [
+            'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
+            'trip_operation_report_delete', 'trip_operation_report_download',
+            'daily_report_view', 'daily_report_create', 'daily_report_edit', 'daily_report_delete',
+        ],
+        'items': [
+            _sb_group('Trip Operations', 'fa-bus', 'trip_operation', any_permission=[
+                'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
+                'trip_operation_report_delete', 'trip_operation_report_download',
+            ], children=[
+                _sb_link('Trip Operation Report', 'trip_operation_reports', 'fa-list', permission='trip_operation_report_view'),
+                _sb_link('New Report', 'new_trip_operation_report', 'fa-plus', permission='trip_operation_report_create'),
+                _sb_link('Vehicle Performance', 'vehicle_performance', 'fa-chart-bar',
+                         any_permission=['trip_operation_report_view', 'trip_operation_report_download']),
+            ]),
+            _sb_group('Daily Performance', 'fa-file-alt', 'daily_report', any_permission=[
+                'daily_report_view', 'daily_report_create', 'daily_report_edit', 'daily_report_delete',
+            ], children=[
+                _sb_link('Daily Report', 'daily_reports', 'fa-list', permission='daily_report_view'),
+                _sb_link('New Report', 'new_daily_report', 'fa-plus', permission='daily_report_create'),
+            ]),
+        ],
+    },
+    {
+        'section': 'Performance & KPI',
+        'any_permission': [
+            'kpi_dashboard_view', 'kpi_history_view',
+            'kpi_evaluation_view', 'kpi_evaluation_create', 'kpi_evaluation_edit', 'kpi_evaluation_delete',
+        ],
+        'items': [
+            _sb_link('KPI Dashboard', 'kpi_dashboard', 'fa-chart-simple', permission='kpi_dashboard_view'),
+            _sb_link('KPI History', 'kpi_history', 'fa-clock-rotate-left', permission='kpi_history_view'),
+            _sb_link('KPI Evaluations', 'kpi_evaluations', 'fa-chart-line',
+                     any_permission=['kpi_evaluation_view', 'kpi_evaluation_create', 'kpi_evaluation_edit', 'kpi_evaluation_delete']),
+            _sb_link('New Evaluation', 'new_kpi_evaluation', 'fa-plus-circle', permission='kpi_evaluation_create'),
+        ],
+    },
+    {
+        'section': 'Discipline',
+        'any_permission': [
+            'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete', 'penalty_download',
+        ],
+        'items': [
+            _sb_group('Penalties', 'fa-gavel', 'penalt', any_permission=[
+                'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete', 'penalty_download',
+            ], children=[
+                _sb_link('View All', 'penalties', 'fa-list', permission='penalty_view'),
+                _sb_link('New Penalty', 'new_penalty', 'fa-plus', permission='penalty_create'),
+            ]),
+        ],
+    },
+    {
+        'section': 'Reports',
+        'items': [_sb_reports()],
+        'any_permission': [
+            'transport_request_view', 'trip_operation_report_view', 'daily_report_view',
+            'kpi_evaluation_view', 'kpi_history_view', 'penalty_view',
+            'report_view', 'report_create', 'report_edit', 'report_delete',
+            'report_export', 'report_print', 'report_download',
+        ],
+    },
+    {
+        'section': 'Administration',
+        'any_permission': [
+            'user_view', 'user_create', 'user_edit', 'user_delete', 'user_download',
+            'role_view', 'role_create', 'role_edit', 'role_delete', 'role_download',
+        ],
+        'items': [
+            _sb_link('Users', 'users', 'fa-users',
+                     any_permission=['user_view', 'user_create', 'user_edit', 'user_delete', 'user_download']),
+            _sb_link('Roles & Permissions', 'list_roles', 'fa-user-shield',
+                     any_permission=['role_view', 'role_create', 'role_edit', 'role_delete', 'role_download']),
+        ],
+    },
+    {
+        'section': 'Settings',
+        'any_permission': [
+            'system_settings_view', 'system_settings_edit', 'system_settings_update',
+            'department_view', 'department_create', 'department_edit', 'department_delete', 'department_download',
+            'position_view', 'position_create', 'position_edit', 'position_delete', 'position_download',
+        ],
+        'items': [
+            _sb_group('Configuration', 'fa-sliders', None, children=[
+                _sb_link('System Settings', 'dynamic_settings', 'fa-cogs',
+                         any_permission=['system_settings_view', 'system_settings_edit', 'system_settings_update']),
+                _sb_link('Departments', 'departments', 'fa-building',
+                         any_permission=['department_view', 'department_create', 'department_edit', 'department_delete', 'department_download']),
+                _sb_link('Positions', 'positions', 'fa-briefcase',
+                         any_permission=['position_view', 'position_create', 'position_edit', 'position_delete', 'position_download']),
+                _sb_link('Telegram Notification', 'telegram_settings', 'fa-telegram-plane',
+                         any_permission=['system_settings_edit', 'system_settings_update']),
+            ]),
+        ],
+    },
+]
+
+
+def _build_sidebar(user):
+    """Filter sidebar config by user permissions and mark active items.
+    
+    Every item's visibility is determined SOLELY by permission checks:
+      - 'permission' → user must have that single permission
+      - 'any_permission' → user must have at least one of the listed permissions
+    Role names, authentication status (beyond being logged in), and
+    hardcoded checks are NEVER used.
+    """
+    if not user or not user.is_authenticated:
+        return []
+    endpoint = request.endpoint or ''
+    result = []
+
+    def _check(item):
+        perm = item.get('permission')
+        if perm and not user.has_permission(perm):
+            return False
+        any_perm = item.get('any_permission')
+        if any_perm and not user.has_any_permission(*any_perm):
+            return False
+        return True
+
+    def _active_match(pattern):
+        if pattern is None:
+            return False
+        return pattern in endpoint
+
+    def _copy(o):
+        if isinstance(o, dict):
+            return {k: _copy(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [_copy(v) for v in o]
+        return o
+
+    for section in SIDEBAR_CONFIG:
+        if section.get('any_permission'):
+            if not user.has_any_permission(*section['any_permission']):
+                continue
+        visible_items = []
+        for item in section.get('items', []):
+            item = _copy(item)
+            if item['type'] == 'link':
+                if not _check(item):
+                    continue
+                item['active'] = endpoint == item['endpoint']
+                visible_items.append(item)
+            elif item['type'] == 'group':
+                if item.get('any_permission') and not _check({'any_permission': item['any_permission']}):
+                    continue
+                visible_children = []
+                for child in item.get('children', []):
+                    child = _copy(child)
+                    if not _check(child):
+                        continue
+                    child['active'] = endpoint == child['endpoint']
+                    visible_children.append(child)
+                if not visible_children:
+                    continue
+                item['children'] = visible_children
+                item['expanded'] = _active_match(item.get('active_match'))
+                item['active'] = any(c.get('active') for c in visible_children) or item['expanded']
+                visible_items.append(item)
+            elif item['type'] == 'reports':
+                children = item.get('children', [])
+                visible_children = [c for c in children if _check(c)]
+                if visible_children:
+                    item['children'] = visible_children
+                    item['count'] = len(visible_children)
+                    visible_items.append(item)
+        if visible_items:
+            result.append({**section, 'items': visible_items})
+    return result
+
+
+@app.context_processor
+def inject_sidebar():
+    sidebar_items = _build_sidebar(current_user)
+    return dict(sidebar_items=sidebar_items)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = _('Please log in to access this page.')
@@ -395,7 +627,6 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(30), nullable=False, default='admin')
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=True)
     branch = db.Column(db.String(100))
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
@@ -409,89 +640,56 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    LEGACY_PERMISSIONS = {
-        'admin': ['dashboard_view', 'dashboard_edit', 'dashboard_download',
-                  'route_request_view', 'route_request_create', 'route_request_edit',
-                  'route_request_delete', 'route_request_approve', 'route_request_reject',
-                  'route_request_download',
-                  'transport_request_view', 'transport_request_create', 'transport_request_edit',
-                  'transport_request_delete', 'transport_request_approve', 'transport_request_reject',
-                  'transport_request_download',
-                  'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete',
-                  'penalty_download',
-                  'trip_operation_report_view', 'trip_operation_report_create',
-                  'trip_operation_report_edit', 'trip_operation_report_delete',
-                  'trip_operation_report_download',
-                  'report_view', 'report_create', 'report_edit', 'report_delete',
-                  'report_export', 'report_print', 'report_download',
-                  'system_settings_view', 'system_settings_edit', 'system_settings_update',
-                  'department_view', 'department_create', 'department_edit',
-                  'department_delete', 'department_download',
-                  'position_view', 'position_create', 'position_edit',
-                  'position_delete', 'position_download',
-                  'role_view', 'role_create', 'role_edit', 'role_delete',
-                  'role_assign_permissions', 'role_download',
-                  'user_view', 'user_create', 'user_edit', 'user_delete',
-                  'user_assign_roles', 'user_reset_password', 'user_activate',
-                  'user_deactivate', 'user_download'],
-        'it_staff': ['dashboard_view',
-                     'route_request_view', 'route_request_download',
-                     'transport_request_view', 'transport_request_download',
-                     'trip_operation_report_view', 'trip_operation_report_download',
-                     'report_view', 'report_export', 'report_download'],
-        'branch_manager': ['dashboard_view',
-                           'route_request_view', 'route_request_create',
-                           'route_request_edit',
-                           'transport_request_view', 'transport_request_create',
-                           'transport_request_edit',
-                           'trip_operation_report_view',
-                           'trip_operation_report_create', 'trip_operation_report_edit'],
-        'regional_manager': ['dashboard_view',
-                             'route_request_view', 'route_request_approve',
-                             'route_request_reject', 'route_request_download',
-                             'transport_request_view', 'transport_request_approve',
-                             'transport_request_reject', 'transport_request_download',
-                             'penalty_view', 'penalty_edit', 'penalty_download',
-                             'trip_operation_report_view', 'trip_operation_report_download',
-                             'report_view', 'report_export', 'report_download',
-                             'department_view', 'position_view'],
-        'hr_manager': ['dashboard_view',
-                       'penalty_view', 'penalty_create', 'penalty_edit',
-                       'penalty_download',
-                       'transport_request_view',
-                       'department_view', 'department_create', 'department_edit',
-                       'position_view', 'position_create', 'position_edit',
-                       'report_view', 'report_export', 'report_download'],
-    }
+
+
+    def _get_role_permissions(self):
+        if self.assigned_role:
+            perms = self.assigned_role.permissions or []
+            logger.debug(f"_get_role_permissions: assigned_role EXISTS, name='{self.assigned_role.name}', permissions={perms}")
+            return perms
+        if self.role_id:
+            role = db.session.get(Role, self.role_id)
+            if role:
+                self.assigned_role = role
+                perms = role.permissions or []
+                logger.debug(f"_get_role_permissions: loaded role id={role.id}, name='{role.name}', permissions={perms}")
+                return perms
+            else:
+                logger.debug(f"_get_role_permissions: role_id={self.role_id} but role NOT FOUND in DB")
+        else:
+            logger.debug(f"_get_role_permissions: no assigned_role AND no role_id")
+        return None
 
     def has_permission(self, permission):
-        if self.assigned_role:
-            return permission in (self.assigned_role.permissions or [])
-        if self.role in self.LEGACY_PERMISSIONS:
-            return permission in self.LEGACY_PERMISSIONS[self.role]
+        role_perms = self._get_role_permissions()
+        logger.debug(f"has_permission('{permission}'): role_perms={role_perms!r}, type={type(role_perms).__name__}")
+        if role_perms is not None:
+            result = permission in role_perms
+            logger.debug(f"has_permission('{permission}'): checking DB perms -> {result}")
+            return result
+        logger.debug(f"has_permission('{permission}'): no role_perms (role_id=None or role deleted), returning False")
         return False
 
     def has_any_permission(self, *permissions):
-        if self.assigned_role:
-            role_perms = self.assigned_role.permissions or []
-            return any(p in role_perms for p in permissions)
-        if self.role in self.LEGACY_PERMISSIONS:
-            role_perms = self.LEGACY_PERMISSIONS[self.role]
-            return any(p in role_perms for p in permissions)
+        role_perms = self._get_role_permissions()
+        logger.debug(f"has_any_permission{permissions}: role_perms={role_perms!r}, type={type(role_perms).__name__}")
+        if role_perms is not None:
+            result = any(p in role_perms for p in permissions)
+            logger.debug(f"has_any_permission{permissions}: checking DB perms -> {result}")
+            return result
+        logger.debug(f"has_any_permission{permissions}: no role_perms (role_id=None or role deleted), returning False")
         return False
 
     @property
     def role_label(self):
         if self.assigned_role:
             return self.assigned_role.label or self.assigned_role.name
-        labels = {
-            'admin': _('Administrator'),
-            'it_staff': _('IT Staff'),
-            'branch_manager': _('Branch Manager'),
-            'regional_manager': _('Regional Manager'),
-            'hr_manager': _('HR Manager')
-        }
-        return labels.get(self.role, self.role)
+        if self.role_id:
+            role = db.session.get(Role, self.role_id)
+            if role:
+                self.assigned_role = role
+                return role.label or role.name
+        return self.assigned_role.label if self.assigned_role else _('No Role')
 
 
 class Role(db.Model):
@@ -903,19 +1101,6 @@ class ConfigDropdownOption(db.Model):
     field = db.relationship('ConfigField', backref='dropdown_options')
 
 
-class ConfigModulePermission(db.Model):
-    __tablename__ = 'config_module_permission'
-    id = db.Column(db.Integer, primary_key=True)
-    module_id = db.Column(db.Integer, db.ForeignKey('config_module.id'), nullable=False)
-    role = db.Column(db.String(50), nullable=False)
-    can_create = db.Column(db.Boolean, default=False)
-    can_read = db.Column(db.Boolean, default=True)
-    can_update = db.Column(db.Boolean, default=False)
-    can_delete = db.Column(db.Boolean, default=False)
-    field_permissions = db.Column(db.JSON)  # {"field_name": "read_only|hidden"}
-    module = db.relationship('ConfigModule', backref='permissions')
-
-
 class DynamicRecord(db.Model):
     __tablename__ = 'dynamic_record'
     id = db.Column(db.Integer, primary_key=True)
@@ -936,7 +1121,7 @@ class DynamicRecord(db.Model):
 for _model in [User, Role, RouteRequest, TransportRequest, EmployeePenalty,
                TripOperationReport, KpiEvaluation, DailyPerformanceReport,
                MonthlyKpiSummary, Department, Position, ConfigModule, ConfigField,
-               ConfigValidation, ConfigDropdownOption, ConfigModulePermission, DynamicRecord,
+                ConfigValidation, ConfigDropdownOption, DynamicRecord,
                TelegramSetting]:
     auto_register_model(_model)
 
@@ -947,21 +1132,20 @@ for _model in [User, Role, RouteRequest, TransportRequest, EmployeePenalty,
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
-
-
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if not current_user.is_authenticated:
-                return redirect(url_for('login'))
-            if current_user.role not in roles:
-                flash(_('You do not have permission to access this page.'), 'danger')
-                return redirect(url_for('dashboard'))
-            return f(*args, **kwargs)
-        return decorated
-    return decorator
+    user = db.session.get(User, int(user_id))
+    if user:
+        logger.debug(f"=== USER_LOADER: user_id={user.id}, username={user.username}, role_id={user.role_id} ===")
+        if user.role_id:
+            role = db.session.get(Role, user.role_id)
+            if role:
+                logger.debug(f"USER_LOADER: Found role id={role.id}, name='{role.name}', permissions={role.permissions}")
+                user.assigned_role = role
+            else:
+                logger.debug(f"USER_LOADER: Role id={user.role_id} NOT FOUND in database!")
+                user.assigned_role = None
+        else:
+            logger.debug(f"USER_LOADER: No role_id set, assigned_role will be None")
+    return user
 
 
 def permission_required(permission):
@@ -971,8 +1155,7 @@ def permission_required(permission):
             if not current_user.is_authenticated:
                 return redirect(url_for('login'))
             if not current_user.has_permission(permission):
-                flash(_('You do not have permission to access this page.'), 'danger')
-                return redirect(url_for('dashboard'))
+                return abort(403)
             return f(*args, **kwargs)
         return decorated
     return decorator
@@ -985,11 +1168,16 @@ def any_permission_required(*permissions):
             if not current_user.is_authenticated:
                 return redirect(url_for('login'))
             if not current_user.has_any_permission(*permissions):
-                flash(_('You do not have permission to access this page.'), 'danger')
-                return redirect(url_for('dashboard'))
+                return abort(403)
             return f(*args, **kwargs)
         return decorated
     return decorator
+
+
+# ── 403 error handler ──
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('403.html'), 403
 
 
 # ── Login rate limiting ──
@@ -1015,17 +1203,43 @@ def _check_login_rate(ip):
 #  ROUTES: AUTH
 # ─────────────────────────────────────────
 
+def _get_default_redirect(user=None):
+    """Return the best default page URL for the given user based on permissions."""
+    u = user or current_user
+    priorities = [
+        ('dashboard_view', 'dashboard'),
+        ('penalty_view', 'penalties'),
+        ('transport_request_view', 'transport_requests'),
+        ('route_request_view', 'route_requests'),
+        ('trip_operation_report_view', 'trip_operation_reports'),
+        ('daily_report_view', 'daily_reports'),
+        ('kpi_dashboard_view', 'kpi_dashboard'),
+        ('kpi_evaluation_view', 'kpi_evaluations'),
+        ('report_view', 'reports'),
+        ('user_view', 'users'),
+        ('role_view', 'list_roles'),
+        ('department_view', 'departments'),
+        ('position_view', 'positions'),
+        ('system_settings_view', 'dynamic_settings'),
+    ]
+    for perm, endpoint in priorities:
+        if u.has_permission(perm):
+            return url_for(endpoint)
+    flash(_('Your account has no permissions assigned. Contact your administrator.'), 'danger')
+    return url_for('dashboard')
+
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(_get_default_redirect())
     return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(_get_default_redirect())
     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Image logo.png')
     login_logo_url = url_for('static', filename='uploads/Image logo.png') if os.path.exists(logo_path) else None
     if request.method == 'POST':
@@ -1037,39 +1251,29 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.is_active:
+            db.session.refresh(user)
+            logger.debug(f"=== LOGIN: user_id={user.id}, username={user.username}, role_id={user.role_id} ===")
+            if user.role_id:
+                role = db.session.get(Role, user.role_id)
+                if role:
+                    logger.debug(f"LOGIN: Found role id={role.id}, name='{role.name}', permissions={role.permissions}")
+                    user.assigned_role = role
+                else:
+                    logger.debug(f"LOGIN: Role id={user.role_id} NOT FOUND!")
+            elif user.username == 'admin':
+                admin_role = Role.query.filter_by(name='admin').first()
+                if admin_role:
+                    user.role_id = admin_role.id
+                    user.assigned_role = admin_role
+                    db.session.commit()
+                    logger.info(f"LOGIN: Auto-assigned admin role to admin user (id={user.id})")
+            if not user.role_id:
+                logger.debug(f"LOGIN: No role_id set")
             login_user(user)
             _login_attempts.pop(ip, None)
-            return redirect(url_for('dashboard'))
+            return redirect(_get_default_redirect(user))
         flash(_('Invalid username or password.'), 'danger')
     return render_template('login.html', login_logo_url=login_logo_url)
-
-
-@app.route('/upload-logo', methods=['POST'])
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def upload_logo():
-    file = request.files.get('logo')
-    if file and file.filename:
-        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-        if ext not in ('png', 'jpg', 'jpeg', 'gif', 'svg'):
-            flash(_('Logo must be an image file (PNG, JPG, GIF, SVG).'), 'danger')
-        else:
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'logo.png'))
-            flash(_('Logo uploaded successfully!'), 'success')
-    else:
-        flash(_('No file selected.'), 'danger')
-    return _safe_redirect(url_for('dashboard'))
-
-
-@app.route('/delete-logo', methods=['POST'])
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def delete_logo():
-    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'logo.png')
-    if os.path.exists(logo_path):
-        os.remove(logo_path)
-        flash(_('Logo removed.'), 'info')
-    return _safe_redirect(url_for('dashboard'))
 
 
 @app.route('/set-language/<lang>')
@@ -1077,7 +1281,7 @@ def delete_logo():
 def set_language(lang):
     if lang in ['en', 'km']:
         session['lang'] = lang
-    return _safe_redirect(url_for('dashboard'))
+    return _safe_redirect(_get_default_redirect())
 
 
 @app.route('/logout')
@@ -1086,6 +1290,27 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/debug-permissions')
+@login_required
+@permission_required('role_view')
+def debug_permissions():
+    import json
+    user = current_user
+    role_perms = user._get_role_permissions() if hasattr(user, '_get_role_permissions') else None
+    info = {
+        'user_id': user.id,
+        'username': user.username,
+        'role_string': user.assigned_role.name if user.assigned_role else None,
+        'role_id': user.role_id,
+        'assigned_role_exists': user.assigned_role is not None,
+        'assigned_role_name': user.assigned_role.name if user.assigned_role else None,
+        'role_permissions_from_db': role_perms,
+        'role_permissions_type': type(role_perms).__name__ if role_perms is not None else 'None',
+        'legacy_fallback_would_trigger': False,
+        'is_authenticated': user.is_authenticated,
+    }
+    return jsonify(info)
+
 
 # ─────────────────────────────────────────
 #  ROUTES: DASHBOARD
@@ -1093,6 +1318,7 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+@permission_required('dashboard_view')
 def dashboard():
     from datetime import timedelta
 
@@ -1271,7 +1497,7 @@ def dashboard():
             'time_ago': 'Requires attention',
             'dot_color': '#7c3aed',
         })
-    if current_user.role == 'admin':
+    if current_user.has_permission('user_view'):
         total_users = User.query.count()
         notifications.append({
             'message': f'{total_users} registered user(s) in the system',
@@ -1412,6 +1638,7 @@ def _sparkline_data(model, label_field='created_date', count_field=None, months=
 
 @app.route('/api/dashboard/summary')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_summary():
     s, e = _dash_date_range()
     q_rr = _dash_q(RouteRequest)
@@ -1502,6 +1729,7 @@ def api_dashboard_summary():
 
 @app.route('/api/dashboard/charts')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_charts():
     s, e = _dash_date_range()
 
@@ -1669,6 +1897,7 @@ def api_dashboard_charts():
 
 @app.route('/api/dashboard/executive-summary')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_executive_summary():
     s, e = _dash_date_range()
 
@@ -1773,6 +2002,7 @@ def api_dashboard_executive_summary():
 
 @app.route('/api/dashboard/insights')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_insights():
     from collections import defaultdict
     s, e = _dash_date_range()
@@ -1824,6 +2054,7 @@ def api_dashboard_insights():
 
 @app.route('/api/dashboard/comparison')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_comparison():
     comp_type = request.args.get('type', 'month')
     period_a_start = request.args.get('period_a_start', '')
@@ -1904,6 +2135,7 @@ def api_dashboard_comparison():
 
 @app.route('/api/dashboard/tables')
 @login_required
+@permission_required('dashboard_view')
 def api_dashboard_tables():
     s, e = _dash_date_range()
     recent_requests = _dash_q(RouteRequest).order_by(RouteRequest.created_date.desc()).limit(10).all()
@@ -1944,7 +2176,7 @@ def api_dashboard_tables():
 @any_permission_required('route_request_view', 'route_request_create', 'route_request_edit', 'route_request_delete', 'route_request_approve', 'route_request_reject', 'route_request_download')
 def route_requests():
     base = RouteRequest.query
-    if current_user.role == 'branch_manager':
+    if not current_user.has_permission('view_all_records'):
         base = base.filter_by(requester_id=current_user.id)
     status_filter = request.args.get('status', '')
     search = request.args.get('search', '')
@@ -2030,6 +2262,7 @@ def new_route_request():
 
 @app.route('/route-requests/<int:id>')
 @login_required
+@permission_required('route_request_view')
 def view_route_request(id):
     rr = RouteRequest.query.get_or_404(id)
     return render_template('route_request_detail.html', rr=rr)
@@ -2054,10 +2287,10 @@ def edit_route_request(id):
     companies = DynamicRecord.query.filter_by(module_id=company_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if company_module else []
     branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
 
-    if current_user.role == 'branch_manager' and rr.requester_id != current_user.id:
+    if not current_user.has_permission('view_all_records') and rr.requester_id != current_user.id:
         flash(_('Access denied.'), 'danger')
         return redirect(url_for('route_requests'))
-    if rr.status != 'Pending' and current_user.role not in ['admin']:
+    if rr.status != 'Pending' and not current_user.has_permission('edit_any_status'):
         flash(_('Only pending requests can be edited.'), 'warning')
         return redirect(url_for('view_route_request', id=id))
     if request.method == 'POST':
@@ -2149,6 +2382,7 @@ def transport_delete_file():
 
 @app.route('/transport-requests/download/<filename>')
 @login_required
+@permission_required('transport_request_view')
 def transport_download_file(filename):
     if not re.match(r'^[\w\.\-]+$', filename):
         flash(_('Invalid filename.'), 'danger')
@@ -2165,7 +2399,7 @@ def transport_download_file(filename):
 @any_permission_required('transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_delete', 'transport_request_approve', 'transport_request_reject', 'transport_request_download')
 def transport_requests():
     base = TransportRequest.query
-    if current_user.role == 'branch_manager':
+    if not current_user.has_permission('view_all_records'):
         base = base.filter_by(requester_id=current_user.id)
     status_filter = request.args.get('status', '')
     search = request.args.get('search', '')
@@ -2498,7 +2732,7 @@ def edit_penalty(id):
     dept_module = ConfigModule.query.filter_by(module_key='penalty_department', is_active=True).first()
     penalty_departments = DynamicRecord.query.filter_by(module_id=dept_module.id, is_active=True).all() if dept_module else []
     positions = Position.query.filter_by(status='Active').order_by(Position.name).all()
-    if ep.status != 'Pending' and current_user.role != 'admin':
+    if ep.status != 'Pending' and not current_user.has_permission('edit_any_status'):
         flash(_('Only pending penalties can be edited.'), 'warning')
         return redirect(url_for('view_penalty', id=id))
     if request.method == 'POST':
@@ -2560,41 +2794,16 @@ def delete_penalty(id):
 # ─────────────────────────────────────────
 @app.route('/settings/telegram')
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def telegram_settings():
-    if current_user.role != 'admin':
-        flash(_('Access denied.'), 'danger')
-        return redirect(url_for('dashboard'))
     setting = TelegramSetting.query.first()
     return render_template('telegram_settings.html', setting=setting)
 
 
-@app.route('/settings/telegram/save', methods=['POST'])
-@login_required
-def telegram_settings_save():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-    setting = TelegramSetting.query.first()
-    if not setting:
-        setting = TelegramSetting()
-        db.session.add(setting)
-    raw_token = request.form.get('bot_token', '')
-    if raw_token:
-        setting.bot_token = _encrypt_token(raw_token)
-    elif not setting.bot_token:
-        setting.bot_token = ''
-    setting.chat_id = request.form.get('chat_id', '')
-    setting.enabled = 'enabled' in request.form
-    setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
-    db.session.commit()
-    flash(_('Telegram settings saved!'), 'success')
-    return redirect(url_for('telegram_settings'))
-
-
 @app.route('/settings/telegram/test', methods=['POST'])
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def telegram_settings_test():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
     setting = TelegramSetting.query.first()
     if not setting:
         return jsonify({'success': False, 'error': 'No settings configured'})
@@ -2625,26 +2834,10 @@ def telegram_settings_test():
     return jsonify({'success': False, 'error': error})
 
 
-@app.route('/api/settings/telegram')
-@login_required
-def api_telegram_settings():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-    setting = TelegramSetting.query.first()
-    if not setting:
-        return jsonify({'enabled': False, 'chat_id': '', 'has_token': False})
-    return jsonify({
-        'enabled': setting.enabled,
-        'chat_id': setting.chat_id,
-        'has_token': bool(setting.bot_token)
-    })
-
-
 @app.route('/api/telegram/status')
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def api_telegram_status():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
     setting = TelegramSetting.query.first()
     if not setting or not setting.bot_token:
         return jsonify({
@@ -2674,9 +2867,8 @@ def api_telegram_status():
 
 @app.route('/api/telegram/validate', methods=['POST'])
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def api_telegram_validate():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
     data = request.get_json(silent=True)
     token = (data or {}).get('token', '')
     if not token:
@@ -2693,9 +2885,8 @@ def api_telegram_validate():
 
 @app.route('/api/telegram/disconnect', methods=['POST'])
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def api_telegram_disconnect():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
     setting = TelegramSetting.query.first()
     if setting:
         setting.bot_token = ''
@@ -2711,9 +2902,8 @@ def api_telegram_disconnect():
 
 @app.route('/api/telegram/save', methods=['POST'])
 @login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
 def api_telegram_save():
-    if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
     setting = TelegramSetting.query.first()
     if not setting:
         setting = TelegramSetting()
@@ -2845,6 +3035,7 @@ def new_trip_operation_report():
 
 @app.route('/trip-operation-reports/<int:id>')
 @login_required
+@permission_required('trip_operation_report_view')
 def view_trip_operation_report(id):
     tor = TripOperationReport.query.get_or_404(id)
     return render_template('trip_operation_report_detail.html', tor=tor)
@@ -2928,12 +3119,14 @@ def delete_trip_operation_report(id):
 
 @app.route('/vehicle-performance')
 @login_required
+@any_permission_required('trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit', 'trip_operation_report_delete', 'trip_operation_report_download')
 def vehicle_performance():
     return render_template('vehicle_performance.html')
 
 
 @app.route('/api/vehicle-performance/vehicles')
 @login_required
+@any_permission_required('trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit', 'trip_operation_report_delete', 'trip_operation_report_download')
 def api_vehicle_performance_vehicles():
     vehicles = db.session.query(TripOperationReport.vehicle_number)\
         .distinct()\
@@ -3032,6 +3225,7 @@ def _build_base_query(start, end, vehicle=None):
 
 @app.route('/api/vehicle-performance/data')
 @login_required
+@any_permission_required('trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit', 'trip_operation_report_delete', 'trip_operation_report_download')
 def api_vehicle_performance_data():
     vehicle = request.args.get('vehicle', '')
     date_range = request.args.get('range', 'today')
@@ -3083,282 +3277,6 @@ def api_vehicle_performance_data():
     })
 
 
-@app.route('/vehicle-performance/export/excel')
-@login_required
-def vehicle_performance_export_excel():
-    vehicle = request.args.get('vehicle', '')
-    date_range = request.args.get('range', 'today')
-    start_date_str = request.args.get('start_date', '')
-    end_date_str = request.args.get('end_date', '')
-
-    start, end = _get_date_range(date_range, start_date_str, end_date_str)
-    period_label = f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
-
-    if vehicle == '__all__':
-        all_vehicles = db.session.query(TripOperationReport.vehicle_number)\
-            .filter(TripOperationReport.trip_date >= start)\
-            .filter(TripOperationReport.trip_date <= end)\
-            .distinct().order_by(TripOperationReport.vehicle_number).all()
-        all_vehicles = [v[0] for v in all_vehicles if v[0]]
-
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "All Vehicles Summary"
-        ws.cell(row=1, column=1, value=f"All Vehicles Performance Summary").font = Font(bold=True, size=14)
-        ws.cell(row=2, column=1, value=f"Period: {period_label}").font = Font(size=11)
-        ws.merge_cells('A1:G1')
-        ws.merge_cells('A2:G2')
-
-        v_headers = ['Vehicle', 'Total Trips', 'Total LET Duration Count', 'Avg LET (min)', 'Max LET (min)',
-                     'Total Delay (min)', 'Delay Records', 'Avg Delay (min)', 'Total Passengers']
-        vh_font = Font(bold=True, color="FFFFFF")
-        vh_fill = PatternFill("solid", fgColor="1a3c5e")
-        for col, h in enumerate(v_headers, 1):
-            cell = ws.cell(row=4, column=col, value=h)
-            cell.font = vh_font
-            cell.fill = vh_fill
-            cell.alignment = Alignment(horizontal='center')
-            ws.column_dimensions[cell.column_letter].width = 18
-
-        row_offset = 5
-        for v in all_vehicles:
-            v_reports = _build_base_query(start, end, v).order_by(TripOperationReport.trip_date).all()
-            v_summary, _ = _compute_vehicle_performance(v_reports)
-            ws.cell(row=row_offset, column=1, value=v)
-            ws.cell(row=row_offset, column=2, value=v_summary['totalTrips'])
-            ws.cell(row=row_offset, column=3, value=v_summary['totalLETDurationCount'])
-            ws.cell(row=row_offset, column=4, value=v_summary['averageLET'])
-            ws.cell(row=row_offset, column=5, value=v_summary['maxLET'])
-            ws.cell(row=row_offset, column=6, value=v_summary['totalDelay'])
-            ws.cell(row=row_offset, column=7, value=v_summary['delayRecords'])
-            ws.cell(row=row_offset, column=8, value=v_summary['avgDelayPerTrip'])
-            ws.cell(row=row_offset, column=9, value=v_summary['totalPassengers'])
-            row_offset += 1
-
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        return send_excel(buf, f'vehicle_performance_all_vehicles_{date.today()}.xlsx')
-
-    reports = _build_base_query(start, end, vehicle).order_by(TripOperationReport.trip_date).all()
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Vehicle Performance"
-
-    ws.cell(row=1, column=1, value=f"Vehicle: {vehicle}").font = Font(bold=True, size=14)
-    ws.cell(row=2, column=1, value=f"Period: {period_label}").font = Font(size=11)
-    ws.merge_cells('A1:M1')
-    ws.merge_cells('A2:M2')
-
-    headers = ['Trip Date', 'Report ID', 'Origin', 'Destination', 'Direction',
-               'Departure', 'Arrival Stn', 'Depart Stn', 'Delay (min)',
-               'LET (min)', 'Status', 'Passengers', 'Coordinator']
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill("solid", fgColor="1a3c5e")
-    for col, h in enumerate(headers, 1):
-        cell = ws.cell(row=4, column=col, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
-        ws.column_dimensions[cell.column_letter].width = 16
-
-    for i, r in enumerate(reports, 5):
-        ws.cell(row=i, column=1, value=str(r.trip_date or ''))
-        ws.cell(row=i, column=2, value=r.report_id)
-        ws.cell(row=i, column=3, value=r.origin)
-        ws.cell(row=i, column=4, value=r.destination)
-        ws.cell(row=i, column=5, value=r.travel_direction or '')
-        ws.cell(row=i, column=6, value=r.departure_time or '')
-        ws.cell(row=i, column=7, value=r.arrival_at_station or '')
-        ws.cell(row=i, column=8, value=r.departure_from_station or '')
-        ws.cell(row=i, column=9, value=int(r.travel_delay_duration or 0))
-        ws.cell(row=i, column=10, value=_parse_layover_minutes(r.layover_duration))
-        ws.cell(row=i, column=11, value=r.vehicle_status)
-        ws.cell(row=i, column=12, value=int(r.passenger_count or 0))
-        ws.cell(row=i, column=13, value=r.coordinator_name or '')
-
-    row_num = 5 + len(reports) + 1
-    let_vals = [_parse_layover_minutes(r.layover_duration) for r in reports if _parse_layover_minutes(r.layover_duration) > 0]
-
-    summary_data = [
-        ('Total Trips', len(reports)),
-        ('Total LET Duration Count', f'{len(let_vals)} Times'),
-        ('Average LET', f'{round(sum(let_vals)/len(let_vals), 2) if let_vals else 0} Minutes'),
-        ('Maximum LET', f'{max(let_vals) if let_vals else 0} Minutes'),
-        ('', ''),
-        ('Total Delay', f'{sum(r.travel_delay_duration or 0 for r in reports)} Minutes'),
-        ('Delay Records', f'{len([r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0])} Trips'),
-        ('Average Delay', f'{round(sum(r.travel_delay_duration or 0 for r in [r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]) / max(len([r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]), 1), 2)} Minutes'),
-        ('', ''),
-        ('Trips with LET', len(let_vals)),
-        ('Trips without LET', len(reports) - len(let_vals)),
-        ('', ''),
-        ('Total Passengers', sum(r.passenger_count or 0 for r in reports)),
-    ]
-
-    bold_font = Font(bold=True)
-    for i, (label, val) in enumerate(summary_data):
-        cell_a = ws.cell(row=row_num + i, column=1, value=label)
-        cell_b = ws.cell(row=row_num + i, column=2, value=val)
-        if label:
-            cell_a.font = bold_font
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return send_excel(buf, f'vehicle_performance_{vehicle}_{date.today()}.xlsx')
-
-
-@app.route('/vehicle-performance/export/pdf')
-@login_required
-def vehicle_performance_export_pdf():
-    vehicle = request.args.get('vehicle', '')
-    date_range = request.args.get('range', 'today')
-    start_date_str = request.args.get('start_date', '')
-    end_date_str = request.args.get('end_date', '')
-
-    start, end = _get_date_range(date_range, start_date_str, end_date_str)
-    period_label = f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
-
-    pdf = FPDF()
-    khmer_font = _find_khmer_font()
-    if khmer_font:
-        try:
-            pdf.add_font('Khmer', '', khmer_font, uni=True)
-            pdf.add_font('Khmer', 'B', khmer_font, uni=True)
-            font_name = 'Khmer'
-        except RuntimeError:
-            font_name = 'Helvetica'
-    else:
-        font_name = 'Helvetica'
-
-    pdf.add_page()
-    pdf.set_font(font_name, 'B', 16)
-    pdf.cell(0, 10, f'Vehicle Performance Analysis', new_x='LMARGIN', new_y='NEXT', align='C')
-
-    if vehicle == '__all__':
-        pdf.set_font(font_name, '', 10)
-        pdf.cell(0, 7, 'All Vehicles', new_x='LMARGIN', new_y='NEXT', align='C')
-        pdf.cell(0, 7, f'Period: {period_label}', new_x='LMARGIN', new_y='NEXT', align='C')
-        pdf.cell(0, 5, f'Generated: {datetime.now().strftime("%d %b %Y %H:%M")}', new_x='LMARGIN', new_y='NEXT', align='R')
-        pdf.ln(5)
-
-        all_vehicles = db.session.query(TripOperationReport.vehicle_number)\
-            .filter(TripOperationReport.trip_date >= start)\
-            .filter(TripOperationReport.trip_date <= end)\
-            .distinct().order_by(TripOperationReport.vehicle_number).all()
-        all_vehicles = [v[0] for v in all_vehicles if v[0]]
-
-        pdf.set_font(font_name, 'B', 9)
-        v_headers = ['Vehicle', 'Trips', 'Total LET Count', 'Avg LET', 'Max LET', 'Total Delay', 'Delays', 'Avg Delay', 'Passengers']
-        col_w = 30
-        pdf.set_fill_color(26, 60, 94)
-        pdf.set_text_color(255, 255, 255)
-        for h in v_headers:
-            pdf.cell(col_w, 7, h, border=1, fill=True, align='C')
-        pdf.ln()
-        pdf.set_text_color(50, 50, 50)
-        pdf.set_font(font_name, '', 7)
-        for v in all_vehicles:
-            v_reports = _build_base_query(start, end, v).order_by(TripOperationReport.trip_date).all()
-            v_summary, _ = _compute_vehicle_performance(v_reports)
-            vals = [
-                v[:8],
-                str(v_summary['totalTrips']),
-                str(v_summary['totalLETDurationCount']),
-                str(v_summary['averageLET']),
-                str(v_summary['maxLET']),
-                str(v_summary['totalDelay']),
-                str(v_summary['delayRecords']),
-                str(v_summary['avgDelayPerTrip']),
-                str(v_summary['totalPassengers']),
-            ]
-            for val in vals:
-                pdf.cell(col_w, 5, val, border=1, align='C')
-            pdf.ln()
-
-        buf = io.BytesIO()
-        pdf.output(buf)
-        buf.seek(0)
-        return send_pdf(buf, f'vehicle_performance_all_vehicles_{date.today()}.pdf')
-
-    pdf.set_font(font_name, '', 10)
-    pdf.cell(0, 7, f'Vehicle: {vehicle}', new_x='LMARGIN', new_y='NEXT', align='C')
-    pdf.cell(0, 7, f'Period: {period_label}', new_x='LMARGIN', new_y='NEXT', align='C')
-    pdf.cell(0, 5, f'Generated: {datetime.now().strftime("%d %b %Y %H:%M")}', new_x='LMARGIN', new_y='NEXT', align='R')
-    pdf.ln(5)
-
-    reports = _build_base_query(start, end, vehicle).order_by(TripOperationReport.trip_date).all()
-    let_vals = [_parse_layover_minutes(r.layover_duration) for r in reports if _parse_layover_minutes(r.layover_duration) > 0]
-    delay_recs = [r for r in reports if r.travel_delay_duration and r.travel_delay_duration > 0]
-
-    summary_items = [
-        ('Total Trips', str(len(reports))),
-        ('Total LET Duration Count', f'{len(let_vals)} Times'),
-        ('Average LET', f'{round(sum(let_vals)/len(let_vals), 2) if let_vals else 0} Minutes'),
-        ('Maximum LET', f'{max(let_vals) if let_vals else 0} Minutes'),
-        ('', ''),
-        ('Total Delay', f'{round(sum(r.travel_delay_duration or 0 for r in reports), 2)} Minutes'),
-        ('Delay Records', f'{len(delay_recs)} Trips'),
-        ('Average Delay', f'{round(sum(r.travel_delay_duration or 0 for r in delay_recs) / max(len(delay_recs), 1), 2)} Minutes'),
-        ('', ''),
-        ('Trips with LET', str(len(let_vals))),
-        ('Trips without LET', str(len(reports) - len(let_vals))),
-        ('', ''),
-        ('Total Passengers', str(sum(r.passenger_count or 0 for r in reports))),
-    ]
-
-    pdf.set_font(font_name, '', 10)
-    for label, val in summary_items:
-        if label:
-            pdf.set_font(font_name, 'B', 10)
-            pdf.cell(80, 7, label, border=0)
-            pdf.set_font(font_name, '', 10)
-            pdf.cell(0, 7, val, border=0, new_x='LMARGIN', new_y='NEXT')
-        else:
-            pdf.ln(2)
-
-    pdf.ln(5)
-    pdf.set_font(font_name, 'B', 10)
-    pdf.cell(0, 7, 'Vehicle Status Summary:', new_x='LMARGIN', new_y='NEXT')
-    pdf.set_font(font_name, '', 10)
-    status_counts = defaultdict(int)
-    for r in reports:
-        status_counts[r.vehicle_status or 'Unknown'] += 1
-    for status, count in sorted(status_counts.items(), key=lambda x: -x[1]):
-        pdf.cell(0, 6, f'  {status}: {count}', new_x='LMARGIN', new_y='NEXT')
-
-    pdf.ln(8)
-    pdf.set_font(font_name, 'B', 9)
-    headers = ['Date', 'Report ID', 'Origin', 'Destination', 'Delay', 'LET', 'Status', 'Pass']
-    col_w = 34
-    page_w = 270
-    pdf.set_fill_color(26, 60, 94)
-    pdf.set_text_color(255, 255, 255)
-    for h in headers:
-        pdf.cell(col_w, 7, h, border=1, fill=True, align='C')
-    pdf.ln()
-    pdf.set_text_color(50, 50, 50)
-    pdf.set_font(font_name, '', 7)
-    for r in reports:
-        vals = [
-            str(r.trip_date or '')[:10], r.report_id,
-            (r.origin or '')[:12], (r.destination or '')[:12],
-            str(int(r.travel_delay_duration or 0)),
-            str(_parse_layover_minutes(r.layover_duration)),
-            (r.vehicle_status or '')[:8],
-            str(int(r.passenger_count or 0))
-        ]
-        for v in vals:
-            pdf.cell(col_w, 5, v, border=1, align='C')
-        pdf.ln()
-
-    buf = io.BytesIO()
-    pdf.output(buf)
-    buf.seek(0)
-    return send_pdf(buf, f'vehicle_performance_{vehicle}_{date.today()}.pdf')
-
 
 # ─────────────────────────────────────────
 #  ROUTES: KPI EVALUATIONS
@@ -3366,9 +3284,10 @@ def vehicle_performance_export_pdf():
 
 @app.route('/kpi-evaluations')
 @login_required
+@any_permission_required('kpi_evaluation_view', 'kpi_evaluation_create', 'kpi_evaluation_edit', 'kpi_evaluation_delete')
 def kpi_evaluations():
     query = KpiEvaluation.query
-    if current_user.role not in ('admin', 'hr_manager'):
+    if not current_user.has_permission('view_all_records'):
         query = query.filter_by(created_by=current_user.id)
     search = request.args.get('search', '')
     month_filter = request.args.get('month', '')
@@ -3389,6 +3308,7 @@ def kpi_evaluations():
 
 @app.route('/kpi-evaluations/new', methods=['GET', 'POST'])
 @login_required
+@permission_required('kpi_evaluation_create')
 def new_kpi_evaluation():
     company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
     branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
@@ -3464,6 +3384,7 @@ def new_kpi_evaluation():
 
 @app.route('/kpi-evaluations/<int:id>')
 @login_required
+@any_permission_required('kpi_evaluation_view', 'kpi_evaluation_create', 'kpi_evaluation_edit', 'kpi_evaluation_delete')
 def view_kpi_evaluation(id):
     ke = KpiEvaluation.query.get_or_404(id)
     return render_template('kpi_detail.html', ke=ke)
@@ -3471,6 +3392,7 @@ def view_kpi_evaluation(id):
 
 @app.route('/kpi-evaluations/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
+@permission_required('kpi_evaluation_edit')
 def edit_kpi_evaluation(id):
     ke = KpiEvaluation.query.get_or_404(id)
     company_module = ConfigModule.query.filter_by(module_key='company', is_active=True).first()
@@ -3529,6 +3451,7 @@ def edit_kpi_evaluation(id):
 
 @app.route('/kpi-evaluations/<int:id>/delete', methods=['POST'])
 @login_required
+@permission_required('kpi_evaluation_delete')
 def delete_kpi_evaluation(id):
     ke = KpiEvaluation.query.get_or_404(id)
     db.session.delete(ke)
@@ -3543,9 +3466,10 @@ def delete_kpi_evaluation(id):
 
 @app.route('/daily-reports')
 @login_required
+@any_permission_required('daily_report_view', 'daily_report_create', 'daily_report_edit', 'daily_report_delete')
 def daily_reports():
     query = DailyPerformanceReport.query
-    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+    if not current_user.has_permission('view_all_records'):
         query = query.filter_by(created_by=current_user.id)
     search = request.args.get('search', '')
     date_from = request.args.get('date_from', '')
@@ -3572,7 +3496,7 @@ def daily_reports():
 
     today = date.today()
     today_q = DailyPerformanceReport.query.filter(DailyPerformanceReport.report_date == today)
-    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+    if not current_user.has_permission('view_all_records'):
         today_q = today_q.filter_by(created_by=current_user.id)
     today_tickets = sum(r.tickets_sold for r in today_q.all()) if today_q.count() > 0 else 0
     today_sales = sum(r.total_sales_amount for r in today_q.all()) if today_q.count() > 0 else 0
@@ -3591,6 +3515,7 @@ def daily_reports():
 
 @app.route('/daily-reports/new', methods=['GET', 'POST'])
 @login_required
+@permission_required('daily_report_create')
 def new_daily_report():
     if request.method == 'POST':
         report_date_str = request.form.get('report_date')
@@ -3638,6 +3563,7 @@ def new_daily_report():
 
 @app.route('/daily-reports/<int:id>')
 @login_required
+@any_permission_required('daily_report_view', 'daily_report_create', 'daily_report_edit', 'daily_report_delete')
 def view_daily_report(id):
     dr = DailyPerformanceReport.query.get_or_404(id)
     return render_template('daily_report_detail.html', dr=dr)
@@ -3645,9 +3571,10 @@ def view_daily_report(id):
 
 @app.route('/daily-reports/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
+@permission_required('daily_report_edit')
 def edit_daily_report(id):
     dr = DailyPerformanceReport.query.get_or_404(id)
-    if dr.status == 'Submitted' and current_user.role not in ('admin',):
+    if dr.status == 'Submitted' and not current_user.has_permission('edit_any_status'):
         flash(_('Submitted reports cannot be edited.'), 'warning')
         return redirect(url_for('view_daily_report', id=id))
 
@@ -3688,6 +3615,7 @@ def edit_daily_report(id):
 
 @app.route('/daily-reports/<int:id>/delete', methods=['POST'])
 @login_required
+@permission_required('daily_report_delete')
 def delete_daily_report(id):
     dr = DailyPerformanceReport.query.get_or_404(id)
     db.session.delete(dr)
@@ -3698,6 +3626,7 @@ def delete_daily_report(id):
 
 @app.route('/daily-reports/export/excel')
 @login_required
+@any_permission_required('daily_report_view')
 def export_daily_reports_excel():
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -3714,7 +3643,7 @@ def export_daily_reports_excel():
         cell.alignment = Alignment(horizontal='center')
         ws.column_dimensions[cell.column_letter].width = 16
     query = DailyPerformanceReport.query
-    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+    if not current_user.has_permission('view_all_records'):
         query = query.filter_by(created_by=current_user.id)
     for r in query.order_by(DailyPerformanceReport.report_date.desc()).all():
         ws.append([r.report_date, r.staff_name, r.staff_id, r.branch or '',
@@ -3728,12 +3657,13 @@ def export_daily_reports_excel():
 
 @app.route('/daily-reports/export/pdf')
 @login_required
+@any_permission_required('daily_report_view')
 def export_daily_reports_pdf():
     headers = ['Date', 'Staff', 'ID', 'Tickets', 'Sales($)', 'Bookings',
                'Errors', 'Cancelled', 'Complaints', 'Status']
     rows = []
     query = DailyPerformanceReport.query
-    if current_user.role not in ('admin', 'hr_manager', 'regional_manager'):
+    if not current_user.has_permission('view_all_records'):
         query = query.filter_by(created_by=current_user.id)
     for r in query.order_by(DailyPerformanceReport.report_date.desc()).all():
         rows.append([str(r.report_date), r.staff_name, r.staff_id, r.tickets_sold,
@@ -3749,6 +3679,7 @@ def export_daily_reports_pdf():
 
 @app.route('/kpi-dashboard')
 @login_required
+@permission_required('kpi_dashboard_view')
 def kpi_dashboard():
     year_filter = request.args.get('year', str(date.today().year))
     month_filter = request.args.get('month', str(date.today().month))
@@ -3862,6 +3793,7 @@ def kpi_dashboard():
 
 @app.route('/kpi-dashboard/history')
 @login_required
+@permission_required('kpi_history_view')
 def kpi_history():
     year_filter = request.args.get('year', '')
     month_filter = request.args.get('month', '')
@@ -4528,7 +4460,7 @@ def _build_employee_performance_query(params):
 
 @app.route('/reports')
 @login_required
-@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+@any_permission_required('transport_request_view', 'trip_operation_report_view', 'daily_report_view', 'kpi_evaluation_view', 'kpi_history_view', 'penalty_view', 'report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def reports():
     safe_types = _get_safe_report_types()
     first_type = next(iter(safe_types.keys()), '')
@@ -4569,7 +4501,7 @@ _REPORT_SLUG_MAP = {
 
 @app.route('/reports/data')
 @login_required
-@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+@any_permission_required('transport_request_view', 'trip_operation_report_view', 'daily_report_view', 'kpi_evaluation_view', 'kpi_history_view', 'penalty_view', 'report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def reports_data():
     report_type = request.args.get('type', 'transport')
     if report_type not in REPORT_TYPES:
@@ -4582,7 +4514,7 @@ def reports_data():
 
 @app.route('/reports/charts/<report_type>')
 @login_required
-@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+@any_permission_required('transport_request_view', 'trip_operation_report_view', 'daily_report_view', 'kpi_evaluation_view', 'kpi_history_view', 'penalty_view', 'report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def reports_charts(report_type):
     if report_type not in REPORT_TYPES:
         return jsonify({'error': 'Invalid report type'}), 400
@@ -4622,7 +4554,7 @@ def reports_charts(report_type):
 
 @app.route('/reports/export/<fmt>/<report_type>')
 @login_required
-@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+@any_permission_required('transport_request_view', 'trip_operation_report_view', 'daily_report_view', 'kpi_evaluation_view', 'kpi_history_view', 'penalty_view', 'report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def reports_export(fmt, report_type):
     try:
         if report_type not in REPORT_TYPES:
@@ -4877,7 +4809,7 @@ def export_trip_reports_pdf():
 # ── Catch-all: redirect /reports/<slug> to /reports#type (must be last) ──
 @app.route('/reports/<path:subpath>')
 @login_required
-@any_permission_required('report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
+@any_permission_required('transport_request_view', 'trip_operation_report_view', 'daily_report_view', 'kpi_evaluation_view', 'kpi_history_view', 'penalty_view', 'report_view', 'report_create', 'report_edit', 'report_delete', 'report_export', 'report_print', 'report_download')
 def report_subpath(subpath):
     report_type = _REPORT_SLUG_MAP.get(subpath)
     if report_type and report_type in REPORT_TYPES:
@@ -5252,32 +5184,6 @@ def dynamic_toggle(module_key, id):
     return redirect(url_for('dynamic_list', module_key=module_key))
 
 
-# API Endpoints for dynamic modules
-@app.route('/api/dynamic/<module_key>', methods=['GET'])
-@login_required
-def dynamic_api_list(module_key):
-    search = request.args.get('search', '')
-    records, total = DynamicEngine.list_records(module_key, search=search)
-    data = [{'id': r.id, **r.data} for r in (records or [])]
-    return jsonify({'total': total, 'data': data})
-
-
-@app.route('/api/dynamic/<module_key>/<int:id>', methods=['GET'])
-@login_required
-def dynamic_api_get(module_key, id):
-    record = DynamicRecord.query.get_or_404(id)
-    return jsonify({'id': record.id, **record.data})
-
-
-@app.route('/api/dynamic/dropdown/<int:field_id>')
-@login_required
-def dynamic_api_dropdown(field_id):
-    field = ConfigField.query.get_or_404(field_id)
-    parent_value = request.args.get('parent')
-    options = DynamicEngine.get_dropdown_options(field, parent_value)
-    return jsonify([{'value': v, 'label': l} for v, l in options])
-
-
 # ─────────────────────────────────────────
 #  ROUTES: USER MANAGEMENT
 # ─────────────────────────────────────────
@@ -5391,17 +5297,19 @@ def new_user():
         u.full_name = request.form.get('full_name')
         u.username = request.form.get('username')
         role_id = _int_or_none(request.form.get('role_id'))
+        logger.debug(f"NEW_USER: raw role_id='{request.form.get('role_id')}', parsed={role_id}")
         if role_id:
             role_obj = Role.query.get(role_id)
             if role_obj:
                 u.role_id = role_obj.id
-                u.role = role_obj.name
+                logger.debug(f"NEW_USER: set role_id={u.role_id}")
             else:
+                logger.debug(f"NEW_USER: role_id={role_id} NOT FOUND!")
                 flash(_('Selected role not found.'), 'danger')
                 roles = Role.query.order_by(Role.name).all()
                 return render_template('user_form.html', user=None, roles=roles, branches=branches)
         else:
-            u.role = request.form.get('role', 'user')
+            logger.debug(f"NEW_USER: no role_id submitted")
         u.branch = request.form.get('branch')
         u.set_password(request.form.get('password'))
         if User.query.filter_by(username=u.username).first():
@@ -5410,6 +5318,7 @@ def new_user():
             return render_template('user_form.html', user=None, roles=roles, branches=branches)
         db.session.add(u)
         db.session.commit()
+        logger.debug(f"NEW_USER: COMMITTED. user.id={u.id}, role_id={u.role_id}")
         flash(_('User %(name)s created!', name=u.username), 'success')
         return redirect(url_for('users'))
     roles = Role.query.order_by(Role.name).all()
@@ -5426,14 +5335,17 @@ def edit_user(id):
     if request.method == 'POST':
         u.full_name = request.form.get('full_name')
         role_id = _int_or_none(request.form.get('role_id'))
+        logger.debug(f"EDIT_USER: user id={u.id}, raw role_id='{request.form.get('role_id')}', parsed={role_id}")
+        logger.debug(f"EDIT_USER: BEFORE: role_id={u.role_id}")
         if role_id:
             role_obj = Role.query.get(role_id)
             if role_obj:
                 u.role_id = role_obj.id
-                u.role = role_obj.name
+                logger.debug(f"EDIT_USER: set role_id={u.role_id}")
+            else:
+                logger.debug(f"EDIT_USER: role_id={role_id} NOT FOUND!")
         else:
-            u.role = request.form.get('role', u.role)
-            u.role_id = None
+            logger.debug(f"EDIT_USER: no role_id submitted, keeping role_id={u.role_id}")
         u.branch = request.form.get('branch')
         u.is_active = 'is_active' in request.form
         new_pass = request.form.get('password')
@@ -5464,44 +5376,7 @@ def delete_user(id):
 #  API: Roles
 # ─────────────────────────────────────────
 
-@app.route('/api/roles')
-@login_required
-def api_roles():
-    roles = Role.query.order_by(Role.name).all()
-    return jsonify([{
-        'id': r.id,
-        'name': r.name,
-        'label': r.label or r.name,
-        'permissions': r.get_permissions()
-    } for r in roles])
 
-
-# ─────────────────────────────────────────
-#  API: Chart data
-# ─────────────────────────────────────────
-
-@app.route('/api/chart-data')
-@login_required
-def chart_data():
-    months = {}
-    for key, count in db.session.query(
-        db.func.DATE_FORMAT(RouteRequest.created_date, '%m'),
-        db.func.count(RouteRequest.id)
-    ).group_by(db.func.DATE_FORMAT(RouteRequest.created_date, '%m')).all():
-        month_num = int(key)
-        months[month_num] = {'requests': count, 'penalties': 0}
-    for key, count in db.session.query(
-        db.func.DATE_FORMAT(EmployeePenalty.created_date, '%m'),
-        db.func.count(EmployeePenalty.id)
-    ).group_by(db.func.DATE_FORMAT(EmployeePenalty.created_date, '%m')).all():
-        month_num = int(key)
-        if month_num not in months:
-            months[month_num] = {'requests': 0, 'penalties': 0}
-        months[month_num]['penalties'] = count
-    result = {}
-    for k, v in months.items():
-        result[calendar.month_abbr[k]] = v
-    return jsonify(result)
 
 
 # ─────────────────────────────────────────
@@ -5781,86 +5656,97 @@ def init_db():
         db.session.commit()
 
         # ── Seed Default Roles ──
-        if not Role.query.first():
-            all_permissions = [
-                'dashboard_view', 'dashboard_edit', 'dashboard_download',
-                'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_delete',
-                'route_request_approve', 'route_request_reject', 'route_request_download',
-                'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_delete',
-                'transport_request_approve', 'transport_request_reject', 'transport_request_download',
-                'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete', 'penalty_download',
-                'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
-                'trip_operation_report_delete', 'trip_operation_report_download',
-                'report_view', 'report_create', 'report_edit', 'report_delete',
-                'report_export', 'report_print', 'report_download',
-                'system_settings_view', 'system_settings_edit', 'system_settings_update',
-                'department_view', 'department_create', 'department_edit', 'department_delete', 'department_download',
-                'position_view', 'position_create', 'position_edit', 'position_delete', 'position_download',
-                'role_view', 'role_create', 'role_edit', 'role_delete', 'role_assign_permissions', 'role_download',
-                'user_view', 'user_create', 'user_edit', 'user_delete',
-                'user_assign_roles', 'user_reset_password', 'user_activate', 'user_deactivate', 'user_download',
-            ]
-            it_staff_permissions = [
-                'dashboard_view',
-                'route_request_view',
-                'transport_request_view',
-                'penalty_view',
-                'trip_operation_report_view', 'trip_operation_report_create',
-                'report_view',
-                'department_view',
-                'position_view',
-                'role_view',
-                'user_view',
-            ]
-            branch_manager_permissions = [
-                'dashboard_view', 'dashboard_download',
-                'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_download',
-                'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_download',
-                'penalty_view',
-                'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
-                'report_view',
-            ]
-            regional_manager_permissions = [
-                'dashboard_view',
-                'route_request_view', 'route_request_approve', 'route_request_reject',
-                'transport_request_view', 'transport_request_approve', 'transport_request_reject',
-                'penalty_view',
-                'trip_operation_report_view',
-                'report_view', 'report_export', 'report_print', 'report_download',
-            ]
-            hr_manager_permissions = [
-                'dashboard_view',
-                'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_download',
-                'transport_request_view',
-                'trip_operation_report_view',
-                'report_view',
-                'department_view', 'department_create', 'department_edit',
-                'position_view', 'position_create', 'position_edit',
-                'user_view',
-            ]
-            role_perms = {
-                'admin': all_permissions,
-                'it_staff': it_staff_permissions,
-                'branch_manager': branch_manager_permissions,
-                'regional_manager': regional_manager_permissions,
-                'hr_manager': hr_manager_permissions,
-            }
-            default_roles = [
-                ('admin', 'Administrator'),
-                ('it_staff', 'IT Staff'),
-                ('branch_manager', 'Branch Manager'),
-                ('regional_manager', 'Regional Manager'),
-                ('hr_manager', 'HR Manager'),
-            ]
-            for name, label in default_roles:
+        all_permissions = [
+            'dashboard_view', 'dashboard_edit', 'dashboard_download',
+            'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_delete',
+            'route_request_approve', 'route_request_reject', 'route_request_download',
+            'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_delete',
+            'transport_request_approve', 'transport_request_reject', 'transport_request_download',
+            'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_delete', 'penalty_download',
+            'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
+            'trip_operation_report_delete', 'trip_operation_report_download',
+            'daily_report_view', 'daily_report_create', 'daily_report_edit', 'daily_report_delete',
+            'kpi_evaluation_view', 'kpi_evaluation_create', 'kpi_evaluation_edit', 'kpi_evaluation_delete',
+            'kpi_dashboard_view', 'kpi_history_view',
+            'system_settings_view', 'system_settings_edit', 'system_settings_update',
+            'department_view', 'department_create', 'department_edit', 'department_delete', 'department_download',
+            'position_view', 'position_create', 'position_edit', 'position_delete', 'position_download',
+            'role_view', 'role_create', 'role_edit', 'role_delete', 'role_assign_permissions', 'role_download',
+            'user_view', 'user_create', 'user_edit', 'user_delete',
+            'user_assign_roles', 'user_reset_password', 'user_activate', 'user_deactivate', 'user_download',
+            'view_all_records', 'edit_any_status',
+        ]
+        it_staff_permissions = [
+            'dashboard_view',
+            'route_request_view',
+            'transport_request_view',
+            'penalty_view',
+            'trip_operation_report_view', 'trip_operation_report_create',
+            'daily_report_view', 'kpi_dashboard_view', 'kpi_history_view',
+            'department_view',
+            'position_view',
+            'role_view',
+            'user_view',
+        ]
+        branch_manager_permissions = [
+            'dashboard_view', 'dashboard_download',
+            'route_request_view', 'route_request_create', 'route_request_edit', 'route_request_download',
+            'transport_request_view', 'transport_request_create', 'transport_request_edit', 'transport_request_download',
+            'penalty_view',
+            'trip_operation_report_view', 'trip_operation_report_create', 'trip_operation_report_edit',
+            'daily_report_view', 'daily_report_create', 'daily_report_edit',
+            'kpi_dashboard_view', 'kpi_history_view',
+        ]
+        regional_manager_permissions = [
+            'dashboard_view',
+            'route_request_view', 'route_request_approve', 'route_request_reject',
+            'transport_request_view', 'transport_request_approve', 'transport_request_reject',
+            'penalty_view',
+            'trip_operation_report_view',
+            'daily_report_view', 'kpi_dashboard_view', 'kpi_history_view',
+            'view_all_records',
+        ]
+        hr_manager_permissions = [
+            'dashboard_view',
+            'penalty_view', 'penalty_create', 'penalty_edit', 'penalty_download',
+            'transport_request_view',
+            'trip_operation_report_view',
+            'daily_report_view', 'kpi_dashboard_view', 'kpi_history_view',
+            'department_view', 'department_create', 'department_edit',
+            'position_view', 'position_create', 'position_edit',
+            'user_view',
+            'view_all_records',
+        ]
+        role_perms = {
+            'admin': all_permissions,
+            'it_staff': it_staff_permissions,
+            'branch_manager': branch_manager_permissions,
+            'regional_manager': regional_manager_permissions,
+            'hr_manager': hr_manager_permissions,
+        }
+        default_roles = [
+            ('admin', 'Administrator'),
+            ('it_staff', 'IT Staff'),
+            ('branch_manager', 'Branch Manager'),
+            ('regional_manager', 'Regional Manager'),
+            ('hr_manager', 'HR Manager'),
+        ]
+        for name, label in default_roles:
+            existing = Role.query.filter_by(name=name).first()
+            if not existing:
                 r = Role(name=name, label=label, permissions=role_perms.get(name, []))
                 db.session.add(r)
-            db.session.commit()
+        db.session.commit()
 
         # ── Seed Users and Demo Data ──
         admin_role = Role.query.filter_by(name='admin').first()
-        if not User.query.filter_by(username='admin').first():
-            admin = User(full_name='System Administrator', username='admin', role='admin', branch='HQ')
+        admin_user = User.query.filter_by(username='admin').first()
+        if admin_user:
+            if admin_role and admin_user.role_id is None:
+                admin_user.role_id = admin_role.id
+                logger.info(f"Fixed admin user (id={admin_user.id}): assigned role_id={admin_role.id}")
+        else:
+            admin = User(full_name='System Administrator', username='admin', branch='HQ')
             if admin_role:
                 admin.role_id = admin_role.id
             admin.set_password('admin123')
@@ -5875,7 +5761,7 @@ def init_db():
         for name, uname, role_key, branch in users_seed:
             if User.query.filter_by(username=uname).first():
                 continue
-            u = User(full_name=name, username=uname, role=role_key, branch=branch)
+            u = User(full_name=name, username=uname, branch=branch)
             role_obj = Role.query.filter_by(name=role_key).first()
             if role_obj:
                 u.role_id = role_obj.id

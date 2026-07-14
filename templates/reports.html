@@ -380,9 +380,13 @@
       <button class="btn btn-outline-secondary" id="rptBtnReset">{{ _('Reset') }}</button>
     </div>
     <div class="d-flex gap-2">
+      {% if has_permission('report_export') %}
       <button class="btn btn-outline-success" id="rptExportExcel"><i class="fas fa-file-excel me-1"></i>{{ _('Excel') }}</button>
       <button class="btn btn-outline-danger" id="rptExportPdf"><i class="fas fa-file-pdf me-1"></i>{{ _('PDF') }}</button>
+      {% endif %}
+      {% if has_permission('report_print') %}
       <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i>{{ _('Print') }}</button>
+      {% endif %}
     </div>
     <div class="rpt-search-box">
       <i class="fas fa-search"></i>
@@ -602,7 +606,7 @@
         dataLabels: { enabled: false },
         legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#475569' } },
         plotOptions: {
-          pie: { donut: { size: '60%', labels: { show: true, name: { show: true }, value: { show: true, fontSize: '16px', fontWeight: 600, color: '#1e293b' }, total: { show: true, label: 'Total', color: '#64748b' } } } }
+          pie: { donut: { size: '60%', labels: { show: true, name: { show: true }, value: { show: true, fontSize: '16px', fontWeight: 600, color: '#1e293b' }, total: { show: true, label: '{{ _('Total') }}', color: '#64748b' } } } }
         },
         responsive: [{ breakpoint: 480, options: { chart: { height: 220 }, legend: { position: 'bottom' } } }]
       };

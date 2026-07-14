@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% set back_fallback = url_for('dynamic_settings') %}
-{% block title %}{{ 'Edit' if form_mode == 'edit' else 'Add' }} {{ module.module_name }}{% endblock %}
-{% block page_title %}{{ 'Edit' if form_mode == 'edit' else 'Add' }} {{ module.module_name }}{% endblock %}
+{% block title %}{{ _('Edit') if form_mode == 'edit' else _('Add') }} {{ module.module_name }}{% endblock %}
+{% block page_title %}{{ _('Edit') if form_mode == 'edit' else _('Add') }} {{ module.module_name }}{% endblock %}
 
 {% block content %}
 <div class="mb-4">
   <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Back to {{ module.module_name }} List
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to %(name)s List', name=module.module_name) }}
   </a>
 </div>
 
@@ -14,7 +14,7 @@
   <div class="col-lg-8">
     <div class="form-card">
       <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
-        <i class="fas {{ module.module_icon }} me-2"></i>{{ 'Edit' if form_mode == 'edit' else 'Add' }} {{ module.module_name }}
+        <i class="fas {{ module.module_icon }} me-2"></i>{{ _('Edit') if form_mode == 'edit' else _('Add') }} {{ module.module_name }}
       </h6>
 
       <form method="POST">
@@ -37,7 +37,7 @@
               data-field-id="{{ fld.id }}"
               data-parent-field="{{ fld.option_parent_field or '' }}"
               {% if fld.is_required %}required{% endif %}>
-              <option value="">— Select —</option>
+              <option value="">{{ _('— Select —') }}</option>
               {% set options = DynamicEngine.get_dropdown_options(fld) if DynamicEngine is defined else [] %}
               {% for opt in options %}
               <option value="{{ opt[0] }}" {% if data.get(fld.field_name)|string == opt[0]|string %}selected{% endif %}>{{ opt[1] }}</option>
@@ -48,7 +48,7 @@
             <div class="form-check mt-2">
               <input type="checkbox" name="{{ fld.field_name }}" class="form-check-input" id="chk_{{ fld.field_name }}"
                 {% if data.get(fld.field_name) %}checked{% endif %}>
-              <label class="form-check-label" for="chk_{{ fld.field_name }}">{{ fld.help_text or 'Enable' }}</label>
+              <label class="form-check-label" for="chk_{{ fld.field_name }}">{{ fld.help_text or _('Enable') }}</label>
             </div>
 
             {% elif fld.field_type == 'number' %}
@@ -74,7 +74,7 @@
 
             {% elif fld.field_type == 'password' %}
             <input type="password" name="{{ fld.field_name }}" class="form-control"
-              placeholder="{{ fld.placeholder or ('Leave blank to keep current' if form_mode=='edit' else '') }}"
+              placeholder="{{ fld.placeholder or (_('Leave blank to keep current') if form_mode=='edit' else '') }}"
               {% if fld.is_required and form_mode != 'edit' %}required{% endif %}>
 
             {% else %}
@@ -100,10 +100,12 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
+          {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
           <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save me-1"></i> {{ 'Save Changes' if form_mode == 'edit' else 'Create' }}
+            <i class="fas fa-save me-1"></i> {{ _('Save Changes') if form_mode == 'edit' else _('Create') }}
           </button>
-          <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary">Cancel</a>
+          {% endif %}
+          <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
         </div>
       </form>
     </div>

@@ -28,9 +28,9 @@
       <label class="form-label">{{ _('Status') }}</label>
       <select name="status" class="form-select">
         <option value="">{{ _('All Status') }}</option>
-        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending</option>
-        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>Approved</option>
-        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>Rejected</option>
+        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>{{ _('Approved') }}</option>
+        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
       </select>
     </div>
     <div class="col-md-2">
@@ -119,17 +119,17 @@
           <td><span class="status-badge badge-{{ rr.status.lower() }}">{{ rr.status }}</span></td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{{ url_for('view_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+              <a href="{{ url_for('view_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-primary" title="{{ _('View') }}">
                 <i class="fas fa-eye"></i>
               </a>
               {% if rr.status == 'Pending' and has_permission('route_request_edit') %}
-              <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+              <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
                 <i class="fas fa-edit"></i>
               </a>
               {% endif %}
               {% if has_permission('route_request_delete') %}
-              <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('Delete this request?');" style="display:inline;">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+              <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('{{ _('Delete this request?') }}');" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>

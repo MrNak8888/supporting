@@ -39,9 +39,11 @@
                 </span>
               </div>
             </div>
+            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
             <button class="btn btn-sm btn-outline-primary px-3" id="changeTokenBtn">
               <i class="fas fa-key me-1"></i> {{ _('Change Token') }}
             </button>
+            {% endif %}
           </div>
 
           <div class="mb-4">
@@ -62,9 +64,11 @@
               <span class="fw-semibold">{{ _('Telegram Notifications') }}</span>
               <span id="enabledBadge" class="badge rounded-pill bg-secondary" style="font-size: 0.7rem;">{{ _('Loading...') }}</span>
             </div>
+            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" id="enableTelegram" role="switch" style="width: 2.5em; height: 1.25em; cursor: pointer;">
             </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -80,12 +84,14 @@
         </div>
         <div class="card-body p-4">
           <div class="d-flex gap-3 flex-wrap">
+            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
             <button class="btn btn-primary px-4" id="sendTestBtn">
               <i class="fab fa-telegram-plane me-1"></i> {{ _('Send Test Message') }}
             </button>
             <button class="btn btn-outline-danger px-4" id="disconnectBtn">
               <i class="fas fa-plug me-1"></i> {{ _('Disconnect Bot') }}
             </button>
+            {% endif %}
           </div>
           <div id="testResult" class="mt-3" style="display: none;"></div>
         </div>

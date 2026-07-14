@@ -151,10 +151,12 @@
       {% endif %}
 
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('trip_operation_report_create', 'trip_operation_report_edit') %}
         <button type="submit" class="btn btn-primary btn-lg">
           <i class="fas fa-{{ 'save' if report else 'paper-plane' }} me-2"></i>
           {{ _('Save Changes') if report else _('Submit Report') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('trip_operation_reports') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>

@@ -1,33 +1,35 @@
 {% extends 'base.html' %}
 {% set back_fallback = url_for('route_requests') %}
 {% block title %}{{ rr.request_id }}{% endblock %}
-{% block page_title %}Request Detail — {{ rr.request_id }}{% endblock %}
+{% block page_title %}{{ _('Request Detail — %(id)s', id=rr.request_id) }}{% endblock %}
 
 {% block content %}
 <div class="d-flex gap-2 mb-4 flex-wrap">
   <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Back
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
   </a>
   {% if rr.status == 'Pending' and has_permission('route_request_edit') %}
   <a href="{{ url_for('edit_route_request', id=rr.id) }}" class="btn btn-outline-warning btn-sm">
-    <i class="fas fa-edit me-1"></i> Edit
+    <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
   </a>
   {% endif %}
   {% if has_permission('route_request_delete') %}
-  <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('Delete?');">
-    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>Delete</button>
+  <form method="POST" action="{{ url_for('delete_route_request', id=rr.id) }}" onsubmit="return confirm('{{ _('Delete?') }}');">
+    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
   </form>
   {% endif %}
+  {% if has_any_permission('route_request_view','route_request_download') %}
   <div class="ms-auto">
     <div class="btn-group btn-group-sm">
       <a href="{{ url_for('export_requests_excel') }}" class="btn btn-outline-success" onclick="event.preventDefault();downloadFile(this.href);">
-        <i class="fas fa-file-excel me-1"></i> Excel
+        <i class="fas fa-file-excel me-1"></i> {{ _('Excel') }}
       </a>
       <a href="{{ url_for('export_requests_pdf') }}" class="btn btn-outline-danger" onclick="event.preventDefault();downloadFile(this.href);">
-        <i class="fas fa-file-pdf me-1"></i> PDF
+        <i class="fas fa-file-pdf me-1"></i> {{ _('PDF') }}
       </a>
     </div>
   </div>
+  {% endif %}
 </div>
 
 <div class="row g-4">
@@ -36,7 +38,7 @@
       <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
           <h5 class="fw-bold mb-1" style="color:#1a3c5e;">{{ rr.request_id }}</h5>
-          <small class="text-muted">Submitted on {{ rr.request_date }}</small>
+          <small class="text-muted">{{ _('Submitted on %(date)s', date=rr.request_date) }}</small>
         </div>
         <span class="status-badge badge-{{ rr.status.lower() }}" style="font-size:.9rem;padding:8px 16px;">{{ rr.status }}</span>
       </div>
@@ -46,18 +48,18 @@
         <div class="d-flex align-items-center gap-4">
           <div class="text-center">
             <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ rr.destination_from }}</div>
-            <small class="text-muted">Origin</small>
+            <small class="text-muted">{{ _('Origin') }}</small>
             <div style="font-size:.8rem;color:#475569;">{{ rr.departure_time or '—' }}</div>
           </div>
           <div class="flex-1 text-center" style="flex:1;">
             <div style="height:2px;background:linear-gradient(90deg,#1a3c5e,#f59e0b);border-radius:2px;position:relative;">
               <i class="fas fa-bus" style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#fff;padding:2px 4px;color:#1a3c5e;font-size:.75rem;"></i>
             </div>
-            <small class="text-muted d-block mt-1">{{ rr.transportation or 'N/A' }} · {{ rr.national_road or '' }}</small>
+            <small class="text-muted d-block mt-1">{{ rr.transportation or _('N/A') }} · {{ rr.national_road or '' }}</small>
           </div>
           <div class="text-center">
             <div style="font-weight:700;font-size:1rem;color:#1a3c5e;">{{ rr.destination_to }}</div>
-            <small class="text-muted">Destination</small>
+            <small class="text-muted">{{ _('Destination') }}</small>
             <div style="font-size:.8rem;color:#475569;">{{ rr.arrival_time or '—' }}</div>
           </div>
         </div>
@@ -65,14 +67,14 @@
 
       <div class="row g-3">
         {% set fields = [
-          ('Requester', rr.requester_name),
-          ('Branch', rr.branch_location),
-          ('Company', rr.company),
-          ('Price', '$' ~ '%.2f'|format(rr.price)),
-          ('Start Date', rr.start_date|string),
-          ('End Date', rr.end_date|string),
-          ('Access Allowed', 'Yes' if rr.allow_access else 'No'),
-          ('Created', rr.created_date.strftime('%d %b %Y %H:%M')),
+          (_('Requester'), rr.requester_name),
+          (_('Branch'), rr.branch_location),
+          (_('Company'), rr.company),
+          (_('Price'), '$' ~ '%.2f'|format(rr.price)),
+          (_('Start Date'), rr.start_date|string),
+          (_('End Date'), rr.end_date|string),
+          (_('Access Allowed'), _('Yes') if rr.allow_access else _('No')),
+          (_('Created'), rr.created_date.strftime('%d %b %Y %H:%M')),
         ] %}
         {% for label, value in fields %}
         <div class="col-md-6">
@@ -86,7 +88,7 @@
         {% if rr.remarks %}
         <div class="col-12">
           <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
-            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">Remarks</div>
+            <div style="font-size:.73rem;text-transform:uppercase;color:#94a3b8;letter-spacing:.06em;margin-bottom:3px;">{{ _('Remarks') }}</div>
             <div style="color:#374151;">{{ rr.remarks }}</div>
           </div>
         </div>
@@ -105,7 +107,7 @@
 
     {% if rr.review_note %}
     <div class="form-card" style="border-left:4px solid {% if rr.status=='Approved' %}#10b981{% else %}#ef4444{% endif %};">
-      <h6 class="fw-bold mb-2">Review Note</h6>
+      <h6 class="fw-bold mb-2">{{ _('Review Note') }}</h6>
       <p class="mb-1 text-muted" style="font-size:.875rem;">{{ rr.review_note }}</p>
       {% if rr.reviewer %}
       <small class="text-muted">— {{ rr.reviewer.full_name }}</small>
@@ -118,18 +120,18 @@
   <div class="col-lg-4">
     {% if rr.status == 'Pending' and has_any_permission('route_request_approve', 'route_request_reject') %}
     <div class="form-card mb-3" style="border-top:4px solid #f59e0b;">
-      <h6 class="fw-bold mb-3"><i class="fas fa-gavel me-2 text-warning"></i>Review Request</h6>
+      <h6 class="fw-bold mb-3"><i class="fas fa-gavel me-2 text-warning"></i>{{ _('Review Request') }}</h6>
       <form method="POST" action="{{ url_for('review_route_request', id=rr.id) }}">
         <div class="mb-3">
-          <label class="form-label">Review Note (optional)</label>
-          <textarea name="review_note" class="form-control" rows="3" placeholder="Add a note..."></textarea>
+          <label class="form-label">{{ _('Review Note (optional)') }}</label>
+          <textarea name="review_note" class="form-control" rows="3" placeholder="{{ _('Add a note...') }}"></textarea>
         </div>
         <div class="d-grid gap-2">
           <button type="submit" name="action" value="Approved" class="btn btn-success">
-            <i class="fas fa-check me-1"></i> Approve
+            <i class="fas fa-check me-1"></i> {{ _('Approve') }}
           </button>
           <button type="submit" name="action" value="Rejected" class="btn btn-danger">
-            <i class="fas fa-times me-1"></i> Reject
+            <i class="fas fa-times me-1"></i> {{ _('Reject') }}
           </button>
         </div>
       </form>
@@ -137,11 +139,11 @@
     {% endif %}
 
     <div class="form-card">
-      <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>Timeline</h6>
+      <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>{{ _('Timeline') }}</h6>
       <div style="font-size:.82rem;">
         <div class="d-flex gap-3 mb-3">
           <div style="width:8px;height:8px;background:#1a3c5e;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
-          <div><div class="fw-600">Request Submitted</div><div class="text-muted">{{ rr.created_date.strftime('%d %b %Y %H:%M') }}</div></div>
+          <div><div class="fw-600">{{ _('Request Submitted') }}</div><div class="text-muted">{{ rr.created_date.strftime('%d %b %Y %H:%M') }}</div></div>
         </div>
         {% if rr.status != 'Pending' %}
         <div class="d-flex gap-3">
@@ -149,13 +151,13 @@
           <div>
             <div class="fw-600">{{ rr.status }}</div>
             <div class="text-muted">{{ rr.updated_date.strftime('%d %b %Y %H:%M') if rr.updated_date else '' }}</div>
-            {% if rr.reviewer %}<div class="text-muted">by {{ rr.reviewer.full_name }}</div>{% endif %}
+            {% if rr.reviewer %}<div class="text-muted">{{ _('by %(name)s', name=rr.reviewer.full_name) }}</div>{% endif %}
           </div>
         </div>
         {% else %}
         <div class="d-flex gap-3">
           <div style="width:8px;height:8px;background:#e2e8f0;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
-          <div><div class="fw-600 text-muted">Awaiting Review</div></div>
+          <div><div class="fw-600 text-muted">{{ _('Awaiting Review') }}</div></div>
         </div>
         {% endif %}
       </div>

@@ -22,9 +22,12 @@
       <button class="btn btn-sm btn-outline-secondary" onclick="refreshDashboard()" title="{{ _('Refresh') }}" style="border-radius:10px;">
         <i class="fas fa-sync-alt"></i>
       </button>
+      {% if has_permission('report_print') or has_permission('dashboard_view') %}
       <button class="btn btn-sm btn-outline-primary" onclick="window.print()" style="border-radius:10px;">
         <i class="fas fa-print"></i>
       </button>
+      {% endif %}
+      {% if has_any_permission('route_request_download', 'report_export') %}
       <div class="btn-group btn-group-sm">
         <button class="btn btn-sm btn-outline-success" onclick="exportDashboard('excel')" style="border-radius:10px 0 0 10px;">
           <i class="fas fa-file-excel"></i>
@@ -33,6 +36,7 @@
           <i class="fas fa-file-pdf"></i>
         </button>
       </div>
+      {% endif %}
     </div>
   </div>
 

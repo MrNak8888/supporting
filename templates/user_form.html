@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% set back_fallback = url_for('users') %}
-{% block title %}{% if user %}Edit User{% else %}New User{% endif %}{% endblock %}
-{% block page_title %}{% if user %}Edit User{% else %}New User{% endif %}{% endblock %}
+{% block title %}{% if user %}{{ _('Edit User') }}{% else %}{{ _('New User') }}{% endif %}{% endblock %}
+{% block page_title %}{% if user %}{{ _('Edit User') }}{% else %}{{ _('New User') }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="mb-4">
   <a href="{{ url_for('users') }}" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Back to Users
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Users') }}
   </a>
 </div>
 
@@ -14,61 +14,63 @@
   <div class="col-lg-8">
     <div class="form-card">
       <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
-        <i class="fas fa-user me-2"></i>{% if user %}Edit User: {{ user.username }}{% else %}New User{% endif %}
+        <i class="fas fa-user me-2"></i>{% if user %}{{ _('Edit User: %(username)s', username=user.username) }}{% else %}{{ _('New User') }}{% endif %}
       </h6>
 
       <form method="POST">
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <label class="form-label">{{ _('Full Name') }} <span class="text-danger">*</span></label>
             <input type="text" name="full_name" class="form-control" required
-              value="{{ user.full_name if user else '' }}" placeholder="Full name">
+              value="{{ user.full_name if user else '' }}" placeholder="{{ _('Full name') }}">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Username <span class="text-danger">*</span></label>
+            <label class="form-label">{{ _('Username') }} <span class="text-danger">*</span></label>
             <input type="text" name="username" class="form-control"
               value="{{ user.username if user else '' }}"
               {% if user %}readonly style="background:#f8fafc"{% else %}required{% endif %}
-              placeholder="username">
+              placeholder="{{ _('username') }}">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Role <span class="text-danger">*</span></label>
+            <label class="form-label">{{ _('Role') }} <span class="text-danger">*</span></label>
             <select name="role_id" class="form-select" required>
-              <option value="">-- Select Role --</option>
+              <option value="">{{ _('-- Select Role --') }}</option>
               {% for r in roles %}
               <option value="{{ r.id }}" {% if user and user.role_id == r.id %}selected{% endif %}>{{ r.label or r.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Branch</label>
+            <label class="form-label">{{ _('Branch') }}</label>
             <select name="branch" class="form-select">
-              <option value="">-- Select Branch --</option>
+              <option value="">{{ _('-- Select Branch --') }}</option>
               {% for b in branches %}
               <option value="{{ b.data.name }}" {% if user and user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-12">
-            <label class="form-label">Password {% if not user %}<span class="text-danger">*</span>{% else %}<small class="text-muted">(leave blank to keep current)</small>{% endif %}</label>
+            <label class="form-label">{{ _('Password') }} {% if not user %}<span class="text-danger">*</span>{% else %}<small class="text-muted">{{ _('(leave blank to keep current)') }}</small>{% endif %}</label>
             <input type="password" name="password" class="form-control"
-              {% if not user %}required{% endif %} placeholder="{% if user %}New password (optional){% else %}Set password{% endif %}" autocomplete="new-password">
+              {% if not user %}required{% endif %} placeholder="{% if user %}{{ _('New password (optional)') }}{% else %}{{ _('Set password') }}{% endif %}" autocomplete="new-password">
           </div>
           {% if user %}
           <div class="col-12">
             <div class="form-check">
               <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {% if user.is_active %}checked{% endif %}>
-              <label class="form-check-label" for="isActive">Account Active</label>
+              <label class="form-check-label" for="isActive">{{ _('Account Active') }}</label>
             </div>
           </div>
           {% endif %}
         </div>
 
         <div class="d-flex gap-2 mt-4">
+          {% if has_any_permission('user_create', 'user_edit') %}
           <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save me-1"></i>{{ 'Save Changes' if user else 'Create User' }}
+            <i class="fas fa-save me-1"></i>{% if user %}{{ _('Save Changes') }}{% else %}{{ _('Create User') }}{% endif %}
           </button>
-          <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">Cancel</a>
+          {% endif %}
+          <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
         </div>
       </form>
     </div>

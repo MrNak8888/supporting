@@ -143,12 +143,14 @@
       {% endif %}
       <input type="hidden" name="status" id="statusInput" value="{{ report.status if report else 'Draft' }}">
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('daily_report_create', 'daily_report_edit') %}
         <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('statusInput').value='Draft'">
           <i class="fas fa-save me-2"></i> {{ _('Save Draft') }}
         </button>
         <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('statusInput').value='Submitted'">
           <i class="fas fa-check-circle me-2"></i> {{ _('Submit Report') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>

@@ -28,8 +28,8 @@ SOURCE 06_triggers.sql;
 -- Step 7: Seed reference and sample data
 SOURCE 07_seed_data.sql;
 
--- Step 8: Set up RBAC permissions catalog and role-permission mappings
-SOURCE 08_permissions.sql;
+-- Step 8: RBAC permissions catalog (reference only - application uses roles.permissions JSON)
+-- SOURCE 08_permissions.sql;  -- Uncomment if using normalized permissions tables
 
 -- Step 9: Create stored procedures
 SOURCE 09_stored_procedures.sql;

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ _('IT Management System') }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -44,7 +47,7 @@
       --topbar-bg: #1e293b;
       --topbar-border: #334155;
     }
-    body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; color: var(--text-primary); transition: background .3s, color .3s; }
+    body { background: var(--bg); font-family: 'Segoe UI', system-ui, 'Noto Sans Khmer', sans-serif; margin: 0; color: var(--text-primary); transition: background .3s, color .3s; }
 
     /* ── SIDEBAR ── */
     #sidebar {
@@ -465,240 +468,64 @@
 <body>
 
 {% if current_user.is_authenticated %}
-<!-- SIDEBAR -->
+<!-- SIDEBAR (config-driven) -->
 <nav id="sidebar">
   <div class="brand">
     <h5><i class="fas fa-network-wired me-2" style="color:var(--accent)"></i>{{ _('IT Management') }}</h5>
     <small>{{ _('System v1.0') }}</small>
   </div>
-  {% set ns = namespace() %}
-  {% set ns.is_trip_ops = 'trip_operation' in (request.endpoint or '') or request.endpoint == 'vehicle_performance' %}
-  {% set ns.is_daily = request.endpoint and ('daily_report' in request.endpoint or request.endpoint == 'daily_reports') %}
-
-  {% set ns.is_kpi_dash = request.endpoint and 'kpi_dashboard' in request.endpoint %}
-  {% set ns.is_kpi_hist = request.endpoint and 'kpi_history' in request.endpoint %}
-  {% set ns.is_kpi_eval = request.endpoint and 'kpi_evaluation' in request.endpoint %}
-  {% set ns.is_transport = request.endpoint and 'transport' in request.endpoint %}
-  {% set ns.is_penalty = request.endpoint and 'penalt' in request.endpoint %}
-  {% set ns.is_user = 'user' in (request.endpoint or '') %}
-  {% set ns.is_role = 'role' in (request.endpoint or '') %}
-  {% set ns.is_dept = request.endpoint and 'department' in request.endpoint %}
-  {% set ns.is_pos = request.endpoint and 'position' in request.endpoint %}
-  {% set ns.is_sys = request.endpoint and 'dynamic' in request.endpoint %}
-  {% set ns.is_telegram = request.endpoint and 'telegram_settings' in request.endpoint %}
-  {% set ns.is_ops = ns.is_trip_ops or ns.is_daily %}
-  {% set ns.is_perf = ns.is_kpi_dash or ns.is_kpi_hist or ns.is_kpi_eval %}
-  {% set ns.is_admin = ns.is_user or ns.is_role %}
-  {% set ns.is_sett = ns.is_sys or ns.is_dept or ns.is_pos or ns.is_telegram %}
-  {% set ns.is_reports = request.endpoint and (request.endpoint.startswith('report_') or request.endpoint == 'reports' or request.endpoint == 'report_subpath') %}
-
   <div id="sidebar-nav" style="flex:1; padding: 8px 0;">
-
-    <!-- ═══ OVERVIEW ═══ -->
-    <div class="nav-section">{{ _('Overview') }}</div>
-    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
-      <i class="fas fa-th-large"></i> {{ _('Dashboard') }}
-    </a>
-
-    <!-- ═══ TRANSPORTATION ═══ -->
-    {% if has_any_permission('transport_request_view','transport_request_create','transport_request_edit','transport_request_delete','transport_request_approve','transport_request_reject','transport_request_download') %}
-    <div class="nav-section">{{ _('Transportation') }}</div>
-    <a href="#subTransport" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_transport else 'false' }}">
-      <i class="fas fa-truck"></i> {{ _('Transport Requests') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_transport }}" id="subTransport" data-bs-parent="#sidebar-nav">
-      <a href="{{ url_for('transport_requests') }}" class="nav-link sub-link {% if ns.is_transport %}active{% endif %}">
-        <i class="fas fa-list"></i> {{ _('All Requests') }}
-      </a>
-      {% if has_permission('transport_request_create') %}
-      <a href="{{ url_for('new_transport_request') }}" class="nav-link sub-link">
-        <i class="fas fa-plus"></i> {{ _('New Request') }}
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- ═══ OPERATIONS ═══ -->
-    <div class="nav-section">{{ _('Operations') }}</div>
-
-    {% if has_any_permission('trip_operation_report_view','trip_operation_report_create','trip_operation_report_edit','trip_operation_report_delete','trip_operation_report_download') %}
-    <a href="#subTripOps" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_trip_ops else 'false' }}">
-      <i class="fas fa-bus"></i> {{ _('Trip Operations') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_trip_ops }}" id="subTripOps" data-bs-parent="#sidebar-nav">
-      <a href="{{ url_for('trip_operation_reports') }}" class="nav-link sub-link {% if ns.is_trip_ops %}active{% endif %}">
-        <i class="fas fa-list"></i> {{ _('Trip Operation Report') }}
-      </a>
-      {% if has_permission('trip_operation_report_create') %}
-      <a href="{{ url_for('new_trip_operation_report') }}" class="nav-link sub-link">
-        <i class="fas fa-plus"></i> {{ _('New Report') }}
-      </a>
-      {% endif %}
-      <a href="{{ url_for('vehicle_performance') }}" class="nav-link sub-link {% if request.endpoint=='vehicle_performance' %}active{% endif %}">
-        <i class="fas fa-chart-bar"></i> {{ _('Vehicle Performance') }}
-      </a>
-    </div>
-    {% endif %}
-
-    <a href="#subDaily" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_daily else 'false' }}">
-      <i class="fas fa-file-alt"></i> {{ _('Daily Performance') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_daily }}" id="subDaily" data-bs-parent="#sidebar-nav">
-      <a href="{{ url_for('daily_reports') }}" class="nav-link sub-link {% if ns.is_daily %}active{% endif %}">
-        <i class="fas fa-list"></i> {{ _('Daily Report') }}
-      </a>
-      <a href="{{ url_for('new_daily_report') }}" class="nav-link sub-link">
-        <i class="fas fa-plus"></i> {{ _('New Report') }}
-      </a>
-    </div>
-
-
-
-    <!-- ═══ PERFORMANCE & KPI ═══ -->
-    <div class="nav-section">{{ _('Performance & KPI') }}</div>
-    <a href="{{ url_for('kpi_dashboard') }}" class="nav-link {% if ns.is_kpi_dash %}active{% endif %}">
-      <i class="fas fa-chart-simple"></i> {{ _('KPI Dashboard') }}
-    </a>
-    <a href="{{ url_for('kpi_history') }}" class="nav-link {% if ns.is_kpi_hist %}active{% endif %}">
-      <i class="fas fa-clock-rotate-left"></i> {{ _('KPI History') }}
-    </a>
-    {% if has_any_permission('report_view','report_create','report_edit','report_delete','report_export','report_print','report_download') %}
-    <a href="{{ url_for('kpi_evaluations') }}" class="nav-link {% if ns.is_kpi_eval %}active{% endif %}">
-      <i class="fas fa-chart-line"></i> {{ _('KPI Evaluations') }}
-    </a>
-    <a href="{{ url_for('new_kpi_evaluation') }}" class="nav-link">
-      <i class="fas fa-plus-circle"></i> {{ _('New Evaluation') }}
-    </a>
-    {% endif %}
-
-    <!-- ═══ DISCIPLINE ═══ -->
-    {% if has_any_permission('penalty_view','penalty_create','penalty_edit','penalty_delete','penalty_download') %}
-    <div class="nav-section">{{ _('Discipline') }}</div>
-    <a href="#subPenalty" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_penalty else 'false' }}">
-      <i class="fas fa-gavel"></i> {{ _('Penalties') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_penalty }}" id="subPenalty" data-bs-parent="#sidebar-nav">
-      <a href="{{ url_for('penalties') }}" class="nav-link sub-link {% if ns.is_penalty %}active{% endif %}">
-        <i class="fas fa-list"></i> {{ _('View All') }}
-      </a>
-      {% if has_permission('penalty_create') %}
-      <a href="{{ url_for('new_penalty') }}" class="nav-link sub-link">
-        <i class="fas fa-plus"></i> {{ _('New Penalty') }}
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- ═══ REPORTS (Collapsible Accordion) ═══ -->
-    {% if has_any_permission('report_view','report_create','report_edit','report_delete','report_export','report_print','report_download') %}
-    <div class="nav-section d-flex align-items-center justify-content-between pe-3">
-      <span>{{ _('Reports') }}</span>
-      <span class="report-count-badge">8</span>
-    </div>
-    <a href="#subReports" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_reports else 'false' }}" id="reportToggle">
-      <i class="fas fa-chart-bar"></i> {{ _('View Reports') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_reports }}" id="subReports" data-bs-parent="#sidebar-nav">
-      <div class="report-search-wrapper">
-        <i class="fas fa-search report-search-icon"></i>
-        <input type="text" class="report-search-input" id="reportSearchInput" placeholder="{{ _('Find report...') }}">
-      </div>
-      <div class="reports-list" id="reportsList">
-        <a href="/reports#transport"
-           class="nav-link sub-link report-link"
-           data-report="transport">
-          <i class="fas fa-route"></i> {{ _('Transport Requests') }}
+    {% set ns = namespace() %}
+    {% for section in sidebar_items %}
+      <div class="nav-section">{{ _(section['section']) }}</div>
+      {% for item in section['items'] %}
+        {% if item.type == 'link' %}
+        <a href="{{ url_for(item.endpoint) }}" class="nav-link {% if item.active %}active{% endif %}">
+          <i class="fas {{ item.icon }}"></i> {{ _(item.label) }}
         </a>
-        <a href="/reports#trip"
-           class="nav-link sub-link report-link"
-           data-report="trip">
-          <i class="fas fa-bus"></i> {{ _('Trip Operation') }}
+        {% elif item.type == 'group' %}
+        {% if item.active_match is not none and item.active_match %}
+        {% set group_id = 'sub-' + item.active_match | string %}
+        {% else %}
+        {% set group_id = 'sub-' + item.label | lower | replace(' ','-') | replace('&','') | replace('/','') %}
+        {% endif %}
+        <a href="#{{ group_id }}" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if item.expanded else 'false' }}">
+          <i class="fas {{ item.icon }}"></i> {{ _(item.label) }}
+          <i class="fas fa-chevron-down arrow"></i>
         </a>
-        <a href="/reports#daily"
-           class="nav-link sub-link report-link"
-           data-report="daily">
-          <i class="fas fa-file-alt"></i> {{ _('Daily Performance') }}
+        <div class="collapse {{ 'show' if item.expanded }}" id="{{ group_id }}" data-bs-parent="#sidebar-nav">
+          {% for child in item.children %}
+          <a href="{{ url_for(child.endpoint) }}" class="nav-link sub-link {% if child.active %}active{% endif %}">
+            <i class="fas {{ child.icon }}"></i> {{ _(child.label) }}
+          </a>
+          {% endfor %}
+        </div>
+        {% elif item.type == 'reports' %}
+        {% set ns.is_reports = request.endpoint and (request.endpoint.startswith('report_') or request.endpoint == 'reports' or request.endpoint == 'report_subpath') %}
+        <div class="nav-section d-flex align-items-center justify-content-between pe-3">
+          <span>{{ _('Reports') }}</span>
+          <span class="report-count-badge">{{ item.count }}</span>
+        </div>
+        <a href="#subReports" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_reports else 'false' }}" id="reportToggle">
+          <i class="fas fa-chart-bar"></i> {{ _('View Reports') }}
+          <i class="fas fa-chevron-down arrow"></i>
         </a>
-        <a href="/reports#kpi"
-           class="nav-link sub-link report-link"
-           data-report="kpi">
-          <i class="fas fa-chart-line"></i> {{ _('KPI') }}
-        </a>
-        <a href="/reports#kpi_history"
-           class="nav-link sub-link report-link"
-           data-report="kpi_history">
-          <i class="fas fa-clock-rotate-left"></i> {{ _('KPI History') }}
-        </a>
-        <a href="/reports#kpi_evaluation"
-           class="nav-link sub-link report-link"
-           data-report="kpi_evaluation">
-          <i class="fas fa-file-invoice"></i> {{ _('KPI Evaluation') }}
-        </a>
-        <a href="/reports#penalties"
-           class="nav-link sub-link report-link"
-           data-report="penalties">
-          <i class="fas fa-gavel"></i> {{ _('Penalties') }}
-        </a>
-        <a href="/reports#employee_performance"
-           class="nav-link sub-link report-link"
-           data-report="employee_performance">
-          <i class="fas fa-user-check"></i> {{ _('Employee Performance') }}
-        </a>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- ═══ ADMINISTRATION ═══ -->
-    {% if has_any_permission('user_view','user_create','user_edit','user_delete','user_download') or has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
-    <div class="nav-section">{{ _('Administration') }}</div>
-    {% if has_any_permission('user_view','user_create','user_edit','user_delete','user_download') %}
-    <a href="{{ url_for('users') }}" class="nav-link {% if ns.is_user %}active{% endif %}">
-      <i class="fas fa-users"></i> {{ _('Users') }}
-    </a>
-    {% endif %}
-    {% if has_any_permission('role_view','role_create','role_edit','role_delete','role_download') %}
-    <a href="{{ url_for('list_roles') }}" class="nav-link {% if ns.is_role %}active{% endif %}">
-      <i class="fas fa-user-shield"></i> {{ _('Roles & Permissions') }}
-    </a>
-    {% endif %}
-    {% endif %}
-
-    <!-- ═══ SETTINGS ═══ -->
-    {% if current_user.role == 'admin' or has_any_permission('system_settings_view','department_view','position_view','role_view','user_view') %}
-    <div class="nav-section">{{ _('Settings') }}</div>
-    <a href="#subSettings" class="nav-link" data-bs-toggle="collapse" role="button" aria-expanded="{{ 'true' if ns.is_sett else 'false' }}">
-      <i class="fas fa-sliders"></i> {{ _('Configuration') }}
-      <i class="fas fa-chevron-down arrow"></i>
-    </a>
-    <div class="collapse {{ 'show' if ns.is_sett }}" id="subSettings" data-bs-parent="#sidebar-nav">
-      {% if has_any_permission('system_settings_view','system_settings_edit','system_settings_update') %}
-      <a href="{{ url_for('dynamic_settings') }}" class="nav-link sub-link {% if ns.is_sys %}active{% endif %}">
-        <i class="fas fa-cogs"></i> {{ _('System Settings') }}
-      </a>
-      {% endif %}
-      {% if has_any_permission('department_view','department_create','department_edit','department_delete','department_download') %}
-      <a href="{{ url_for('departments') }}" class="nav-link sub-link {% if ns.is_dept %}active{% endif %}">
-        <i class="fas fa-building"></i> {{ _('Departments') }}
-      </a>
-      {% endif %}
-      {% if has_any_permission('position_view','position_create','position_edit','position_delete','position_download') %}
-      <a href="{{ url_for('positions') }}" class="nav-link sub-link {% if ns.is_pos %}active{% endif %}">
-        <i class="fas fa-briefcase"></i> {{ _('Positions') }}
-      </a>
-      {% endif %}
-      {% if current_user.role == 'admin' %}
-      <a href="{{ url_for('telegram_settings') }}" class="nav-link sub-link {% if ns.is_telegram %}active{% endif %}">
-        <i class="fab fa-telegram-plane"></i> {{ _('Telegram Notification') }}
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
-
+        <div class="collapse {{ 'show' if ns.is_reports }}" id="subReports" data-bs-parent="#sidebar-nav">
+          <div class="report-search-wrapper">
+            <i class="fas fa-search report-search-icon"></i>
+            <input type="text" class="report-search-input" id="reportSearchInput" placeholder="{{ _('Find report...') }}">
+          </div>
+          <div class="reports-list" id="reportsList">
+            {% for child in item.children %}
+            <a href="/reports#{{ child.anchor }}" class="nav-link sub-link report-link" data-report="{{ child.anchor }}">
+              <i class="fas {{ child.icon }}"></i> {{ _(child.label) }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
   </div>
   <div class="user-box">
     <div class="d-flex align-items-center gap-2 mb-2">
@@ -772,13 +599,11 @@
           <li><span class="dropdown-item-text" style="font-weight:600;color:var(--text-primary);">{{ current_user.full_name }}</span></li>
           <li><span class="dropdown-item-text" style="font-size:.78rem;color:var(--text-secondary);">{{ current_user.role_label }}</span></li>
           <li><hr class="dropdown-divider"></li>
-          {% if current_user.role == 'admin' or has_any_permission('role_view','user_view') %}
           {% if has_any_permission('role_view','role_create','role_edit','role_delete') %}
           <li><a class="dropdown-item" href="{{ url_for('list_roles') }}"><i class="fas fa-user-shield me-2"></i>{{ _('Roles') }}</a></li>
           {% endif %}
           {% if has_any_permission('user_view','user_create','user_edit','user_delete') %}
           <li><a class="dropdown-item" href="{{ url_for('users') }}"><i class="fas fa-users me-2"></i>{{ _('Users') }}</a></li>
-          {% endif %}
           {% endif %}
           <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>{{ _('Log Out') }}</a></li>
         </ul>

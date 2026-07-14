@@ -261,10 +261,12 @@
       {% endif %}
 
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('transport_request_create', 'transport_request_edit') %}
         <button type="submit" class="btn btn-primary btn-lg">
           <i class="fas fa-{{ 'save' if request_obj else 'paper-plane' }} me-2"></i>
           {{ _('Save Changes') if request_obj else _('Submit Request') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('transport_requests') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>

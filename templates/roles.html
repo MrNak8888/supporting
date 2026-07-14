@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Roles Management{% endblock %}
-{% block page_title %}Roles Management{% endblock %}
+{% block title %}{{ _('Roles Management') }}{% endblock %}
+{% block page_title %}{{ _('Roles Management') }}{% endblock %}
 
 {% set perm_labels = {
   'dashboard_view': 'View Dashboard', 'dashboard_edit': 'Edit Dashboard', 'dashboard_download': 'Download Dashboard',
@@ -10,7 +10,7 @@
   'daily_report_view': 'View Daily Reports', 'daily_report_create': 'Create Daily Report', 'daily_report_edit': 'Edit Daily Report', 'daily_report_delete': 'Delete Daily Report',
   'kpi_evaluation_view': 'View KPI Evaluations', 'kpi_evaluation_create': 'Create KPI Evaluation', 'kpi_evaluation_edit': 'Edit KPI Evaluation', 'kpi_evaluation_delete': 'Delete KPI Evaluation',
   'kpi_dashboard_view': 'View KPI Dashboard', 'kpi_history_view': 'View KPI History',
-  'report_view': 'View Reports', 'report_create': 'Create Report', 'report_edit': 'Edit Report', 'report_delete': 'Delete Report', 'report_export': 'Export Report', 'report_print': 'Print Report', 'report_download': 'Download Report',
+  'transport_request_view': 'View Transport Reports', 'trip_operation_report_view': 'View Trip Reports', 'daily_report_view': 'View Daily Reports', 'kpi_evaluation_view': 'View KPI Reports', 'kpi_history_view': 'View KPI History', 'penalty_view': 'View Penalty Reports',
   'system_settings_view': 'View Settings', 'system_settings_edit': 'Edit Settings', 'system_settings_update': 'Update Settings',
   'department_view': 'View Departments', 'department_create': 'Create Department', 'department_edit': 'Edit Department', 'department_delete': 'Delete Department', 'department_download': 'Download Departments',
   'position_view': 'View Positions', 'position_create': 'Create Position', 'position_edit': 'Edit Position', 'position_delete': 'Delete Position', 'position_download': 'Download Positions',
@@ -21,29 +21,33 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <p class="text-muted mb-0" style="font-size:.875rem;">Manage saved roles and their assigned permissions.</p>
+  <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage saved roles and their assigned permissions.') }}</p>
   <div class="d-flex gap-2">
+    {% if has_permission('role_create') %}
     <a href="{{ url_for('new_role') }}" class="btn btn-primary">
-      <i class="fas fa-plus-circle me-1"></i> Create Role
+      <i class="fas fa-plus-circle me-1"></i> {{ _('Create Role') }}
     </a>
+    {% endif %}
+    {% if has_any_permission('user_view','user_create','user_edit','user_delete') %}
     <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
-      <i class="fas fa-users me-1"></i> Users
+      <i class="fas fa-users me-1"></i> {{ _('Users') }}
     </a>
+    {% endif %}
   </div>
 </div>
 
 <div class="data-table">
   <div class="p-3 border-bottom">
-    <span style="font-size:.875rem;color:#64748b;">{{ roles|length }} role(s) defined</span>
+    <span style="font-size:.875rem;color:#64748b;">{{ _('%(count)s role(s) defined', count=roles|length) }}</span>
   </div>
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Role Name</th>
-          <th>Permissions</th>
-          <th>Created</th>
-          <th>Actions</th>
+          <th>{{ _('Role Name') }}</th>
+          <th>{{ _('Permissions') }}</th>
+          <th>{{ _('Created') }}</th>
+          <th>{{ _('Actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -53,26 +57,30 @@
           <td>
             {% if role.permissions %}
               {% for p in role.permissions %}
-                <span class="badge" style="background:#eef2ff;color:#4338ca;font-weight:500;margin:1px 2px;">{{ perm_labels.get(p, p) }}</span>
+                <span class="badge" style="background:#eef2ff;color:#4338ca;font-weight:500;margin:1px 2px;">{{ _(perm_labels.get(p, p)) }}</span>
               {% endfor %}
             {% else %}
-              <span style="color:#94a3b8;font-size:.8rem;">No permissions</span>
+              <span style="color:#94a3b8;font-size:.8rem;">{{ _('No permissions') }}</span>
             {% endif %}
           </td>
           <td style="color:#64748b;font-size:.8rem;">{{ role.created_date.strftime('%d %b %Y') }}</td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{{ url_for('edit_role', id=role.id) }}" class="btn btn-sm btn-outline-warning" title="Edit Role"><i class="fas fa-edit"></i></a>
-              <form method="POST" action="{{ url_for('delete_role', id=role.id) }}" onsubmit="return confirm('Delete role &quot;{{ role.name }}&quot;?');">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Role"><i class="fas fa-trash"></i></button>
+              {% if has_permission('role_edit') %}
+              <a href="{{ url_for('edit_role', id=role.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit Role') }}"><i class="fas fa-edit"></i></a>
+              {% endif %}
+              {% if has_permission('role_delete') %}
+              <form method="POST" action="{{ url_for('delete_role', id=role.id) }}" onsubmit="return confirm('{{ _('Delete role "%(name)s"?', name=role.name) }}');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete Role') }}"><i class="fas fa-trash"></i></button>
               </form>
+              {% endif %}
             </div>
           </td>
         </tr>
         {% endfor %}
         {% if not roles %}
         <tr>
-          <td colspan="4" class="text-center" style="color:#64748b;">No roles have been created yet.</td>
+          <td colspan="4" class="text-center" style="color:#64748b;">{{ _('No roles have been created yet.') }}</td>
         </tr>
         {% endif %}
       </tbody>
@@ -82,7 +90,7 @@
 
 <div class="mt-4">
   <a href="javascript:history.back()" class="btn btn-outline-secondary">
-    <i class="fas fa-arrow-left me-1"></i> Back
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
   </a>
 </div>
 {% endblock %}

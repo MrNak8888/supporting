@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% set back_fallback = url_for('dynamic_settings') %}
-{% block title %}{{ module.module_name }} Details{% endblock %}
-{% block page_title %}{{ module.module_name }} Details{% endblock %}
+{% block title %}{{ _('%(name)s Details', name=module.module_name) }}{% endblock %}
+{% block page_title %}{{ _('%(name)s Details', name=module.module_name) }}{% endblock %}
 
 {% block content %}
 <div class="mb-4">
   <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Back to {{ module.module_name }} List
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to %(name)s List', name=module.module_name) }}
   </a>
 </div>
 
@@ -18,9 +18,11 @@
           <i class="fas {{ module.module_icon }} me-2"></i>{{ module.module_name }}
         </h6>
         <div class="d-flex gap-2">
+          {% if has_permission('system_settings_edit') %}
           <a href="{{ url_for('dynamic_edit', module_key=module.module_key, id=record.id) }}" class="btn btn-warning btn-sm">
-            <i class="fas fa-edit me-1"></i> Edit
+            <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
           </a>
+          {% endif %}
         </div>
       </div>
 
@@ -35,9 +37,9 @@
             {% set display = record.data.get('_' ~ fld.field_name ~ '_display', val) %}
             {% if fld.field_type == 'boolean' or fld.field_type == 'checkbox' %}
               {% if val %}
-              <span class="status-badge badge-approved"><i class="fas fa-check me-1"></i>Yes</span>
+              <span class="status-badge badge-approved"><i class="fas fa-check me-1"></i>{{ _('Yes') }}</span>
               {% else %}
-              <span class="status-badge badge-rejected"><i class="fas fa-times me-1"></i>No</span>
+              <span class="status-badge badge-rejected"><i class="fas fa-times me-1"></i>{{ _('No') }}</span>
               {% endif %}
             {% elif fld.field_type == 'number' and val %}
               {{ "%.2f"|format(val|float) if val is number else val }}
@@ -51,18 +53,18 @@
         {% endfor %}
 
         <div class="col-md-6">
-          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Status</div>
+          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">{{ _('Status') }}</div>
           <div style="font-size:.95rem;font-weight:500;padding:6px 0;border-bottom:1px solid #f1f5f9;">
             {% if record.is_active %}
-            <span class="status-badge badge-approved">Active</span>
+            <span class="status-badge badge-approved">{{ _('Active') }}</span>
             {% else %}
-            <span class="status-badge badge-rejected">Inactive</span>
+            <span class="status-badge badge-rejected">{{ _('Inactive') }}</span>
             {% endif %}
           </div>
         </div>
 
         <div class="col-md-6">
-          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Created</div>
+          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">{{ _('Created') }}</div>
           <div style="font-size:.95rem;color:#1e293b;font-weight:500;padding:6px 0;border-bottom:1px solid #f1f5f9;">
             {{ record.created_date.strftime('%d %b %Y %H:%M') if record.created_date else '—' }}
           </div>
@@ -70,7 +72,7 @@
 
         {% if record.updated_date %}
         <div class="col-md-6">
-          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Last Updated</div>
+          <div style="font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">{{ _('Last Updated') }}</div>
           <div style="font-size:.95rem;color:#1e293b;font-weight:500;padding:6px 0;border-bottom:1px solid #f1f5f9;">
             {{ record.updated_date.strftime('%d %b %Y %H:%M') }}
           </div>
@@ -79,10 +81,12 @@
       </div>
 
       <div class="d-flex gap-2 mt-4 pt-3" style="border-top:1px solid #e2e8f0;">
+        {% if has_permission('system_settings_edit') %}
         <a href="{{ url_for('dynamic_edit', module_key=module.module_key, id=record.id) }}" class="btn btn-warning">
-          <i class="fas fa-edit me-1"></i> Edit
+          <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
         </a>
-        <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary">Back to List</a>
+        {% endif %}
+        <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary">{{ _('Back to List') }}</a>
       </div>
     </div>
   </div>

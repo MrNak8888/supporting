@@ -1,12 +1,13 @@
 # Khmer translations for IT Management System.
 # Copyright (C) 2026
-# This file is distributed under the same license as the IT Management System project.
+# This file is distributed under the same license as the IT Management
+# System project.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: IT Management System\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 14:34+0700\n"
+"POT-Creation-Date: 2026-07-11 12:00+0700\n"
 "PO-Revision-Date: 2026-06-28 14:34+0700\n"
 "Last-Translator: \n"
 "Language: km\n"
@@ -17,292 +18,379 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:102
+#: app.py:386
 msgid "Please log in to access this page."
 msgstr "សូមចូលប្រព័ន្ធដើម្បីចូលមើលទំព័រនេះ។"
 
-#: app.py:133
+#: app.py:488
 msgid "Administrator"
 msgstr "អ្នកគ្រប់គ្រង"
 
-#: app.py:134
+#: app.py:489
 msgid "IT Staff"
 msgstr "បុគ្គលិក IT"
 
-#: app.py:135
+#: app.py:490
 msgid "Branch Manager"
 msgstr "អ្នកគ្រប់គ្រងសាខា"
 
-#: app.py:136
+#: app.py:491
 msgid "Regional Manager"
 msgstr "អ្នកគ្រប់គ្រងតំបន់"
 
-#: app.py:137
+#: app.py:492
 msgid "HR Manager"
 msgstr "អ្នកគ្រប់គ្រងធនធានមនុស្ស"
 
-#: app.py:392
+#: app.py:960 app.py:974 app.py:988
 msgid "You do not have permission to access this page."
 msgstr "អ្នកមិនមានសិទ្ធិចូលមើលទំព័រនេះទេ។"
 
-#: app.py:421
+#: app.py:1034
+msgid "Too many login attempts. Try again in 15 minutes."
+msgstr "Too many login attempts. Try again in 15 minutes."
+
+#: app.py:1043
 msgid "Invalid username or password."
 msgstr "ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។"
 
-#: app.py:435
+#: app.py:1055
 msgid "Logo must be an image file (PNG, JPG, GIF, SVG)."
 msgstr "ឡូហ្គោត្រូវតែជាឯកសាររូបភាព (PNG, JPG, GIF, SVG)។"
 
-#: app.py:438
+#: app.py:1058
 msgid "Logo uploaded successfully!"
 msgstr "បានបង្ហោះឡូហ្គោដោយជោគជ័យ!"
 
-#: app.py:440
+#: app.py:1060
 msgid "No file selected."
 msgstr "មិនទាន់ជ្រើសរើសឯកសារទេ។"
 
-#: app.py:451
+#: app.py:1071
 msgid "Logo removed."
 msgstr "បានលុបឡូហ្គោ។"
 
-#: app.py:761 app.py:830
+#: app.py:1997 app.py:2067
 msgid "Origin and destination are required."
 msgstr "ត្រូវបញ្ចូលចំណុចចេញដំណើរ និងគោលដៅ។"
 
-#: app.py:790
+#: app.py:2026
 #, python-format
 msgid "Route Request %(id)s submitted successfully!"
 msgstr "សំណើបន្ទាត់ដំណើរ %(id)s ត្រូវបានដាក់ស្នើដោយជោគជ័យ!"
 
-#: app.py:821
+#: app.py:2058 app.py:2565
 msgid "Access denied."
 msgstr "មិនមានសិទ្ធិចូលប្រើ។"
 
-#: app.py:824
+#: app.py:2061 app.py:2295
 msgid "Only pending requests can be edited."
 msgstr "មានតែសំណើដែលកំពុងរង់ចាំប៉ុណ្ណោះដែលអាចកែប្រែបាន។"
 
-#: app.py:850
+#: app.py:2087
 msgid "Request updated successfully!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពសំណើដោយជោគជ័យ!"
 
-#: app.py:868
+#: app.py:2105 app.py:2381
 #, python-format
 msgid "Request %(action)s successfully!"
 msgstr "សំណើត្រូវបាន %(action)s ដោយជោគជ័យ!"
 
-#: app.py:880
+#: app.py:2117
 msgid "Request deleted."
 msgstr "បានលុបសំណើ។"
 
-#: app.py:930 app.py:977
+#: app.py:2154
+#, fuzzy
+msgid "Invalid filename."
+msgstr "ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។"
+
+#: app.py:2158
+#, fuzzy
+msgid "File not found."
+msgstr "រកមិនឃើញម៉ូឌុលទេ។"
+
+#: app.py:2215
+msgid "Please select a request type."
+msgstr "Please select a request type."
+
+#: app.py:2253 app.py:2338
+msgid "Duration cannot exceed 24 hours."
+msgstr "Duration cannot exceed 24 hours."
+
+#: app.py:2275
+#, fuzzy, python-format
+msgid "Transport Request %(id)s submitted successfully!"
+msgstr "សំណើបន្ទាត់ដំណើរ %(id)s ត្រូវបានដាក់ស្នើដោយជោគជ័យ!"
+
+#: app.py:2360
+#, fuzzy
+msgid "Transport Request updated successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពសំណើដោយជោគជ័យ!"
+
+#: app.py:2396
+#, fuzzy
+msgid "Transport request deleted."
+msgstr "បានលុបសំណើ។"
+
+#: app.py:2453 app.py:2508
 msgid "Employee ID and name are required."
 msgstr "ត្រូវបញ្ចូលលេខសម្គាល់បុគ្គលិក និងឈ្មោះ។"
 
-#: app.py:952
+#: app.py:2477
 #, python-format
 msgid "Penalty Record %(id)s created successfully!"
 msgstr "កំណត់ត្រាពិន័យ %(id)s ត្រូវបានបង្កើតដោយជោគជ័យ!"
 
-#: app.py:971
+#: app.py:2502
 msgid "Only pending penalties can be edited."
 msgstr "មានតែពិន័យដែលកំពុងរង់ចាំប៉ុណ្ណោះដែលអាចកែប្រែបាន។"
 
-#: app.py:991
+#: app.py:2524
 msgid "Penalty record updated!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
 
-#: app.py:1006
+#: app.py:2541
 #, python-format
 msgid "Penalty %(action)s!"
 msgstr "ពិន័យ %(action)s!"
 
-#: app.py:1018
+#: app.py:2554
 msgid "Penalty record deleted."
 msgstr "បានលុបកំណត់ត្រាពិន័យ។"
 
-#: app.py:1077 app.py:1142
+#: app.py:2589
+#, fuzzy
+msgid "Telegram settings saved!"
+msgstr "ការកំណត់ប្រព័ន្ធ"
+
+#: app.py:2803 app.py:2874
 msgid "Origin is required."
 msgstr "ត្រូវបញ្ចូលចំណុចចេញដំណើរ។"
 
-#: app.py:1079 app.py:1144
+#: app.py:2805 app.py:2876
 msgid "Destination is required."
 msgstr "ត្រូវបញ្ចូលគោលដៅ។"
 
-#: app.py:1081 app.py:1146
+#: app.py:2807 app.py:2878
 msgid "Departure Time is required."
 msgstr "ត្រូវបញ្ចូលម៉ោងចេញដំណើរ។"
 
-#: app.py:1083 app.py:1148
+#: app.py:2809 app.py:2880
 msgid "Vehicle Number is required."
 msgstr "ត្រូវបញ្ចូលលេខយានជំនិះ។"
 
-#: app.py:1085 app.py:1150
+#: app.py:2811 app.py:2882
 msgid "Vehicle Status is required."
 msgstr "ត្រូវបញ្ចូលស្ថានភាពយានជំនិះ។"
 
-#: app.py:1113
+#: app.py:2841
 #, python-format
 msgid "Trip Operation Report %(id)s created successfully!"
 msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ %(id)s ត្រូវបានបង្កើតដោយជោគជ័យ!"
 
-#: app.py:1174
+#: app.py:2909
 msgid "Trip Operation Report updated successfully!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពរបាយការណ៍ប្រតិបត្តិការធ្វើដំណើរដោយជោគជ័យ!"
 
-#: app.py:1186
+#: app.py:2921
 msgid "Trip Operation Report deleted."
 msgstr "បានលុបរបាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ។"
 
-#: app.py:1213 app.py:1235
+#: app.py:3404
+#, fuzzy
+msgid "Staff name and ID are required."
+msgstr "ត្រូវបញ្ចូលឈ្មោះមុខតំណែង និងនាយកដ្ឋាន។"
+
+#: app.py:3459
+#, fuzzy
+msgid "KPI Evaluation saved successfully!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពមុខតំណែងដោយជោគជ័យ!"
+
+#: app.py:3525
+#, fuzzy
+msgid "KPI Evaluation updated!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
+
+#: app.py:3536
+#, fuzzy
+msgid "KPI Evaluation deleted."
+msgstr "បានលុបមុខតំណែង។"
+
+#: app.py:3600
+#, fuzzy
+msgid "Invalid date."
+msgstr "ថ្ងៃបញ្ចប់"
+
+#: app.py:3629
+#, fuzzy
+msgid "Daily report saved!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
+
+#: app.py:3651
+#, fuzzy
+msgid "Submitted reports cannot be edited."
+msgstr "មានតែសំណើដែលកំពុងរង់ចាំប៉ុណ្ណោះដែលអាចកែប្រែបាន។"
+
+#: app.py:3679
+#, fuzzy
+msgid "Daily report updated!"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
+
+#: app.py:3695
+#, fuzzy
+msgid "Daily report deleted."
+msgstr "បានលុបកំណត់ត្រាពិន័យ។"
+
+#: app.py:3909 app.py:3933
 msgid "Department name is required."
 msgstr "ត្រូវបញ្ចូលឈ្មោះនាយកដ្ឋាន។"
 
-#: app.py:1222
+#: app.py:3918
 #, python-format
 msgid "Department \"%(name)s\" created successfully!"
 msgstr "នាយកដ្ឋាន \"%(name)s\" ត្រូវបានបង្កើតដោយជោគជ័យ!"
 
-#: app.py:1241
+#: app.py:3939
 msgid "Department updated successfully!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពនាយកដ្ឋានដោយជោគជ័យ!"
 
-#: app.py:1252
+#: app.py:3950
 msgid "Cannot delete department with existing positions."
 msgstr "មិនអាចលុបនាយកដ្ឋានដែលមានមុខតំណែងនៅឡើយទេ។"
 
-#: app.py:1256
+#: app.py:3954
 msgid "Department deleted."
 msgstr "បានលុបនាយកដ្ឋាន។"
 
-#: app.py:1284 app.py:1309
+#: app.py:3985 app.py:4012
 msgid "Position name and department are required."
 msgstr "ត្រូវបញ្ចូលឈ្មោះមុខតំណែង និងនាយកដ្ឋាន។"
 
-#: app.py:1294
+#: app.py:3995
 #, python-format
 msgid "Position \"%(name)s\" created successfully!"
 msgstr "មុខតំណែង \"%(name)s\" ត្រូវបានបង្កើតដោយជោគជ័យ!"
 
-#: app.py:1316
+#: app.py:4019
 msgid "Position updated successfully!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពមុខតំណែងដោយជោគជ័យ!"
 
-#: app.py:1329
+#: app.py:4031
 msgid "Position deleted."
 msgstr "បានលុបមុខតំណែង។"
 
-#: app.py:1580
+#: app.py:4899
 #, python-format
 msgid "Module \"%(key)s\" not found."
 msgstr "ម៉ូឌុល \"%(key)s\" រកមិនឃើញទេ។"
 
-#: app.py:1600
+#: app.py:4919
 #, python-format
 msgid "%(label)s is required."
 msgstr "ត្រូវបញ្ចូល %(label)s។"
 
-#: app.py:1610
+#: app.py:4929
 #, python-format
 msgid "%(label)s must be at least %(len)d characters."
 msgstr "%(label)s ត្រូវតែមានយ៉ាងហោចណាស់ %(len)d តួអក្សរ។"
 
-#: app.py:1614
+#: app.py:4933
 #, python-format
 msgid "%(label)s must not exceed %(len)d characters."
 msgstr "%(label)s មិនត្រូវលើសពី %(len)d តួអក្សរទេ។"
 
-#: app.py:1618
+#: app.py:4937
 #, python-format
 msgid "%(label)s format is invalid."
 msgstr "ទម្រង់ %(label)s មិនត្រឹមត្រូវ។"
 
-#: app.py:1630
+#: app.py:4949
 #, python-format
 msgid "%(label)s must be unique."
 msgstr "%(label)s ត្រូវតែមានតែមួយគត់។"
 
-#: app.py:1637
+#: app.py:4973
 #, python-format
 msgid "%(label)s validation failed."
 msgstr "ការត្រួតពិនិត្យ %(label)s បរាជ័យ។"
 
-#: app.py:1646
+#: app.py:4982
 #, python-format
 msgid "%(label)s must be a valid number."
 msgstr "%(label)s ត្រូវតែជាលេខត្រឹមត្រូវ។"
 
-#: app.py:1687
+#: app.py:5023
 msgid "Module not found."
 msgstr "រកមិនឃើញម៉ូឌុលទេ។"
 
-#: app.py:1836
+#: app.py:5172
 #, python-format
 msgid "%(name)s created successfully."
 msgstr "%(name)s ត្រូវបានបង្កើតដោយជោគជ័យ។"
 
-#: app.py:1892
+#: app.py:5228
 #, python-format
 msgid "%(name)s updated successfully."
 msgstr "%(name)s ត្រូវបានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យ។"
 
-#: app.py:1904
+#: app.py:5240
 msgid "Record deleted."
 msgstr "បានលុបកំណត់ត្រា។"
 
-#: app.py:1915
+#: app.py:5251
 msgid "Record activated."
 msgstr "បានដំណើរការកំណត់ត្រា។"
 
-#: app.py:1915
+#: app.py:5251
 msgid "Record deactivated."
 msgstr "បានបិទដំណើរការកំណត់ត្រា។"
 
-#: app.py:1983 app.py:2030
+#: app.py:5319 app.py:5366
 msgid "Role name is required."
 msgstr "ត្រូវបញ្ចូលឈ្មោះតួនាទី។"
 
-#: app.py:1988 app.py:2034
+#: app.py:5324 app.py:5370
 msgid "A role with that name already exists."
 msgstr "តួនាទីដែលមានឈ្មោះនេះមានរួចហើយ។"
 
-#: app.py:1996
+#: app.py:5332
 #, python-format
 msgid "Role \"%(name)s\" updated."
 msgstr "តួនាទី \"%(name)s\" ត្រូវបានធ្វើបច្ចុប្បន្នភាព។"
 
-#: app.py:2009
+#: app.py:5345
 #, python-format
 msgid "Role \"%(name)s\" deleted."
 msgstr "តួនាទី \"%(name)s\" ត្រូវបានលុប។"
 
-#: app.py:2041
+#: app.py:5377
 #, python-format
 msgid "Role \"%(name)s\" created with %(count)d permissions."
 msgstr "តួនាទី \"%(name)s\" ត្រូវបានបង្កើតដោយមានសិទ្ធិ %(count)d។"
 
-#: app.py:2062
+#: app.py:5400
 msgid "Selected role not found."
 msgstr "រកមិនឃើញតួនាទីដែលបានជ្រើសរើសទេ។"
 
-#: app.py:2070
+#: app.py:5408
 msgid "Username already exists."
 msgstr "ឈ្មោះអ្នកប្រើមានរួចហើយ។"
 
-#: app.py:2075
+#: app.py:5413
 #, python-format
 msgid "User %(name)s created!"
 msgstr "អ្នកប្រើ %(name)s ត្រូវបានបង្កើត!"
 
-#: app.py:2103
+#: app.py:5443
 msgid "User updated!"
 msgstr "បានធ្វើបច្ចុប្បន្នភាពអ្នកប្រើ!"
 
-#: app.py:2115
+#: app.py:5455
 msgid "Cannot delete yourself."
 msgstr "មិនអាចលុបខ្លួនឯងបានទេ។"
 
-#: app.py:2119
+#: app.py:5459
 msgid "User deleted."
 msgstr "បានលុបអ្នកប្រើ។"
 
@@ -310,333 +398,1934 @@ msgstr "បានលុបអ្នកប្រើ។"
 msgid "IT Management System"
 msgstr "ប្រព័ន្ធគ្រប់គ្រង IT"
 
-#: templates/base.html:252 templates/dashboard.html:2
+#: templates/base.html:471 templates/dashboard.html:2
 msgid "IT Management"
 msgstr "ការគ្រប់គ្រង IT"
 
-#: templates/base.html:253
+#: templates/base.html:472
 msgid "System v1.0"
 msgstr "ប្រព័ន្ធ v1.0"
 
-#: templates/base.html:256
-msgid "Main"
-msgstr "មេ"
+#: templates/base.html:498
+msgid "Overview"
+msgstr "ទិដ្ឋភាពទូទៅ"
 
-#: templates/base.html:258 templates/base.html:351 templates/dashboard.html:2
-#: templates/dashboard.html:3 templates/dashboard.html:10
+#: templates/base.html:500 templates/base.html:742
+#: templates/create_role.html:48 templates/dashboard.html:2
+#: templates/dashboard.html:3
 msgid "Dashboard"
 msgstr "ផ្ទាំងគ្រប់គ្រង"
 
-#: templates/base.html:261 templates/route_requests.html:2
-msgid "Route Requests"
-msgstr "សំណើបន្ទាត់ដំណើរ"
+#: templates/base.html:505
+#, fuzzy
+msgid "Transportation"
+msgstr "ប្រភេទយានជំនិះ"
 
-#: templates/base.html:263
+#: templates/base.html:507 templates/base.html:615
+#: templates/transport_requests.html:2
+#, fuzzy
+msgid "Transport Requests"
+msgstr "សំណើសរុប"
+
+#: templates/base.html:512
 msgid "All Requests"
 msgstr "សំណើទាំងអស់"
 
-#: templates/base.html:267 templates/dashboard.html:172
-#: templates/route_requests.html:15
+#: templates/base.html:516 templates/route_requests.html:15
 msgid "New Request"
 msgstr "សំណើថ្មី"
 
-#: templates/base.html:272
-msgid "HR & Organization"
-msgstr "ធនធានមនុស្ស និងអង្គការ"
+#: templates/base.html:523
+#, fuzzy
+msgid "Operations"
+msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
 
-#: templates/base.html:274
-msgid "Penalties"
-msgstr "ពិន័យ"
-
-#: templates/base.html:278 templates/dashboard.html:176
-msgid "New Penalty"
-msgstr "ពិន័យថ្មី"
-
-#: templates/base.html:283
+#: templates/base.html:527
 msgid "Trip Operations"
 msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
 
-#: templates/base.html:285
+#: templates/base.html:532 templates/create_role.html:105
+#: templates/trip_operation_report_detail.html:4
 msgid "Trip Operation Report"
 msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
 
-#: templates/base.html:289
+#: templates/base.html:536 templates/base.html:554
+#: templates/daily_report_list.html:18 templates/trip_operation_reports.html:12
 msgid "New Report"
 msgstr "របាយការណ៍ថ្មី"
 
-#: templates/base.html:294
-msgid "Analytics"
-msgstr "ការវិភាគ"
+#: templates/base.html:540
+msgid "Vehicle Performance"
+msgstr "ដំណើរការយានយន្ត"
 
-#: templates/base.html:296
-msgid "Reports"
-msgstr "របាយការណ៍"
+#: templates/base.html:546 templates/base.html:625
+msgid "Daily Performance"
+msgstr "ដំណើរការប្រចាំថ្ងៃ"
 
-#: templates/base.html:300
-msgid "Settings"
-msgstr "ការកំណត់"
+#: templates/base.html:551 templates/daily_report_detail.html:3
+#: templates/daily_report_form.html:57
+#, fuzzy
+msgid "Daily Report"
+msgstr "របាយការណ៍ថ្មី"
 
-#: templates/base.html:302
-msgid "System Settings"
-msgstr "ការកំណត់ប្រព័ន្ធ"
+#: templates/base.html:561
+msgid "Performance & KPI"
+msgstr "ដំណើរការ និង KPI"
 
-#: templates/base.html:305
-msgid "Departments"
-msgstr "នាយកដ្ឋាន"
+#: templates/base.html:563 templates/kpi_dashboard.html:2
+#: templates/kpi_history.html:10
+#, fuzzy
+msgid "KPI Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
 
-#: templates/base.html:308
-msgid "Positions"
-msgstr "មុខតំណែង"
+#: templates/base.html:566 templates/base.html:635
+#: templates/kpi_dashboard.html:12 templates/kpi_history.html:3
+msgid "KPI History"
+msgstr "ប្រវត្តិ KPI"
 
-#: templates/base.html:311 templates/base.html:385
-msgid "Roles"
-msgstr "តួនាទី"
+#: templates/base.html:570 templates/kpi_list.html:2
+#, fuzzy
+msgid "KPI Evaluations"
+msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
 
-#: templates/base.html:314 templates/base.html:386
-msgid "Users"
-msgstr "អ្នកប្រើ"
+#: templates/base.html:573 templates/kpi_list.html:11
+#, fuzzy
+msgid "New Evaluation"
+msgstr "ពិន័យថ្មី"
 
-#: templates/base.html:329 templates/base.html:388
-msgid "Log Out"
-msgstr "ចាកចេញ"
+#: templates/base.html:579
+msgid "Discipline"
+msgstr "វិន័យ"
 
-#: templates/base.html:356
-msgid "Search..."
-msgstr "ស្វែងរក..."
+#: templates/base.html:581 templates/base.html:645
+#: templates/create_role.html:86
+msgid "Penalties"
+msgstr "ពិន័យ"
 
-#: templates/base.html:360
-msgid "Language"
-msgstr "ភាសា"
-
-#: templates/base.html:368
-msgid "Toggle Dark Mode"
-msgstr "ប្តូររបៀបងងឹត"
-
-#: templates/base.html:371 templates/dashboard.html:295
-msgid "Notifications"
-msgstr "ការជូនដំណឹង"
-
-#: templates/dashboard.html:11
-#, python-format
-msgid "Welcome back, %(name)s. Here's what's happening today."
-msgstr "ស្វាគមន៍ការត្រលប់មកវិញ, %(name)s។ នេះជាអ្វីដែលកំពុងកើតឡើងថ្ងៃនេះ។"
-
-#: templates/dashboard.html:15
-msgid "Today"
-msgstr "ថ្ងៃនេះ"
-
-#: templates/dashboard.html:16
-msgid "This Week"
-msgstr "សប្តាហ៍នេះ"
-
-#: templates/dashboard.html:17
-msgid "This Month"
-msgstr "ខែនេះ"
-
-#: templates/dashboard.html:18
-msgid "This Year"
-msgstr "ឆ្នាំនេះ"
-
-#: templates/dashboard.html:19
-msgid "All Time"
-msgstr "គ្រប់ពេល"
-
-#: templates/dashboard.html:20
-msgid "Custom"
-msgstr "ផ្ទាល់ខ្លួន"
-
-#: templates/dashboard.html:24
-msgid "to"
-msgstr "ដល់"
-
-#: templates/dashboard.html:26
-msgid "Apply"
-msgstr "អនុវត្ត"
-
-#: templates/dashboard.html:41
-msgid "Total Route Requests"
-msgstr "សំណើបន្ទាត់ដំណើរសរុប"
-
-#: templates/dashboard.html:51
-msgid "Pending Requests"
-msgstr "សំណើរង់ចាំ"
-
-#: templates/dashboard.html:61
-msgid "Approved Requests"
-msgstr "សំណើដែលបានអនុម័ត"
-
-#: templates/dashboard.html:71
-msgid "Rejected Requests"
-msgstr "សំណើដែលត្រូវបានច្រានចោល"
-
-#: templates/dashboard.html:85
-msgid "Total Penalty Cases"
-msgstr "ករណីពិន័យសរុប"
-
-#: templates/dashboard.html:95
-msgid "Total Penalty Amount"
-msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
-
-#: templates/dashboard.html:105
-msgid "Pending Penalties"
-msgstr "ពិន័យរង់ចាំ"
-
-#: templates/dashboard.html:115
-msgid "Processed Requests"
-msgstr "សំណើដែលបានដំណើរការ"
-
-#: templates/dashboard.html:129
-msgid "Total Trip Reports"
-msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
-
-#: templates/dashboard.html:139
-msgid "Departed Trips"
-msgstr "ដំណើរដែលបានចេញ"
-
-#: templates/dashboard.html:149
-msgid "Not Departed"
-msgstr "មិនទាន់ចេញដំណើរ"
-
-#: templates/dashboard.html:159
-msgid "Total Passengers"
-msgstr "អ្នកដំណើរសរុប"
-
-#: templates/dashboard.html:169
-msgid "Quick Actions"
-msgstr "សកម្មភាពរហ័ស"
-
-#: templates/dashboard.html:180
-msgid "New Trip Report"
-msgstr "របាយការណ៍ធ្វើដំណើរថ្មី"
-
-#: templates/dashboard.html:183
-msgid "Export Excel"
-msgstr "នាំចេញ Excel"
-
-#: templates/dashboard.html:186
-msgid "Export PDF"
-msgstr "នាំចេញ PDF"
-
-#: templates/dashboard.html:189
-msgid "Print"
-msgstr "បោះពុម្ព"
-
-#: templates/dashboard.html:201
-msgid "Request Status Overview"
-msgstr "ទិដ្ឋភាពទូទៅស្ថានភាពសំណើ"
-
-#: templates/dashboard.html:207
-msgid "Monthly Route Requests"
-msgstr "សំណើបន្ទាត់ដំណើរប្រចាំខែ"
-
-#: templates/dashboard.html:213
-msgid "Penalty Trend"
-msgstr "និន្នាការពិន័យ"
-
-#: templates/dashboard.html:219
-msgid "Trip Operations Summary"
-msgstr "សេចក្តីសង្ខេបប្រតិបត្តិការធ្វើដំណើរ"
-
-#: templates/dashboard.html:230
-msgid "Recent Route Requests"
-msgstr "សំណើបន្ទាត់ដំណើរថ្មីៗ"
-
-#: templates/dashboard.html:231
+#: templates/base.html:586 templates/dashboard.html:252
+#: templates/dashboard.html:266 templates/dashboard.html:283
 msgid "View All"
 msgstr "មើលទាំងអស់"
 
-#: templates/dashboard.html:237 templates/route_requests.html:91
-msgid "Request ID"
-msgstr "លេខសម្គាល់សំណើ"
+#: templates/base.html:590 templates/penalties.html:10
+#: templates/penalty_form.html:3 templates/penalty_form.html:4
+msgid "New Penalty"
+msgstr "ពិន័យថ្មី"
 
-#: templates/dashboard.html:238
-msgid "Employee"
-msgstr "បុគ្គលិក"
+#: templates/base.html:599 templates/create_role.html:164
+#: templates/reports.html:3
+msgid "Reports"
+msgstr "របាយការណ៍"
 
-#: templates/dashboard.html:239
-msgid "Destination"
-msgstr "គោលដៅ"
+#: templates/base.html:603 templates/create_role.html:111
+#: templates/create_role.html:131 templates/create_role.html:170
+#, fuzzy
+msgid "View Reports"
+msgstr "របាយការណ៍ថ្មី"
 
-#: templates/dashboard.html:240
-msgid "Request Date"
+#: templates/base.html:609
+#, fuzzy
+msgid "Find report..."
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/base.html:620
+#, fuzzy
+msgid "Trip Operation"
+msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/base.html:630
+msgid "KPI"
+msgstr "KPI"
+
+#: templates/base.html:640 templates/create_role.html:144
+#: templates/kpi_detail.html:3 templates/kpi_detail.html:4
+msgid "KPI Evaluation"
+msgstr "ការវាយតម្លៃ KPI"
+
+#: templates/base.html:650
+msgid "Employee Performance"
+msgstr "ដំណើរការបុគ្គលិក"
+
+#: templates/base.html:658
+#, fuzzy
+msgid "Administration"
+msgstr "អ្នកគ្រប់គ្រង"
+
+#: templates/base.html:661 templates/base.html:780
+#: templates/create_role.html:260 templates/roles.html:30
+msgid "Users"
+msgstr "អ្នកប្រើ"
+
+#: templates/base.html:666
+#, fuzzy
+msgid "Roles & Permissions"
+msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
+
+#: templates/base.html:673
+msgid "Settings"
+msgstr "ការកំណត់"
+
+#: templates/base.html:675
+#, fuzzy
+msgid "Configuration"
+msgstr "ការជូនដំណឹង"
+
+#: templates/base.html:681 templates/create_role.html:185
+#: templates/dynamic_settings.html:2 templates/dynamic_settings.html:3
+#: templates/dynamic_settings.html:306
+msgid "System Settings"
+msgstr "ការកំណត់ប្រព័ន្ធ"
+
+#: templates/base.html:686 templates/create_role.html:202
+#: templates/departments.html:2
+msgid "Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/base.html:691 templates/create_role.html:221
+#: templates/positions.html:2
+msgid "Positions"
+msgstr "មុខតំណែង"
+
+#: templates/base.html:696
+#, fuzzy
+msgid "Telegram Notification"
+msgstr "ការជូនដំណឹង"
+
+#: templates/base.html:714 templates/base.html:783
+msgid "Log Out"
+msgstr "ចាកចេញ"
+
+#: templates/base.html:738 templates/daily_report_detail.html:9
+#: templates/kpi_detail.html:9 templates/penalty_detail.html:9
+#: templates/roles.html:85 templates/route_request_detail.html:9
+#: templates/transport_request_detail.html:9
+#: templates/trip_operation_report_detail.html:9 templates/users.html:85
+#, fuzzy
+msgid "Back"
+msgstr "សាខា"
+
+#: templates/base.html:747
+msgid "Search..."
+msgstr "ស្វែងរក..."
+
+#: templates/base.html:751
+msgid "Language"
+msgstr "ភាសា"
+
+#: templates/base.html:759
+msgid "Toggle Dark Mode"
+msgstr "ប្តូររបៀបងងឹត"
+
+#: templates/base.html:762
+msgid "Notifications"
+msgstr "ការជូនដំណឹង"
+
+#: templates/base.html:777 templates/create_role.html:240
+#: templates/users.html:10
+msgid "Roles"
+msgstr "តួនាទី"
+
+#: templates/create_role.html:3 templates/create_role.html:4
+#: templates/create_role.html:17 templates/create_role.html:248
+#: templates/roles.html:65
+#, fuzzy
+msgid "Edit Role"
+msgstr "កែប្រែសំណើ"
+
+#: templates/create_role.html:3 templates/create_role.html:4
+#, fuzzy
+msgid "New Role"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:9
+#, fuzzy
+msgid "Back to Roles"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/create_role.html:17
+#, fuzzy
+msgid "Role Configuration"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/create_role.html:23 templates/roles.html:43
+#, fuzzy
+msgid "Role Name"
+msgstr "ឈ្មោះអ្នកស្នើសុំ"
+
+#: templates/create_role.html:24
+#, fuzzy
+msgid "Enter role name..."
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/create_role.html:27
+msgid "Role Label"
+msgstr "ស្លាកតួនាទី"
+
+#: templates/create_role.html:28
+msgid "Display name..."
+msgstr "ឈ្មោះបង្ហាញ..."
+
+#: templates/create_role.html:36 templates/roles.html:44
+#, fuzzy
+msgid "Permissions"
+msgstr "មុខតំណែង"
+
+#: templates/create_role.html:40 templates/vehicle_performance.html:29
+#, fuzzy
+msgid "Select All"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/create_role.html:54
+#, fuzzy
+msgid "View Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/create_role.html:55
+#, fuzzy
+msgid "Edit Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/create_role.html:56
+#, fuzzy
+msgid "Download Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/create_role.html:65 templates/route_requests.html:2
+msgid "Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/create_role.html:71
+#, fuzzy
+msgid "View Requests"
+msgstr "សំណើថ្មី"
+
+#: templates/create_role.html:72
+#, fuzzy
+msgid "Create Request"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/create_role.html:73 templates/route_request_form.html:4
+#: templates/transport_request_form.html:4
+msgid "Edit Request"
+msgstr "កែប្រែសំណើ"
+
+#: templates/create_role.html:74
+#, fuzzy
+msgid "Delete Request"
+msgstr "សំណើដែលត្រូវបានច្រានចោល"
+
+#: templates/create_role.html:75
+#, fuzzy
+msgid "Approve Request"
+msgstr "សំណើដែលបានអនុម័ត"
+
+#: templates/create_role.html:76
+#, fuzzy
+msgid "Reject Request"
+msgstr "សំណើដែលត្រូវបានច្រានចោល"
+
+#: templates/create_role.html:77
+#, fuzzy
+msgid "Download Requests"
+msgstr "សំណើសរុប"
+
+#: templates/create_role.html:92
+#, fuzzy
+msgid "View Penalties"
+msgstr "ពិន័យ"
+
+#: templates/create_role.html:93 templates/penalty_form.html:136
+#, fuzzy
+msgid "Create Penalty"
+msgstr "ពិន័យថ្មី"
+
+#: templates/create_role.html:94 templates/penalty_form.html:3
+#: templates/penalty_form.html:4
+#, fuzzy
+msgid "Edit Penalty"
+msgstr "ពិន័យថ្មី"
+
+#: templates/create_role.html:95
+#, fuzzy
+msgid "Delete Penalty"
+msgstr "ពិន័យថ្មី"
+
+#: templates/create_role.html:96
+#, fuzzy
+msgid "Download Penalties"
+msgstr "ពិន័យរង់ចាំ"
+
+#: templates/create_role.html:112 templates/create_role.html:132
+#: templates/create_role.html:171
+#, fuzzy
+msgid "Create Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:113 templates/create_role.html:133
+#: templates/create_role.html:172 templates/trip_operation_report_form.html:4
+#, fuzzy
+msgid "Edit Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:114 templates/create_role.html:134
+#: templates/create_role.html:173
+#, fuzzy
+msgid "Delete Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:115
+#, fuzzy
+msgid "Download Reports"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:125 templates/daily_report_detail.html:4
+#, fuzzy
+msgid "Daily Performance Report"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/create_role.html:150
+msgid "View Evaluations"
+msgstr "មើលការវាយតម្លៃ"
+
+#: templates/create_role.html:151
+msgid "Create Evaluation"
+msgstr "បង្កើតការវាយតម្លៃ"
+
+#: templates/create_role.html:152
+msgid "Edit Evaluation"
+msgstr "កែសម្រួលការវាយតម្លៃ"
+
+#: templates/create_role.html:153
+#, fuzzy
+msgid "Delete Evaluation"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/create_role.html:154
+#, fuzzy
+msgid "View KPI Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/create_role.html:155
+msgid "View KPI History"
+msgstr "មើលប្រវត្តិ KPI"
+
+#: templates/create_role.html:174
+#, fuzzy
+msgid "Export Report"
+msgstr "នាំចេញ និងរបាយការណ៍"
+
+#: templates/create_role.html:175
+#, fuzzy
+msgid "Print Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:176
+#, fuzzy
+msgid "Download Report"
+msgstr "របាយការណ៍ថ្មី"
+
+#: templates/create_role.html:191
+#, fuzzy
+msgid "View Settings"
+msgstr "ការកំណត់"
+
+#: templates/create_role.html:192
+#, fuzzy
+msgid "Edit Settings"
+msgstr "ការកំណត់"
+
+#: templates/create_role.html:193
+#, fuzzy
+msgid "Update Settings"
+msgstr "ការកំណត់ប្រព័ន្ធ"
+
+#: templates/create_role.html:208
+#, fuzzy
+msgid "View Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/create_role.html:209 templates/department_form.html:48
+#, fuzzy
+msgid "Create Department"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/create_role.html:210 templates/department_form.html:3
+#: templates/department_form.html:4
+#, fuzzy
+msgid "Edit Department"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/create_role.html:211
+#, fuzzy
+msgid "Delete Department"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/create_role.html:212
+#, fuzzy
+msgid "Download Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/create_role.html:227
+#, fuzzy
+msgid "View Positions"
+msgstr "មុខតំណែង"
+
+#: templates/create_role.html:228 templates/position_form.html:57
+#, fuzzy
+msgid "Create Position"
+msgstr "មុខតំណែង"
+
+#: templates/create_role.html:229 templates/position_form.html:3
+#, fuzzy
+msgid "Edit Position"
+msgstr "មុខតំណែង"
+
+#: templates/create_role.html:230
+#, fuzzy
+msgid "Delete Position"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/create_role.html:231
+#, fuzzy
+msgid "Download Positions"
+msgstr "មុខតំណែង"
+
+#: templates/create_role.html:246
+#, fuzzy
+msgid "View Roles"
+msgstr "មើលទាំងអស់"
+
+#: templates/create_role.html:247 templates/create_role.html:283
+#: templates/roles.html:27
+msgid "Create Role"
+msgstr "បង្កើតតួនាទី"
+
+#: templates/create_role.html:249 templates/roles.html:67
+msgid "Delete Role"
+msgstr "លុបតួនាទី"
+
+#: templates/create_role.html:250
+#, fuzzy
+msgid "Assign Permissions"
+msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
+
+#: templates/create_role.html:251
+msgid "Download Roles"
+msgstr "ទាញយកតួនាទី"
+
+#: templates/create_role.html:266
+#, fuzzy
+msgid "View Users"
+msgstr "អ្នកប្រើ"
+
+#: templates/create_role.html:267 templates/user_form.html:69
+#, fuzzy
+msgid "Create User"
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/create_role.html:268 templates/user_form.html:3
+#: templates/user_form.html:4
+#, fuzzy
+msgid "Edit User"
+msgstr "កែប្រែ"
+
+#: templates/create_role.html:269
+#, fuzzy
+msgid "Delete User"
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/create_role.html:270
+msgid "Assign Roles"
+msgstr "ចាត់តួនាទី"
+
+#: templates/create_role.html:271
+#, fuzzy
+msgid "Reset Password"
+msgstr "បញ្ចូលពាក្យសម្ងាត់"
+
+#: templates/create_role.html:272
+msgid "Activate User"
+msgstr "ដំណើរការអ្នកប្រើប្រាស់"
+
+#: templates/create_role.html:273
+msgid "Deactivate User"
+msgstr "បិទដំណើរការអ្នកប្រើប្រាស់"
+
+#: templates/create_role.html:274
+msgid "Download Users"
+msgstr "ទាញយកអ្នកប្រើប្រាស់"
+
+#: templates/create_role.html:283
+msgid "Update Role"
+msgstr "ធ្វើបច្ចុប្បន្នភាពតួនាទី"
+
+#: templates/create_role.html:285 templates/daily_report_form.html:152
+#: templates/department_form.html:50 templates/dynamic_form.html:106
+#: templates/kpi_form.html:302 templates/penalty_form.html:138
+#: templates/position_form.html:59 templates/route_request_form.html:167
+#: templates/telegram_settings.html:150 templates/telegram_settings.html:170
+#: templates/transport_request_form.html:268
+#: templates/trip_operation_report_form.html:158 templates/user_form.html:71
+msgid "Cancel"
+msgstr "បោះបង់"
+
+#: templates/daily_report_detail.html:13 templates/daily_report_list.html:144
+#: templates/departments.html:56 templates/dynamic_form.html:3
+#: templates/dynamic_form.html:4 templates/dynamic_form.html:17
+#: templates/dynamic_list.html:94 templates/dynamic_view.html:22
+#: templates/dynamic_view.html:83 templates/kpi_detail.html:13
+#: templates/kpi_list.html:91 templates/penalty_detail.html:13
+#: templates/positions.html:58 templates/route_request_detail.html:13
+#: templates/route_request_form.html:3 templates/route_requests.html:126
+#: templates/transport_request_detail.html:13
+#: templates/transport_request_form.html:3
+#: templates/transport_requests.html:155
+#: templates/trip_operation_report_detail.html:13
+msgid "Edit"
+msgstr "កែប្រែ"
+
+#: templates/daily_report_detail.html:16 templates/daily_report_list.html:148
+#: templates/trip_operation_report_detail.html:17
+#: templates/trip_operation_reports.html:124
+#, fuzzy
+msgid "Delete this report?"
+msgstr "របាយការណ៍ធ្វើដំណើរថ្មី"
+
+#: templates/daily_report_detail.html:17 templates/daily_report_list.html:149
+#: templates/dynamic_list.html:105 templates/kpi_detail.html:17
+#: templates/kpi_list.html:96 templates/penalty_detail.html:18
+#: templates/route_request_detail.html:18 templates/route_requests.html:132
+#: templates/transport_request_detail.html:18
+#: templates/transport_requests.html:161
+#: templates/trip_operation_report_detail.html:18
+#, fuzzy
+msgid "Delete"
+msgstr "បានលុបអ្នកប្រើ។"
+
+#: templates/daily_report_detail.html:25 templates/daily_report_form.html:20
+#: templates/kpi_detail.html:25 templates/kpi_form.html:20
+#: templates/penalty_form.html:19
+#, fuzzy
+msgid "Employee Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/daily_report_detail.html:29 templates/daily_report_form.html:24
+#: templates/daily_report_list.html:109 templates/kpi_dashboard.html:125
+#: templates/kpi_detail.html:28 templates/kpi_form.html:24
+#: templates/kpi_list.html:55
+#, fuzzy
+msgid "Staff Name"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/daily_report_detail.html:30 templates/daily_report_form.html:29
+#: templates/daily_report_list.html:110 templates/kpi_detail.html:29
+#: templates/kpi_form.html:30 templates/kpi_list.html:56
+#, fuzzy
+msgid "Staff ID"
+msgstr "បុគ្គលិក IT"
+
+#: templates/daily_report_detail.html:31 templates/daily_report_form.html:34
+#: templates/kpi_dashboard.html:40 templates/kpi_dashboard.html:126
+#: templates/kpi_detail.html:30 templates/kpi_form.html:36
+#: templates/kpi_history.html:61 templates/route_request_detail.html:69
+#: templates/route_requests.html:95 templates/user_form.html:44
+#: templates/users.html:29
+msgid "Branch"
+msgstr "សាខា"
+
+#: templates/daily_report_detail.html:32 templates/daily_report_form.html:43
+#: templates/kpi_detail.html:31 templates/kpi_form.html:45
+#: templates/route_request_detail.html:70 templates/route_request_form.html:103
+#: templates/route_requests.html:96 templates/transport_request_detail.html:74
+#: templates/transport_request_form.html:84
+#: templates/transport_requests.html:115
+msgid "Company"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/daily_report_detail.html:33 templates/daily_report_form.html:61
+#, fuzzy
+msgid "Report Date"
 msgstr "កាលបរិច្ឆេទសំណើ"
 
-#: templates/dashboard.html:241 templates/route_requests.html:28
-#: templates/route_requests.html:99
+#: templates/daily_report_detail.html:34 templates/daily_report_detail.html:106
+#: templates/daily_report_list.html:119 templates/dashboard.html:70
+#: templates/dashboard.html:256 templates/dashboard.html:270
+#: templates/dashboard.html:287 templates/department_form.html:27
+#: templates/departments.html:40 templates/dynamic_list.html:57
+#: templates/dynamic_view.html:54 templates/kpi_detail.html:151
+#: templates/kpi_list.html:61 templates/penalties.html:23
+#: templates/penalties.html:94 templates/position_form.html:36
+#: templates/positions.html:41 templates/route_requests.html:28
+#: templates/route_requests.html:99 templates/telegram_settings.html:108
+#: templates/transport_requests.html:73 templates/transport_requests.html:117
+#: templates/trip_operation_reports.html:94 templates/users.html:30
 msgid "Status"
 msgstr "ស្ថានភាព"
 
-#: templates/dashboard.html:242 templates/route_requests.html:100
+#: templates/daily_report_detail.html:49
+msgid "Performance Data"
+msgstr "ទិន្នន័យដំណើរការ"
+
+#: templates/daily_report_detail.html:53 templates/daily_report_form.html:66
+msgid "Tickets Sold"
+msgstr "សំបុត្រដែលបានលក់"
+
+#: templates/daily_report_detail.html:54
+#, fuzzy
+msgid "Total Sales Amount"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/daily_report_detail.html:55 templates/daily_report_form.html:76
+msgid "Number of Bookings"
+msgstr "ចំនួនការកក់"
+
+#: templates/daily_report_detail.html:56 templates/daily_report_form.html:81
+#: templates/kpi_form.html:117
+msgid "Booking Errors"
+msgstr "កំហុសការកក់"
+
+#: templates/daily_report_detail.html:57 templates/daily_report_form.html:86
+msgid "Cancelled Tickets"
+msgstr "សំបុត្រដែលបានលុបចោល"
+
+#: templates/daily_report_detail.html:58 templates/daily_report_form.html:91
+msgid "Refunded Tickets"
+msgstr "សំបុត្រដែលបានសងប្រាក់"
+
+#: templates/daily_report_detail.html:59 templates/daily_report_form.html:96
+msgid "Customer Complaints"
+msgstr "ពាក្យបណ្តឹងអតិថិជន"
+
+#: templates/daily_report_detail.html:60 templates/daily_report_form.html:101
+msgid "Resolved Complaints"
+msgstr "ពាក្យបណ្តឹងដែលបានដោះស្រាយ"
+
+#: templates/daily_report_detail.html:75
+#, fuzzy
+msgid "Attendance Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/daily_report_detail.html:79 templates/daily_report_form.html:110
+msgid "Time Check In"
+msgstr "ពេលចូល"
+
+#: templates/daily_report_detail.html:80 templates/daily_report_form.html:115
+msgid "Time Check Out"
+msgstr "ពេលចេញ"
+
+#: templates/daily_report_detail.html:81 templates/daily_report_form.html:120
+msgid "Attendance Status"
+msgstr "ស្ថានភាពវត្តមាន"
+
+#: templates/daily_report_detail.html:96 templates/daily_report_form.html:106
+#: templates/route_request_detail.html:89 templates/route_request_form.html:129
+#: templates/transport_request_detail.html:132
+#: templates/transport_request_form.html:231
+msgid "Remarks"
+msgstr "កំណត់ចំណាំ"
+
+#: templates/daily_report_detail.html:104
+#, fuzzy
+msgid "Report Info"
+msgstr "របាយការណ៍"
+
+#: templates/daily_report_detail.html:107 templates/dynamic_view.html:65
+#: templates/kpi_detail.html:153 templates/roles.html:45
+#: templates/route_request_detail.html:75 templates/users.html:31
+#, fuzzy
+msgid "Created"
+msgstr "បានច្រានចោល"
+
+#: templates/daily_report_detail.html:109
+#, fuzzy
+msgid "Updated"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/daily_report_form.html:3 templates/daily_report_form.html:4
+#, fuzzy
+msgid "Edit Daily Report"
+msgstr "របាយការណ៍ធ្វើដំណើរថ្មី"
+
+#: templates/daily_report_form.html:3
+#, fuzzy
+msgid "New Daily Report"
+msgstr "របាយការណ៍ធ្វើដំណើរថ្មី"
+
+#: templates/daily_report_form.html:4
+msgid "New Daily Performance Report"
+msgstr "របាយការណ៍ដំណើរការប្រចាំថ្ងៃថ្មី"
+
+#: templates/daily_report_form.html:9
+#, fuzzy
+msgid "Back to Daily Reports"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/daily_report_form.html:36 templates/kpi_form.html:38
+#: templates/route_request_form.html:96
+#, fuzzy
+msgid "— Select Branch —"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/daily_report_form.html:45 templates/kpi_form.html:47
+#: templates/route_request_form.html:105
+msgid "— Select Company —"
+msgstr "— Select Company —"
+
+#: templates/daily_report_form.html:71
+#, fuzzy
+msgid "Total Sales Amount ($)"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/daily_report_form.html:107 templates/route_request_form.html:130
+#: templates/transport_request_form.html:232
+#: templates/trip_operation_report_form.html:128
+msgid "Additional notes..."
+msgstr "កំណត់ចំណាំបន្ថែម..."
+
+#: templates/daily_report_form.html:122 templates/dynamic_form.html:40
+#: templates/kpi_form.html:56 templates/kpi_form.html:65
+#, fuzzy
+msgid "— Select —"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/daily_report_form.html:123
+#, fuzzy
+msgid "On Time"
+msgstr "គ្រប់ពេល"
+
+#: templates/daily_report_form.html:124
+#, fuzzy
+msgid "Late"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/daily_report_form.html:136
+#: templates/trip_operation_report_form.html:138
+#, fuzzy
+msgid "Report Status"
+msgstr "ស្ថានភាពសំណើ"
+
+#: templates/daily_report_form.html:140 templates/penalty_form.html:125
+#: templates/route_request_form.html:153
+#: templates/transport_request_form.html:254
+#: templates/trip_operation_report_form.html:144
+msgid "Status:"
+msgstr "ស្ថានភាព៖"
+
+#: templates/daily_report_form.html:141
+#, fuzzy
+msgid "Date:"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/daily_report_form.html:147 templates/kpi_form.html:297
+#, fuzzy
+msgid "Save Draft"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/daily_report_form.html:150
+#: templates/trip_operation_report_form.html:156
+#, fuzzy
+msgid "Submit Report"
+msgstr "ដាក់ស្នើសំណើ"
+
+#: templates/daily_report_list.html:2 templates/daily_report_list.html:3
+#, fuzzy
+msgid "Daily Performance Reports"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/daily_report_list.html:8
+msgid "Submit and manage daily performance reports"
+msgstr "ដាក់ស្នើ និងគ្រប់គ្រងរបាយការណ៍ដំណើរការប្រចាំថ្ងៃ"
+
+#: templates/daily_report_list.html:12 templates/penalties.html:74
+#: templates/penalty_detail.html:24 templates/reports.html:383
+#: templates/route_request_detail.html:24 templates/route_requests.html:79
+#: templates/trip_operation_report_detail.html:24
+#: templates/trip_operation_reports.html:71
+msgid "Excel"
+msgstr "Excel"
+
+#: templates/daily_report_list.html:15 templates/penalties.html:77
+#: templates/penalty_detail.html:27 templates/reports.html:384
+#: templates/route_request_detail.html:27 templates/route_requests.html:82
+#: templates/trip_operation_report_detail.html:27
+#: templates/trip_operation_reports.html:74
+msgid "PDF"
+msgstr "PDF"
+
+#: templates/daily_report_list.html:28
+msgid "Tickets Today"
+msgstr "សំបុត្រថ្ងៃនេះ"
+
+#: templates/daily_report_list.html:34
+#, fuzzy
+msgid "Sales Today"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/daily_report_list.html:40
+msgid "Bookings Today"
+msgstr "ការកក់ថ្ងៃនេះ"
+
+#: templates/daily_report_list.html:46
+msgid "Errors Today"
+msgstr "កំហុសថ្ងៃនេះ"
+
+#: templates/daily_report_list.html:52
+#, fuzzy
+msgid "Complaints Today"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/daily_report_list.html:61 templates/dashboard.html:79
+#: templates/departments.html:18 templates/dynamic_list.html:23
+#: templates/dynamic_list.html:27 templates/kpi_list.html:19
+#: templates/penalties.html:19 templates/positions.html:18
+#: templates/reports.html:379 templates/route_requests.html:24
+#: templates/transport_requests.html:69
+#: templates/trip_operation_reports.html:21
+msgid "Search"
+msgstr "ស្វែងរក"
+
+#: templates/daily_report_list.html:62 templates/kpi_list.html:20
+#, fuzzy
+msgid "Search by name or ID..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/daily_report_list.html:65 templates/dashboard.html:64
+#: templates/penalties.html:89 templates/penalty_form.html:33
+#: templates/position_form.html:27 templates/positions.html:39
+#, fuzzy
+msgid "Department"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/daily_report_list.html:67
+#, fuzzy
+msgid "All Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/daily_report_list.html:74 templates/dashboard.html:55
+#: templates/trip_operation_reports.html:85
+#: templates/vehicle_performance.html:45
+msgid "From"
+msgstr "ពី"
+
+#: templates/daily_report_list.html:78 templates/dashboard.html:59
+#: templates/trip_operation_reports.html:86
+#: templates/vehicle_performance.html:49
+#, fuzzy
+msgid "To"
+msgstr "ដល់"
+
+#: templates/daily_report_list.html:82 templates/kpi_history.html:36
+#: templates/kpi_history.html:60
+#, fuzzy
+msgid "Staff"
+msgstr "បុគ្គលិក IT"
+
+#: templates/daily_report_list.html:84 templates/kpi_history.html:38
+#, fuzzy
+msgid "All Staff"
+msgstr "ស្ថានភាពទាំងអស់"
+
+#: templates/daily_report_list.html:94 templates/departments.html:25
+#: templates/dynamic_list.html:30 templates/kpi_history.html:48
+#: templates/penalties.html:35 templates/positions.html:25
+#: templates/route_requests.html:40 templates/transport_requests.html:94
+msgid "Clear"
+msgstr "សម្អាត"
+
+#: templates/daily_report_list.html:102 templates/kpi_list.html:49
+#: templates/transport_requests.html:102
+#, fuzzy, python-format
+msgid "Showing %(count)d record(s)"
+msgstr "បង្ហាញ %(count)d កំណត់ត្រា"
+
+#: templates/daily_report_list.html:108 templates/dashboard.html:301
+#: templates/penalties.html:93 templates/route_requests.html:92
+#: templates/transport_requests.html:109
+msgid "Date"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/daily_report_list.html:111 templates/kpi_dashboard.html:127
+#: templates/kpi_history.html:62
+msgid "Tickets"
+msgstr "សំបុត្រ"
+
+#: templates/daily_report_list.html:112 templates/kpi_history.html:63
+msgid "Sales ($)"
+msgstr "ការលក់ ($)"
+
+#: templates/daily_report_list.html:113
+msgid "Bookings"
+msgstr "ការកក់"
+
+#: templates/daily_report_list.html:114 templates/kpi_detail.html:70
+#, fuzzy
+msgid "Errors"
+msgstr "របាយការណ៍"
+
+#: templates/daily_report_list.html:115
+#, fuzzy
+msgid "Complaints"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/daily_report_list.html:116
+msgid "Time In"
+msgstr "ម៉ោងចូល"
+
+#: templates/daily_report_list.html:117
+msgid "Time Out"
+msgstr "ម៉ោងចេញ"
+
+#: templates/daily_report_list.html:118 templates/kpi_form.html:273
+msgid "Attendance"
+msgstr "វត្តមាន"
+
+#: templates/daily_report_list.html:120 templates/departments.html:41
+#: templates/dynamic_list.html:58 templates/kpi_list.html:62
+#: templates/penalties.html:96 templates/positions.html:42
+#: templates/roles.html:46 templates/route_requests.html:100
+#: templates/telegram_settings.html:78 templates/transport_requests.html:119
+#: templates/trip_operation_reports.html:95 templates/users.html:32
 msgid "Actions"
 msgstr "សកម្មភាព"
 
-#: templates/dashboard.html:261 templates/route_requests.html:142
+#: templates/daily_report_list.html:140 templates/dynamic_list.html:91
+#: templates/kpi_list.html:87 templates/route_requests.html:122
+#: templates/transport_requests.html:151
+#, fuzzy
+msgid "View"
+msgstr "មើលទាំងអស់"
+
+#: templates/daily_report_list.html:158
+#: templates/trip_operation_reports.html:135
+#, fuzzy
+msgid "No reports found"
+msgstr "រកមិនឃើញសំណើទេ"
+
+#: templates/dashboard.html:10
+#, fuzzy
+msgid "Executive Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/dashboard.html:13
+#, python-format
+msgid "Welcome, %(name)s"
+msgstr "Welcome, %(name)s"
+
+#: templates/dashboard.html:17
+msgid "Comparison Mode"
+msgstr "របៀបប្រៀបធៀប"
+
+#: templates/dashboard.html:21 templates/dashboard.html:115
+#, fuzzy
+msgid "Compare"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/dashboard.html:22 templates/dashboard.html:318
+#: templates/vehicle_performance.html:16
+msgid "Refresh"
+msgstr "ធ្វើឱ្យស្រស់"
+
+#: templates/dashboard.html:43
+#, fuzzy
+msgid "Date Range"
+msgstr "រក្សាទុកការផ្លាស់ប្តូរ"
+
+#: templates/dashboard.html:45 templates/reports.html:356
+#: templates/vehicle_performance.html:35
+msgid "Today"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/dashboard.html:46 templates/reports.html:357
+#: templates/vehicle_performance.html:37
+msgid "This Week"
+msgstr "សប្តាហ៍នេះ"
+
+#: templates/dashboard.html:47 templates/reports.html:358
+#: templates/vehicle_performance.html:38
+msgid "This Month"
+msgstr "ខែនេះ"
+
+#: templates/dashboard.html:48 templates/reports.html:359
+msgid "This Year"
+msgstr "ឆ្នាំនេះ"
+
+#: templates/dashboard.html:49 templates/reports.html:360
+msgid "All Time"
+msgstr "គ្រប់ពេល"
+
+#: templates/dashboard.html:50
+msgid "Custom"
+msgstr "ផ្ទាល់ខ្លួន"
+
+#: templates/dashboard.html:66 templates/dashboard.html:72
+#: templates/reports.html:674
+msgid "All"
+msgstr "ទាំងអស់"
+
+#: templates/dashboard.html:95
+#, fuzzy
+msgid "Comparison Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/dashboard.html:99
+#, fuzzy
+msgid "Month vs Month"
+msgstr "ខែនេះ"
+
+#: templates/dashboard.html:100
+msgid "Quarter vs Quarter"
+msgstr "ត្រីមាស vs ត្រីមាស"
+
+#: templates/dashboard.html:101
+msgid "Year vs Year"
+msgstr "ឆ្នាំ vs ឆ្នាំ"
+
+#: templates/dashboard.html:102 templates/vehicle_performance.html:39
+#, fuzzy
+msgid "Custom Range"
+msgstr "ផ្ទាល់ខ្លួន"
+
+#: templates/dashboard.html:106 templates/dashboard.html:110
+msgid "to"
+msgstr "ដល់"
+
+#: templates/dashboard.html:108
+msgid "A"
+msgstr "ក"
+
+#: templates/dashboard.html:112
+msgid "B"
+msgstr "ខ"
+
+#: templates/dashboard.html:145
+msgid "Executive Summary"
+msgstr "សេចក្តីសង្ខេបប្រតិបត្តិ"
+
+#: templates/dashboard.html:146 templates/dashboard.html:152
+#: templates/telegram_settings.html:38 templates/telegram_settings.html:63
+#: templates/telegram_settings.html:109
+msgid "Loading..."
+msgstr "កំពុងផ្ទុក..."
+
+#: templates/dashboard.html:151
+msgid "AI Business Insights"
+msgstr "ការយល់ដឹងអាជីវកម្ម AI"
+
+#: templates/dashboard.html:161
+#, fuzzy
+msgid "Route Requests Trend"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/dashboard.html:164
+#, fuzzy
+msgid "Daily"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/dashboard.html:165
+msgid "Weekly"
+msgstr "ប្រចាំសប្តាហ៍"
+
+#: templates/dashboard.html:166
+msgid "Monthly"
+msgstr "ប្រចាំខែ"
+
+#: templates/dashboard.html:167
+msgid "Yearly"
+msgstr "ប្រចាំឆ្នាំ"
+
+#: templates/dashboard.html:176
+#, fuzzy
+msgid "Approval Status"
+msgstr "ស្ថានភាពទាំងអស់"
+
+#: templates/dashboard.html:186
+#, fuzzy
+msgid "Trips Analysis"
+msgstr "ការវិភាគ"
+
+#: templates/dashboard.html:192
+msgid "Penalty Trend"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/dashboard.html:198
+#, fuzzy
+msgid "Penalty Categories"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/dashboard.html:208
+msgid "Top Drivers"
+msgstr "អ្នកបើកបរកំពូល"
+
+#: templates/dashboard.html:214
+msgid "Vehicle Utilization"
+msgstr "ការប្រើប្រាស់យានយន្ត"
+
+#: templates/dashboard.html:220
+#, fuzzy
+msgid "Popular Destinations"
+msgstr "ទៅ (គោលដៅ)"
+
+#: templates/dashboard.html:230
+#, fuzzy
+msgid "Requests vs Penalties Overview"
+msgstr "ទិដ្ឋភាពទូទៅស្ថានភាពសំណើ"
+
+#: templates/dashboard.html:240
+msgid "LET Frequency by Vehicle"
+msgstr "ភាពញឹកញាប់ LET តាមយានយន្ត"
+
+#: templates/dashboard.html:251
+msgid "Recent Route Requests"
+msgstr "សំណើបន្ទាត់ដំណើរថ្មីៗ"
+
+#: templates/dashboard.html:256 templates/penalties.html:88
+#, fuzzy
+msgid "ID"
+msgstr "លេខសម្គាល់៖"
+
+#: templates/dashboard.html:256 templates/dashboard.html:287
+#: templates/dashboard.html:301
+msgid "Employee"
+msgstr "បុគ្គលិក"
+
+#: templates/dashboard.html:256 templates/dashboard.html:301
+#: templates/route_request_detail.html:60
+#: templates/transport_request_detail.html:64
+msgid "Destination"
+msgstr "គោលដៅ"
+
+#: templates/dashboard.html:265
+#, fuzzy
+msgid "Recent Trips"
+msgstr "សកម្មភាពថ្មីៗ"
+
+#: templates/dashboard.html:270 templates/trip_operation_reports.html:83
+#, fuzzy
+msgid "Report ID"
+msgstr "របាយការណ៍"
+
+#: templates/dashboard.html:270 templates/trip_operation_reports.html:84
+#: templates/vehicle_performance.html:137
+msgid "Vehicle"
+msgstr "យានយន្ត"
+
+#: templates/dashboard.html:270 templates/route_requests.html:94
+#: templates/transport_requests.html:112
+msgid "Route"
+msgstr "បន្ទាត់ដំណើរ"
+
+#: templates/dashboard.html:282
+#, fuzzy
+msgid "Recent Penalties"
+msgstr "សកម្មភាពថ្មីៗ"
+
+#: templates/dashboard.html:287 templates/penalties.html:86
+#, fuzzy
+msgid "Penalty ID"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/dashboard.html:287 templates/penalties.html:90
+#, fuzzy
+msgid "Violation"
+msgstr "សកម្មភាព"
+
+#: templates/dashboard.html:287 templates/penalties.html:92
+msgid "Amount"
+msgstr "ចំនួនទឹកប្រាក់"
+
+#: templates/dashboard.html:296
+#, fuzzy
+msgid "Pending Approvals"
+msgstr "ពិន័យរង់ចាំ"
+
+#: templates/dashboard.html:297
+msgid "Review"
+msgstr "ពិនិត្យ"
+
+#: templates/dashboard.html:301 templates/route_requests.html:91
+#: templates/transport_requests.html:108
+msgid "Request ID"
+msgstr "លេខសម្គាល់សំណើ"
+
+#: templates/dashboard.html:316
+msgid "Failed to load dashboard data"
+msgstr "បរាជ័យក្នុងការផ្ទុកទិន្នន័យផ្ទាំងគ្រប់គ្រង"
+
+#: templates/dashboard.html:317
+msgid "Please try refreshing the page."
+msgstr "សូមព្យាយាមធ្វើឱ្យទំព័រស្រស់ឡើងវិញ។"
+
+#: templates/dashboard.html:409
+#, fuzzy
+msgid "Prev"
+msgstr "តម្លៃ"
+
+#: templates/dashboard.html:423
+msgid "No data available for the selected period."
+msgstr "គ្មានទិន្នន័យសម្រាប់រយៈពេលដែលបានជ្រើសរើសទេ។"
+
+#: templates/dashboard.html:433
+msgid "No insights available."
+msgstr "គ្មានការយល់ដឹងទេ។"
+
+#: templates/dashboard.html:625 templates/vehicle_performance.html:80
+msgid "No Data Available"
+msgstr "គ្មានទិន្នន័យ"
+
+#: templates/dashboard.html:679 templates/route_requests.html:142
+#: templates/transport_requests.html:171
 msgid "No requests found"
 msgstr "រកមិនឃើញសំណើទេ"
 
-#: templates/dashboard.html:274
-msgid "Recent Activities"
-msgstr "សកម្មភាពថ្មីៗ"
+#: templates/dashboard.html:687
+#, fuzzy
+msgid "No trips found"
+msgstr "រកមិនឃើញសំណើទេ"
 
-#: templates/dashboard.html:288
-msgid "No recent activities"
-msgstr "គ្មានសកម្មភាពថ្មីៗទេ"
-
-#: templates/dashboard.html:306
-msgid "No pending notifications"
-msgstr "គ្មានការជូនដំណឹងរង់ចាំទេ"
-
-#: templates/dashboard.html:324
-msgid "Login Logo"
-msgstr "ឡូហ្គោចូលប្រព័ន្ធ"
-
-#: templates/dashboard.html:325
-msgid "Current logo displayed on login page"
-msgstr "ឡូហ្គោបច្ចុប្បន្នដែលបង្ហាញនៅលើទំព័រចូលប្រព័ន្ធ"
-
-#: templates/dashboard.html:325
-msgid "No logo uploaded yet"
-msgstr "មិនទាន់មានឡូហ្គោដែលបានបង្ហោះទេ"
-
-#: templates/dashboard.html:334
-msgid "Upload"
-msgstr "បង្ហោះ"
-
-#: templates/dashboard.html:337
-msgid "Remove logo?"
-msgstr "លុបឡូហ្គោ?"
-
-#: templates/dashboard.html:352
-msgid "Export & Reports"
-msgstr "នាំចេញ និងរបាយការណ៍"
-
-#: templates/dashboard.html:357
-msgid "Requests Excel"
-msgstr "Excel សំណើ"
-
-#: templates/dashboard.html:363
-msgid "Requests PDF"
-msgstr "PDF សំណើ"
-
-#: templates/dashboard.html:369
-msgid "Penalties Excel"
-msgstr "Excel ពិន័យ"
-
-#: templates/dashboard.html:375
-msgid "Penalties PDF"
+#: templates/dashboard.html:695
+#, fuzzy
+msgid "No penalties found"
 msgstr "PDF ពិន័យ"
 
-#: templates/dashboard.html:381
-msgid "Trip Reports Excel"
-msgstr "Excel របាយការណ៍ធ្វើដំណើរ"
+#: templates/dashboard.html:702
+#, fuzzy
+msgid "No pending approvals"
+msgstr "ពិន័យរង់ចាំ"
 
-#: templates/dashboard.html:387
-msgid "Trip Reports PDF"
-msgstr "PDF របាយការណ៍ធ្វើដំណើរ"
+#: templates/dashboard.html:736
+msgid "No data for comparison."
+msgstr "គ្មានទិន្នន័យសម្រាប់ការប្រៀបធៀបទេ។"
 
-#: templates/dashboard.html:393
-msgid "Print Page"
-msgstr "បោះពុម្ពទំព័រ"
+#: templates/department_form.html:3 templates/department_form.html:4
+#: templates/departments.html:10
+#, fuzzy
+msgid "New Department"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/department_form.html:9
+#, fuzzy
+msgid "Back to Departments"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/department_form.html:18
+#, fuzzy
+msgid "Department Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/department_form.html:22 templates/departments.html:38
+#, fuzzy
+msgid "Department Name"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/department_form.html:24
+msgid "e.g., Human Resources"
+msgstr "ឧ. ធនធានមនុស្ស"
+
+#: templates/department_form.html:35 templates/departments.html:39
+#: templates/penalty_detail.html:85 templates/penalty_form.html:74
+#: templates/position_form.html:44 templates/positions.html:40
+#, fuzzy
+msgid "Description"
+msgstr "គោលដៅ"
+
+#: templates/department_form.html:36
+#, fuzzy
+msgid "Department description..."
+msgstr "បានលុបនាយកដ្ឋាន។"
+
+#: templates/department_form.html:44 templates/position_form.html:53
+msgid "Save"
+msgstr "រក្សាទុក"
+
+#: templates/department_form.html:48 templates/dynamic_form.html:104
+#: templates/penalty_form.html:136 templates/position_form.html:57
+#: templates/route_request_form.html:165
+#: templates/transport_request_form.html:266
+#: templates/trip_operation_report_form.html:156 templates/user_form.html:69
+msgid "Save Changes"
+msgstr "រក្សាទុកការផ្លាស់ប្តូរ"
+
+#: templates/departments.html:3
+#, fuzzy
+msgid "Department Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/departments.html:7
+#, fuzzy
+msgid "Manage organizational departments"
+msgstr "ព័ត៌មានលម្អិតអង្គការ"
+
+#: templates/departments.html:19
+#, fuzzy
+msgid "Search by name..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/departments.html:22 templates/penalties.html:32
+#: templates/positions.html:22 templates/route_requests.html:37
+#: templates/trip_operation_reports.html:37
+msgid "Filter"
+msgstr "តម្រង"
+
+#: templates/departments.html:32 templates/dynamic_list.html:12
+#: templates/positions.html:32
+#, fuzzy, python-format
+msgid "%(count)s record(s)"
+msgstr "%(count)s កំណត់ត្រា"
+
+#: templates/departments.html:60
+msgid "Delete this department?"
+msgstr "លុបនាយកដ្ឋាននេះ?"
+
+#: templates/departments.html:69
+#, fuzzy
+msgid "No departments found"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/dynamic_form.html:3 templates/dynamic_form.html:4
+#: templates/dynamic_form.html:17
+msgid "Add"
+msgstr "បន្ថែម"
+
+#: templates/dynamic_form.html:9 templates/dynamic_view.html:9
+#, python-format
+msgid "Back to %(name)s List"
+msgstr "Back to %(name)s List"
+
+#: templates/dynamic_form.html:51
+#, fuzzy
+msgid "Enable"
+msgstr "ពិន័យ"
+
+#: templates/dynamic_form.html:77
+msgid "Leave blank to keep current"
+msgstr "ទុកឱ្យទទេដើម្បីរក្សាបច្ចុប្បន្ន"
+
+#: templates/dynamic_form.html:104
+#, fuzzy
+msgid "Create"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/dynamic_list.html:10
+#, fuzzy
+msgid "All Settings"
+msgstr "ការកំណត់"
+
+#: templates/dynamic_list.html:15
+#, python-format
+msgid "Add %(name)s"
+msgstr "Add %(name)s"
+
+#: templates/dynamic_list.html:24 templates/reports.html:389
+#, fuzzy
+msgid "Search records..."
+msgstr "ស្វែងរក..."
+
+#: templates/dynamic_list.html:41
+msgid "#"
+msgstr "ល.រ"
+
+#: templates/dynamic_list.html:84 templates/dynamic_view.html:57
+#: templates/users.html:60
+#, fuzzy
+msgid "Active"
+msgstr "សកម្មភាព"
+
+#: templates/dynamic_list.html:86 templates/dynamic_view.html:59
+#: templates/users.html:62
+msgid "Inactive"
+msgstr "អសកម្ម"
+
+#: templates/dynamic_list.html:99
+#, fuzzy
+msgid "Deactivate"
+msgstr "បានបិទដំណើរការកំណត់ត្រា។"
+
+#: templates/dynamic_list.html:99
+#, fuzzy
+msgid "Activate"
+msgstr "បានដំណើរការកំណត់ត្រា។"
+
+#: templates/dynamic_list.html:104
+msgid "Delete this record?"
+msgstr "លុបកំណត់ត្រានេះ?"
+
+#: templates/dynamic_list.html:115
+#, fuzzy
+msgid "No records found."
+msgstr "រកមិនឃើញសំណើទេ"
+
+#: templates/dynamic_list.html:130
+msgid "Previous"
+msgstr "មុន"
+
+#: templates/dynamic_list.html:138
+msgid "Next"
+msgstr "បន្ទាប់"
+
+#: templates/dynamic_settings.html:307
+msgid "Manage your system configuration modules"
+msgstr "គ្រប់គ្រងម៉ូឌុលកំណត់រចនាសម្ព័ន្ធប្រព័ន្ធរបស់អ្នក"
+
+#: templates/dynamic_settings.html:323
+#, fuzzy, python-format
+msgid "%(count)s active"
+msgstr "%(count)s សកម្ម"
+
+#: templates/dynamic_view.html:3 templates/dynamic_view.html:4
+#, fuzzy, python-format
+msgid "%(name)s Details"
+msgstr "តួនាទី \"%(name)s\" ត្រូវបានលុប។"
+
+#: templates/dynamic_view.html:38 templates/route_request_detail.html:74
+#: templates/transport_request_form.html:130
+msgid "Yes"
+msgstr "បាទ/ចាស"
+
+#: templates/dynamic_view.html:40 templates/route_request_detail.html:74
+#: templates/transport_request_form.html:131
+msgid "No"
+msgstr "ទេ"
+
+#: templates/dynamic_view.html:73
+#: templates/trip_operation_report_detail.html:124
+#, fuzzy
+msgid "Last Updated"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពអ្នកប្រើ!"
+
+#: templates/dynamic_view.html:85
+#, fuzzy
+msgid "Back to List"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/kpi_dashboard.html:3
+#, fuzzy
+msgid "Monthly KPI Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/kpi_dashboard.html:8
+msgid "View monthly KPI scores and rankings for ticket officers"
+msgstr "មើលពិន្ទុ KPI ប្រចាំខែ និងចំណាត់ថ្នាក់សម្រាប់មន្ត្រីសំបុត្រ"
+
+#: templates/kpi_dashboard.html:15
+#, fuzzy
+msgid "Daily Reports"
+msgstr "របាយការណ៍"
+
+#: templates/kpi_dashboard.html:24 templates/kpi_history.html:18
+#: templates/kpi_list.html:32
+#, fuzzy
+msgid "Year"
+msgstr "សម្អាត"
+
+#: templates/kpi_dashboard.html:32 templates/kpi_history.html:27
+#: templates/kpi_list.html:23
+#, fuzzy
+msgid "Month"
+msgstr "ខែនេះ"
+
+#: templates/kpi_dashboard.html:42
+#, fuzzy
+msgid "All Branches"
+msgstr "សាខា"
+
+#: templates/kpi_dashboard.html:64
+#, fuzzy
+msgid "Total Tickets Sold"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/kpi_dashboard.html:70
+#, fuzzy
+msgid "Total Sales"
+msgstr "ករណីពិន័យសរុប"
+
+#: templates/kpi_dashboard.html:76
+#, fuzzy
+msgid "Total Bookings"
+msgstr "អ្នកដំណើរសរុប"
+
+#: templates/kpi_dashboard.html:82
+#, fuzzy
+msgid "Total Errors"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/kpi_dashboard.html:88
+msgid "Staff Evaluated"
+msgstr "បុគ្គលិកដែលបានវាយតម្លៃ"
+
+#: templates/kpi_dashboard.html:97
+msgid "Top Performers"
+msgstr "អ្នកសម្តែងកំពូល"
+
+#: templates/kpi_dashboard.html:107
+msgid "Top Performer:"
+msgstr "អ្នកសម្តែងកំពូល៖"
+
+#: templates/kpi_dashboard.html:108
+msgid "Score:"
+msgstr "ពិន្ទុ៖"
+
+#: templates/kpi_dashboard.html:109
+msgid "Rating:"
+msgstr "ការវាយតម្លៃ៖"
+
+#: templates/kpi_dashboard.html:118
+#, python-format
+msgid "KPI Ranking — %(month)s/%(year)s"
+msgstr "KPI Ranking — %(month)s/%(year)s"
+
+#: templates/kpi_dashboard.html:128
+#, fuzzy
+msgid "Sales"
+msgstr "អ្នកប្រើ"
+
+#: templates/kpi_dashboard.html:129
+msgid "TS"
+msgstr "TS"
+
+#: templates/kpi_dashboard.html:130
+msgid "BA"
+msgstr "BA"
+
+#: templates/kpi_dashboard.html:131
+msgid "CS"
+msgstr "CS"
+
+#: templates/kpi_dashboard.html:132
+#, fuzzy
+msgid "AT"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/kpi_dashboard.html:133
+msgid "DR"
+msgstr "DR"
+
+#: templates/kpi_dashboard.html:134
+msgid "SOP"
+msgstr "SOP"
+
+#: templates/kpi_dashboard.html:135 templates/kpi_history.html:70
+#: templates/reports.html:605 templates/vehicle_performance.html:389
+#, fuzzy
+msgid "Total"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/kpi_dashboard.html:136 templates/kpi_history.html:71
+#: templates/kpi_list.html:59
+#, fuzzy
+msgid "Rating"
+msgstr "សកម្មភាព"
+
+#: templates/kpi_dashboard.html:176
+msgid "No submitted reports found for this period."
+msgstr "រកមិនឃើញរបាយការណ៍ដែលបានដាក់ស្នើសម្រាប់រយៈពេលនេះទេ។"
+
+#: templates/kpi_dashboard.html:177
+#, fuzzy
+msgid "Go to Daily Reports"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/kpi_detail.html:16 templates/kpi_list.html:95
+msgid "Delete this evaluation?"
+msgstr "លុបការវាយតម្លៃនេះ?"
+
+#: templates/kpi_detail.html:32
+#, fuzzy
+msgid "Evaluation Period"
+msgstr "ផ្លូវជាតិ"
+
+#: templates/kpi_detail.html:49
+msgid "KPI Scores Detail"
+msgstr "ព័ត៌មានលម្អិតពិន្ទុ KPI"
+
+#: templates/kpi_detail.html:55 templates/kpi_form.html:77
+msgid "1. Ticket Sales Performance"
+msgstr "១. ដំណើរការលក់សំបុត្រ"
+
+#: templates/kpi_detail.html:59
+msgid "Target"
+msgstr "គោលដៅ"
+
+#: templates/kpi_detail.html:59
+msgid "Actual"
+msgstr "ជាក់ស្តែង"
+
+#: templates/kpi_detail.html:59 templates/kpi_form.html:91
+msgid "Achievement"
+msgstr "សមិទ្ធផល"
+
+#: templates/kpi_detail.html:66 templates/kpi_form.html:108
+msgid "2. Booking Accuracy"
+msgstr "២. ភាពត្រឹមត្រូវនៃការកក់"
+
+#: templates/kpi_detail.html:70 templates/kpi_form.html:112
+msgid "Accuracy"
+msgstr "ភាពត្រឹមត្រូវ"
+
+#: templates/kpi_detail.html:77 templates/kpi_form.html:133
+msgid "3. Customer Service Quality"
+msgstr "៣. គុណភាពសេវាកម្មអតិថិជន"
+
+#: templates/kpi_detail.html:81 templates/kpi_form.html:137
+#, fuzzy
+msgid "Satisfaction"
+msgstr "គោលដៅ"
+
+#: templates/kpi_detail.html:81 templates/kpi_form.html:142
+msgid "Complaints Handled"
+msgstr "ពាក្យបណ្តឹងដែលបានដោះស្រាយ"
+
+#: templates/kpi_detail.html:88 templates/kpi_form.html:158
+msgid "4. Attendance & Punctuality"
+msgstr "៤. វត្តមាន និងពេលវេលា"
+
+#: templates/kpi_detail.html:92 templates/kpi_form.html:162
+msgid "Late Arrivals"
+msgstr "ការយឺតយ៉ាវ"
+
+#: templates/kpi_detail.html:92 templates/kpi_form.html:167
+msgid "Unexcused Absences"
+msgstr "អវត្តមានគ្មានការអនុញ្ញាត"
+
+#: templates/kpi_detail.html:99 templates/kpi_form.html:183
+msgid "5. Daily Reporting"
+msgstr "៥. របាយការណ៍ប្រចាំថ្ងៃ"
+
+#: templates/kpi_detail.html:103
+msgid "Submission"
+msgstr "ការដាក់ស្នើ"
+
+#: templates/kpi_detail.html:110 templates/kpi_form.html:211
+msgid "6. SOP Compliance"
+msgstr "៦. ការអនុលោមតាម SOP"
+
+#: templates/kpi_detail.html:114 templates/kpi_form.html:215
+#, fuzzy
+msgid "Compliance"
+msgstr "ក្រុមហ៊ុន"
+
+#: templates/kpi_detail.html:121
+msgid "Comments & Plan"
+msgstr "មតិយោបល់ និងផែនការ"
+
+#: templates/kpi_detail.html:125 templates/kpi_form.html:240
+msgid "Comments"
+msgstr "មតិយោបល់"
+
+#: templates/kpi_detail.html:131 templates/kpi_form.html:244
+msgid "Improvement Plan"
+msgstr "ផែនការកែលម្អ"
+
+#: templates/kpi_detail.html:141 templates/kpi_form.html:256
+#, fuzzy
+msgid "Performance Summary"
+msgstr "សេចក្តីសង្ខេបប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/kpi_detail.html:144 templates/kpi_form.html:261
+#: templates/kpi_list.html:58
+#, fuzzy
+msgid "Total Score"
+msgstr "សំណើសរុប"
+
+#: templates/kpi_detail.html:148 templates/kpi_form.html:266
+msgid "Performance Rating"
+msgstr "ការវាយតម្លៃដំណើរការ"
+
+#: templates/kpi_detail.html:152 templates/kpi_list.html:60
+msgid "Evaluator"
+msgstr "អ្នកវាយតម្លៃ"
+
+#: templates/kpi_form.html:3 templates/kpi_form.html:4
+msgid "Edit KPI Evaluation"
+msgstr "កែសម្រួលការវាយតម្លៃ KPI"
+
+#: templates/kpi_form.html:3 templates/kpi_form.html:4
+#, fuzzy
+msgid "New KPI Evaluation"
+msgstr "ពិន័យថ្មី"
+
+#: templates/kpi_form.html:9
+msgid "Back to KPI Evaluations"
+msgstr "ត្រឡប់ទៅការវាយតម្លៃ KPI"
+
+#: templates/kpi_form.html:27 templates/penalty_form.html:30
+#: templates/user_form.html:25
+msgid "Full name"
+msgstr "ឈ្មោះពេញ"
+
+#: templates/kpi_form.html:33 templates/penalty_form.html:25
+msgid "e.g., EMP001"
+msgstr "ឧ. EMP001"
+
+#: templates/kpi_form.html:54
+#, fuzzy
+msgid "Evaluation Month"
+msgstr "ខែនេះ"
+
+#: templates/kpi_form.html:63
+msgid "Evaluation Year"
+msgstr "ឆ្នាំវាយតម្លៃ"
+
+#: templates/kpi_form.html:81
+msgid "Monthly Target"
+msgstr "គោលដៅប្រចាំខែ"
+
+#: templates/kpi_form.html:86
+msgid "Actual Sold"
+msgstr "លក់ជាក់ស្តែង"
+
+#: templates/kpi_form.html:97 templates/kpi_form.html:122
+#: templates/kpi_form.html:147 templates/kpi_form.html:172
+#: templates/kpi_form.html:220
+msgid "Score"
+msgstr "ពិន្ទុ"
+
+#: templates/kpi_form.html:187
+msgid "Report Submission"
+msgstr "ការដាក់របាយការណ៍"
+
+#: templates/kpi_form.html:195
+msgid "Score (0-100)"
+msgstr "ពិន្ទុ (0-100)"
+
+#: templates/kpi_form.html:200
+msgid "Weighted Score"
+msgstr "ពិន្ទុថ្លឹងទម្ងន់"
+
+#: templates/kpi_form.html:231
+msgid "Comments & Improvement Plan"
+msgstr "មតិយោបល់ និងផែនការកែលម្អ"
+
+#: templates/kpi_form.html:235
+#, fuzzy
+msgid "Evaluator Name"
+msgstr "ឈ្មោះអ្នកស្នើសុំ"
+
+#: templates/kpi_form.html:241
+#, fuzzy
+msgid "Additional comments..."
+msgstr "កំណត់ចំណាំបន្ថែម..."
+
+#: templates/kpi_form.html:245
+msgid "Plan for improvement..."
+msgstr "ផែនការសម្រាប់ការកែលម្អ..."
+
+#: templates/kpi_form.html:270
+msgid "Ticket Sales"
+msgstr "ការលក់សំបុត្រ"
+
+#: templates/kpi_form.html:271
+msgid "Booking Accuracy"
+msgstr "ភាពត្រឹមត្រូវនៃការកក់"
+
+#: templates/kpi_form.html:272
+msgid "Customer Service"
+msgstr "សេវាកម្មអតិថិជន"
+
+#: templates/kpi_form.html:274
+msgid "Daily Reporting"
+msgstr "របាយការណ៍ប្រចាំថ្ងៃ"
+
+#: templates/kpi_form.html:275
+msgid "SOP Compliance"
+msgstr "ការអនុលោមតាម SOP"
+
+#: templates/kpi_form.html:279
+msgid "Rating Guide:"
+msgstr "មគ្គុទ្ទេសក៍ការវាយតម្លៃ៖"
+
+#: templates/kpi_form.html:280 templates/kpi_form.html:374
+#, fuzzy
+msgid "Excellent"
+msgstr "Excel"
+
+#: templates/kpi_form.html:281 templates/kpi_form.html:375
+msgid "Very Good"
+msgstr "ល្អណាស់"
+
+#: templates/kpi_form.html:282 templates/kpi_form.html:376
+msgid "Good"
+msgstr "ល្អ"
+
+#: templates/kpi_form.html:283 templates/kpi_form.html:377
+msgid "Need Improvement"
+msgstr "ត្រូវការកែលម្អ"
+
+#: templates/kpi_form.html:284 templates/kpi_form.html:378
+msgid "Unsatisfactory"
+msgstr "មិនពេញចិត្ត"
+
+#: templates/kpi_form.html:300
+#, fuzzy
+msgid "Submit Evaluation"
+msgstr "ដាក់ស្នើសំណើ"
+
+#: templates/kpi_history.html:4
+msgid "KPI Performance History"
+msgstr "ប្រវត្តិដំណើរការ KPI"
+
+#: templates/kpi_history.html:8
+msgid "Historical monthly KPI scores and performance ratings"
+msgstr "ពិន្ទុ KPI ប្រចាំខែ និងការវាយតម្លៃដំណើរការប្រវត្តិសាស្រ្ត"
+
+#: templates/kpi_history.html:20 templates/kpi_list.html:34
+msgid "All Years"
+msgstr "ឆ្នាំទាំងអស់"
+
+#: templates/kpi_history.html:29 templates/kpi_list.html:25
+#, fuzzy
+msgid "All Months"
+msgstr "ខែនេះ"
+
+#: templates/kpi_history.html:59 templates/vehicle_performance.html:33
+msgid "Period"
+msgstr "រយៈពេល"
+
+#: templates/kpi_history.html:64
+msgid "TS Score"
+msgstr "ពិន្ទុ TS"
+
+#: templates/kpi_history.html:65
+msgid "BA Score"
+msgstr "ពិន្ទុ BA"
+
+#: templates/kpi_history.html:66
+msgid "CS Score"
+msgstr "ពិន្ទុ CS"
+
+#: templates/kpi_history.html:67
+msgid "AT Score"
+msgstr "ពិន្ទុ AT"
+
+#: templates/kpi_history.html:68
+msgid "DR Score"
+msgstr "ពិន្ទុ DR"
+
+#: templates/kpi_history.html:69
+msgid "SOP Score"
+msgstr "ពិន្ទុ SOP"
+
+#: templates/kpi_history.html:103
+msgid "No KPI history records found"
+msgstr "រកមិនឃើញកំណត់ត្រាប្រវត្តិ KPI ទេ"
+
+#: templates/kpi_list.html:3
+#, fuzzy
+msgid "KPI Evaluation Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/kpi_list.html:8
+msgid "Manage KPI evaluations for ticket officer staff"
+msgstr "គ្រប់គ្រងការវាយតម្លៃ KPI សម្រាប់បុគ្គលិកមន្ត្រីសំបុត្រ"
+
+#: templates/kpi_list.html:57
+#, fuzzy
+msgid "Month/Year"
+msgstr "ឆ្នាំនេះ"
+
+#: templates/kpi_list.html:105
+#, fuzzy
+msgid "No evaluations found"
+msgstr "រកមិនឃើញសំណើទេ"
 
 #: templates/login.html:6
 msgid "Login"
@@ -646,7 +2335,7 @@ msgstr "ចូលប្រព័ន្ធ"
 msgid "Sign in to your account to continue"
 msgstr "ចូលគណនីរបស់អ្នកដើម្បីបន្ត"
 
-#: templates/login.html:247
+#: templates/login.html:247 templates/user_form.html:28 templates/users.html:27
 msgid "Username"
 msgstr "ឈ្មោះអ្នកប្រើ"
 
@@ -654,7 +2343,7 @@ msgstr "ឈ្មោះអ្នកប្រើ"
 msgid "Enter username"
 msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
 
-#: templates/login.html:255
+#: templates/login.html:255 templates/user_form.html:53
 msgid "Password"
 msgstr "ពាក្យសម្ងាត់"
 
@@ -666,167 +2355,699 @@ msgstr "បញ្ចូលពាក្យសម្ងាត់"
 msgid "Sign In"
 msgstr "ចូលប្រព័ន្ធ"
 
-#: templates/route_request_form.html:2
-msgid "Edit"
-msgstr "កែប្រែ"
+#: templates/penalties.html:2
+#, fuzzy
+msgid "Employee Penalties"
+msgstr "ពិន័យរង់ចាំ"
 
-#: templates/route_request_form.html:2
-msgid "New"
-msgstr "ថ្មី"
+#: templates/penalties.html:3
+#, fuzzy
+msgid "Employee Penalty Management"
+msgstr "ការគ្រប់គ្រងសំណើបន្ទាត់ដំណើរ"
 
-#: templates/route_request_form.html:2
-msgid "Route Request"
-msgstr "សំណើបន្ទាត់ដំណើរ"
+#: templates/penalties.html:7
+msgid "Record and manage employee violations and salary deductions"
+msgstr "កត់ត្រា និងគ្រប់គ្រងការបំពានរបស់បុគ្គលិក និងការកាត់ប្រាក់ខែ"
 
-#: templates/route_request_form.html:3
-msgid "Edit Request"
-msgstr "កែប្រែសំណើ"
+#: templates/penalties.html:20
+#, fuzzy
+msgid "Search by employee ID, name, department..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
 
-#: templates/route_request_form.html:3
-msgid "New Route Request"
-msgstr "សំណើបន្ទាត់ដំណើរថ្មី"
+#: templates/penalties.html:25 templates/route_requests.html:30
+#: templates/transport_requests.html:75
+msgid "All Status"
+msgstr "ស្ថានភាពទាំងអស់"
 
-#: templates/route_request_form.html:8
-msgid "Back to Requests"
-msgstr "ត្រលប់ទៅសំណើ"
+#: templates/penalties.html:26 templates/penalties.html:51
+#: templates/route_requests.html:31 templates/route_requests.html:56
+#: templates/transport_requests.html:35 templates/transport_requests.html:76
+msgid "Pending"
+msgstr "រង់ចាំ"
 
-#: templates/route_request_form.html:18
-msgid "Route Information"
-msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+#: templates/penalties.html:27 templates/penalties.html:57
+#: templates/route_requests.html:32 templates/route_requests.html:62
+#: templates/transport_requests.html:46 templates/transport_requests.html:77
+msgid "Approved"
+msgstr "បានអនុម័ត"
 
-#: templates/route_request_form.html:22
-msgid "From (Origin)"
-msgstr "ពី (ចំណុចចេញដំណើរ)"
+#: templates/penalties.html:28 templates/penalties.html:63
+#: templates/route_requests.html:33 templates/route_requests.html:68
+#: templates/transport_requests.html:57 templates/transport_requests.html:78
+msgid "Rejected"
+msgstr "បានច្រានចោល"
 
-#: templates/route_request_form.html:24
-msgid "Select Origin"
-msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+#: templates/penalties.html:45
+#, fuzzy
+msgid "Total Penalties"
+msgstr "ករណីពិន័យសរុប"
 
-#: templates/route_request_form.html:31
-msgid "To (Destination)"
-msgstr "ទៅ (គោលដៅ)"
+#: templates/penalties.html:70 templates/trip_operation_reports.html:67
+#, fuzzy, python-format
+msgid "Showing %(shown)s of %(total)s record(s)"
+msgstr "បង្ហាញ %(shown)s ក្នុងចំណោម %(total)s កំណត់ត្រា"
 
-#: templates/route_request_form.html:33
-msgid "Select Destination"
-msgstr "ជ្រើសរើសគោលដៅ"
+#: templates/penalties.html:87
+#, fuzzy
+msgid "Name Employee"
+msgstr "បុគ្គលិក"
 
-#: templates/route_request_form.html:40
-msgid "Transportation Type"
+#: templates/penalties.html:91 templates/penalty_detail.html:68
+#: templates/penalty_form.html:79
+msgid "Old Code"
+msgstr "លេខកូដចាស់"
+
+#: templates/penalties.html:95 templates/penalty_detail.html:70
+#: templates/penalty_form.html:98
+#, fuzzy
+msgid "Request by"
+msgstr "លេខសម្គាល់សំណើ"
+
+#: templates/penalties.html:127 templates/penalty_detail.html:17
+#: templates/route_request_detail.html:17
+#, fuzzy
+msgid "Delete?"
+msgstr "បានលុបអ្នកប្រើ។"
+
+#: templates/penalties.html:136
+#, fuzzy
+msgid "No penalty records found"
+msgstr "បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាពិន័យ!"
+
+#: templates/penalty_detail.html:4
+#, fuzzy
+msgid "Penalty Detail"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/penalty_detail.html:39
+#, python-format
+msgid "Recorded on %(date)s"
+msgstr "បានកត់ត្រានៅថ្ងៃទី %(date)s"
+
+#: templates/penalty_detail.html:59
+#, fuzzy
+msgid "Penalty Amount"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/penalty_detail.html:66 templates/penalty_form.html:60
+#, fuzzy
+msgid "Violation Type"
 msgstr "ប្រភេទយានជំនិះ"
 
-#: templates/route_request_form.html:49
-msgid "National Road"
-msgstr "ផ្លូវជាតិ"
-
-#: templates/route_request_form.html:51
-msgid "e.g., NR6"
-msgstr "ឧ. NR6"
-
-#: templates/route_request_form.html:54
-msgid "Price ($)"
-msgstr "តម្លៃ ($)"
-
-#: templates/route_request_form.html:59
-msgid "Departure Time"
-msgstr "ម៉ោងចេញដំណើរ"
-
-#: templates/route_request_form.html:64
-msgid "Arrival Time"
-msgstr "ម៉ោងមកដល់"
-
-#: templates/route_request_form.html:69
-msgid "Start Date"
-msgstr "ថ្ងៃចាប់ផ្តើម"
-
-#: templates/route_request_form.html:74
-msgid "End Date"
+#: templates/penalty_detail.html:67 templates/penalty_form.html:69
+#, fuzzy
+msgid "Incident Date"
 msgstr "ថ្ងៃបញ្ចប់"
 
-#: templates/route_request_form.html:83
-msgid "Organization Details"
+#: templates/penalty_detail.html:69 templates/route_request_detail.html:68
+#: templates/route_requests.html:93 templates/transport_request_detail.html:72
+#: templates/transport_requests.html:111
+msgid "Requester"
+msgstr "អ្នកស្នើសុំ"
+
+#: templates/penalty_detail.html:71
+#, fuzzy
+msgid "Created Date"
+msgstr "ថ្ងៃបញ្ចប់"
+
+#: templates/penalty_detail.html:95
+msgid "Evidence:"
+msgstr "ភស្តុតាង៖"
+
+#: templates/penalty_detail.html:106
+#, fuzzy
+msgid "Approve / Reject"
+msgstr "សំណើដែលបានអនុម័ត"
+
+#: templates/penalty_detail.html:110 templates/route_request_detail.html:129
+#: templates/transport_request_detail.html:177
+#, fuzzy
+msgid "Approve"
+msgstr "បានអនុម័ត"
+
+#: templates/penalty_detail.html:113 templates/route_request_detail.html:132
+#: templates/transport_request_detail.html:180
+#, fuzzy
+msgid "Reject"
+msgstr "បានច្រានចោល"
+
+#: templates/penalty_detail.html:121
+#, fuzzy
+msgid "Status History"
+msgstr "ស្ថានភាព"
+
+#: templates/penalty_detail.html:125
+#, fuzzy
+msgid "Record Created"
+msgstr "បានដំណើរការកំណត់ត្រា។"
+
+#: templates/penalty_detail.html:138
+#, fuzzy
+msgid "Awaiting Approval"
+msgstr "រង់ចាំ៖ កំពុងរង់ចាំការអនុម័តពីតំបន់"
+
+#: templates/penalty_form.html:9
+#, fuzzy
+msgid "Back to Penalties"
+msgstr "ពិន័យ"
+
+#: templates/penalty_form.html:23
+#, fuzzy
+msgid "Employee ID"
+msgstr "បុគ្គលិក"
+
+#: templates/penalty_form.html:28
+#, fuzzy
+msgid "Employee Full Name"
+msgstr "បុគ្គលិក"
+
+#: templates/penalty_form.html:35 templates/position_form.html:29
+#, fuzzy
+msgid "— Select Department —"
+msgstr "នាយកដ្ឋាន"
+
+#: templates/penalty_form.html:42
+#, fuzzy
+msgid "Position"
+msgstr "មុខតំណែង"
+
+#: templates/penalty_form.html:44
+#, fuzzy
+msgid "— Select Position —"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/penalty_form.html:56
+#, fuzzy
+msgid "Violation Details"
 msgstr "ព័ត៌មានលម្អិតអង្គការ"
 
-#: templates/route_request_form.html:87
+#: templates/penalty_form.html:62 templates/route_request_form.html:43
+msgid "— Select Type —"
+msgstr "— Select Type —"
+
+#: templates/penalty_form.html:76
+msgid "Describe the violation in detail..."
+msgstr "ពណ៌នាអំពីការបំពានដោយលម្អិត..."
+
+#: templates/penalty_form.html:81
+msgid "Legacy code from old system"
+msgstr "លេខកូដពីប្រព័ន្ធចាស់"
+
+#: templates/penalty_form.html:84
+#, fuzzy
+msgid "Penalty Amount ($)"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/penalty_form.html:92 templates/route_request_form.html:88
+#: templates/transport_request_form.html:225
 msgid "Requester Name"
 msgstr "ឈ្មោះអ្នកស្នើសុំ"
 
-#: templates/route_request_form.html:93
-msgid "Branch Location"
-msgstr "ទីតាំងសាខា"
+#: templates/penalty_form.html:100
+msgid "— Select User —"
+msgstr "— Select User —"
 
-#: templates/route_request_form.html:102 templates/route_requests.html:96
-msgid "Company"
-msgstr "ក្រុមហ៊ុន"
+#: templates/penalty_form.html:107
+msgid "Evidence File"
+msgstr "ឯកសារភស្តុតាង"
 
-#: templates/route_request_form.html:115
-msgid "Attachments & Notes"
-msgstr "ឯកសារភ្ជាប់ និងកំណត់ចំណាំ"
-
-#: templates/route_request_form.html:119
-msgid "Supporting Documents"
-msgstr "ឯកសារគាំទ្រ"
-
-#: templates/route_request_form.html:123
-msgid "Current file:"
+#: templates/penalty_form.html:111
+#, fuzzy
+msgid "Current:"
 msgstr "ឯកសារបច្ចុប្បន្ន៖"
 
-#: templates/route_request_form.html:128
-msgid "Remarks"
-msgstr "កំណត់ចំណាំ"
-
-#: templates/route_request_form.html:129
-msgid "Additional notes..."
-msgstr "កំណត់ចំណាំបន្ថែម..."
-
-#: templates/route_request_form.html:135
-msgid "Allow Access Permission"
-msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
-
-#: templates/route_request_form.html:146
-msgid "Request Status"
+#: templates/penalty_form.html:121
+#, fuzzy
+msgid "Record Status"
 msgstr "ស្ថានភាពសំណើ"
 
-#: templates/route_request_form.html:150
+#: templates/penalty_form.html:124 templates/route_request_form.html:151
+#: templates/transport_request_form.html:246
+#: templates/trip_operation_report_form.html:142
 msgid "ID:"
 msgstr "លេខសម្គាល់៖"
 
-#: templates/route_request_form.html:151
+#: templates/penalty_form.html:130
+#, fuzzy
+msgid "Auto ID will be assigned after submission."
+msgstr "លេខសម្គាល់សំណើតែមួយគត់នឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិនៅពេលដាក់ស្នើ។"
+
+#: templates/penalty_form.html:143
+#, fuzzy
+msgid "Violation Reference"
+msgstr "ឯកសារយោងរហ័ស"
+
+#: templates/penalty_form.html:145
+msgid "Late Arrival"
+msgstr "ការយឺតយ៉ាវ"
+
+#: templates/penalty_form.html:145
+msgid "$25–$50/instance"
+msgstr "$25–$50/ករណஸ"
+
+#: templates/penalty_form.html:146
+msgid "Absenteeism"
+msgstr "អវត្តមាន"
+
+#: templates/penalty_form.html:146
+msgid "$50–$100/day"
+msgstr "$50–$100/ថ្ងஸ"
+
+#: templates/penalty_form.html:147
+msgid "Policy Violation"
+msgstr "ការបំពានគោលការណ៍"
+
+#: templates/penalty_form.html:147
+msgid "$50–$150"
+msgstr "$50–$150"
+
+#: templates/penalty_form.html:148
+msgid "Misconduct"
+msgstr "ការប្រព្រឹត្តខុស"
+
+#: templates/penalty_form.html:148
+msgid "$100–$500"
+msgstr "$100–$500"
+
+#: templates/position_form.html:3 templates/position_form.html:4
+#: templates/positions.html:10
+#, fuzzy
+msgid "New Position"
+msgstr "មុខតំណែង"
+
+#: templates/position_form.html:4
+#, python-format
+msgid "Edit Position — %(name)s"
+msgstr "Edit Position — %(name)s"
+
+#: templates/position_form.html:9
+#, fuzzy
+msgid "Back to Positions"
+msgstr "មុខតំណែង"
+
+#: templates/position_form.html:18
+#, fuzzy
+msgid "Position Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/position_form.html:22 templates/positions.html:38
+#, fuzzy
+msgid "Position Name"
+msgstr "មុខតំណែង"
+
+#: templates/position_form.html:24
+msgid "e.g., Software Engineer"
+msgstr "ឧ. វិស្វករកម្មវិធី"
+
+#: templates/position_form.html:45
+#, fuzzy
+msgid "Position description..."
+msgstr "បានលុបមុខតំណែង។"
+
+#: templates/positions.html:3
+#, fuzzy
+msgid "Position Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/positions.html:7
+msgid "Manage job positions by department"
+msgstr "គ្រប់គ្រងមុខតំណែងការងារតាមនាយកដ្ឋាន"
+
+#: templates/positions.html:19
+#, fuzzy
+msgid "Search by position name..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/positions.html:62
+msgid "Delete this position?"
+msgstr "លុបមុខតំណែងនេះ?"
+
+#: templates/positions.html:71
+#, fuzzy
+msgid "No positions found"
+msgstr "រកមិនឃើញសំណើទេ"
+
+#: templates/reports.html:2
+#, fuzzy
+msgid "Reports & Analytics"
+msgstr "ត្រលប់ទៅរបាយការណ៍ និងការវិភាគ"
+
+#: templates/reports.html:293
+#, fuzzy
+msgid "Select a Report"
+msgstr "នាំចេញ និងរបាយការណ៍"
+
+#: templates/reports.html:294
+msgid "Choose a report type from the sidebar to view analytics and data."
+msgstr "ជ្រើសរើសប្រភេទរបាយការណ៍ពីរបារចំហៀងដើម្បីមើលការវិភាគ និងទិន្នន័យ។"
+
+#: templates/reports.html:305
+#, fuzzy
+msgid "Total Records"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/reports.html:317
+#, fuzzy
+msgid "Monthly Trend"
+msgstr "និន្នាការពិន័យ"
+
+#: templates/reports.html:325
+msgid "Status Distribution"
+msgstr "ការចែកចាយស្ថានភាព"
+
+#: templates/reports.html:361
+#, fuzzy
+msgid "Custom Date"
+msgstr "ផ្ទាល់ខ្លួន"
+
+#: templates/reports.html:366
+#, fuzzy
+msgid "Date From"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/reports.html:370
+#, fuzzy
+msgid "Date To"
+msgstr "កាលបរិច្ឆេទ"
+
+#: templates/reports.html:380
+#, fuzzy
+msgid "Reset"
+msgstr "បានច្រានចោល"
+
+#: templates/reports.html:385
+msgid "Print"
+msgstr "បោះពុម្ព"
+
+#: templates/reports.html:403
+#, fuzzy, python-format
+msgid "Showing 0 of 0 records"
+msgstr "បង្ហាញ %(count)d ក្នុងចំណោម %(total)d កំណត់ត្រា"
+
+#: templates/reports.html:411
+#, fuzzy
+msgid "No Report Selected"
+msgstr "មិនទាន់ជ្រើសរើសឯកសារទេ។"
+
+#: templates/reports.html:412
+msgid "Choose a report type from the sidebar to begin."
+msgstr "ជ្រើសរើសប្រភេទរបាយការណ៍ពីរបារចំហៀងដើម្បីចាប់ផ្តើម។"
+
+#: templates/reports.html:417
+msgid "Loading data..."
+msgstr "កំពុងផ្ទុកទិន្នន័យ..."
+
+#: templates/reports.html:422
+msgid "No Results"
+msgstr "គ្មានលទ្ធផល"
+
+#: templates/reports.html:423
+msgid "No records found for the selected filters."
+msgstr "រកមិនឃើញកំណត់ត្រាសម្រាប់តម្រងដែលបានជ្រើសរើសទេ។"
+
+#: templates/reports.html:526
+msgid "Comprehensive analytics and reporting for"
+msgstr "ការវិភាគ និងរបាយការណ៍ទូលំទូលាយសម្រាប់"
+
+#: templates/reports.html:773
+msgid "Showing 0 of"
+msgstr "បង្ហាញ 0 នៃ"
+
+#: templates/reports.html:773 templates/reports.html:782
+#, fuzzy
+msgid "records"
+msgstr "របាយការណ៍"
+
+#: templates/reports.html:779
+msgid "Showing"
+msgstr "បង្ហាញ"
+
+#: templates/reports.html:782
+msgid "of"
+msgstr "នៃ"
+
+#: templates/reports.html:970 templates/reports.html:973
+#: templates/reports.html:980
+#, fuzzy
+msgid "Export failed"
+msgstr "នាំចេញ PDF"
+
+#: templates/reports.html:980
+msgid "Network error"
+msgstr "កំហុសបណ្តាញ"
+
+#: templates/roles.html:2 templates/roles.html:3
+#, fuzzy
+msgid "Roles Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/roles.html:24
+msgid "Manage saved roles and their assigned permissions."
+msgstr "គ្រប់គ្រងតួនាទីដែលបានរក្សាទុក និងការអនុញ្ញាតដែលបានចាត់ឱ្យពួកគេ។"
+
+#: templates/roles.html:37
+#, python-format
+msgid "%(count)s role(s) defined"
+msgstr "%(count)s role(s) defined"
+
+#: templates/roles.html:59
+#, fuzzy
+msgid "No permissions"
+msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
+
+#: templates/roles.html:66
+#, fuzzy, python-format
+msgid "Delete role \"%(name)s\"?"
+msgstr "តួនាទី \"%(name)s\" ត្រូវបានធ្វើបច្ចុប្បន្នភាព។"
+
+#: templates/roles.html:75
+msgid "No roles have been created yet."
+msgstr "មិនទាន់មានតួនាទីណាមួយត្រូវបានបង្កើតទេ។"
+
+#: templates/route_request_detail.html:4
+#, fuzzy, python-format
+msgid "Request Detail — %(id)s"
+msgstr "បានលុបសំណើ។"
+
+#: templates/route_request_detail.html:39
+#, python-format
+msgid "Submitted on %(date)s"
+msgstr "Submitted on %(date)s"
+
+#: templates/route_request_detail.html:49
+#: templates/transport_request_detail.html:52
+#: templates/trip_operation_reports.html:25
+#, fuzzy
+msgid "Origin"
+msgstr "ចូលប្រព័ន្ធ"
+
+#: templates/route_request_detail.html:56
+msgid "N/A"
+msgstr "N/A"
+
+#: templates/route_request_detail.html:71 templates/route_requests.html:98
+#: templates/transport_request_detail.html:80
+#: templates/transport_requests.html:116
+msgid "Price"
+msgstr "តម្លៃ"
+
+#: templates/route_request_detail.html:72 templates/route_request_form.html:70
+msgid "Start Date"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/route_request_detail.html:73 templates/route_request_form.html:75
+msgid "End Date"
+msgstr "ថ្ងៃបញ្ចប់"
+
+#: templates/route_request_detail.html:74
+#, fuzzy
+msgid "Access Allowed"
+msgstr "មិនមានសិទ្ធិចូលប្រើ។"
+
+#: templates/route_request_detail.html:108
+#: templates/transport_request_detail.html:156
+#: templates/transport_request_detail.html:172
+msgid "Review Note"
+msgstr "កំណត់ចំណាំការពិនិត្យ"
+
+#: templates/route_request_detail.html:121
+#: templates/transport_request_detail.html:169
+#, fuzzy
+msgid "Review Request"
+msgstr "សំណើថ្មី"
+
+#: templates/route_request_detail.html:124
+msgid "Review Note (optional)"
+msgstr "កំណត់ចំណាំការពិនិត្យ (ស្រេចចិត្ត)"
+
+#: templates/route_request_detail.html:125
+#: templates/transport_request_detail.html:173
+#, fuzzy
+msgid "Add a note..."
+msgstr "កំណត់ចំណាំបន្ថែម..."
+
+#: templates/route_request_detail.html:140
+#: templates/transport_request_detail.html:188
+#: templates/trip_operation_report_detail.html:111
+msgid "Timeline"
+msgstr "បន្ទាត់ពេលវេលា"
+
+#: templates/route_request_detail.html:144
+#: templates/transport_request_detail.html:192
+#, fuzzy
+msgid "Request Submitted"
+msgstr "លេខសម្គាល់សំណើ"
+
+#: templates/route_request_detail.html:152
+#, python-format
+msgid "by %(name)s"
+msgstr "by %(name)s"
+
+#: templates/route_request_detail.html:158
+#: templates/transport_request_detail.html:206
+msgid "Awaiting Review"
+msgstr "កំពុងរង់ចាំការពិនិត្យ"
+
+#: templates/route_request_form.html:3 templates/transport_request_form.html:3
+msgid "New"
+msgstr "ថ្មី"
+
+#: templates/route_request_form.html:3
+msgid "Route Request"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/route_request_form.html:4
+msgid "New Route Request"
+msgstr "សំណើបន្ទាត់ដំណើរថ្មី"
+
+#: templates/route_request_form.html:9 templates/transport_request_form.html:9
+msgid "Back to Requests"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/route_request_form.html:19
+#: templates/transport_request_form.html:44
+msgid "Route Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/route_request_form.html:23
+#: templates/transport_request_form.html:48
+#: templates/trip_operation_report_form.html:23
+msgid "From (Origin)"
+msgstr "ពី (ចំណុចចេញដំណើរ)"
+
+#: templates/route_request_form.html:25
+#: templates/transport_request_form.html:50
+msgid "Select Origin"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/route_request_form.html:32
+#: templates/transport_request_form.html:57
+#: templates/trip_operation_report_form.html:32
+msgid "To (Destination)"
+msgstr "ទៅ (គោលដៅ)"
+
+#: templates/route_request_form.html:34
+#: templates/transport_request_form.html:59
+msgid "Select Destination"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/route_request_form.html:41
+#: templates/transport_request_detail.html:75
+#: templates/transport_request_form.html:66
+#: templates/transport_requests.html:113
+msgid "Transportation Type"
+msgstr "ប្រភេទយានជំនិះ"
+
+#: templates/route_request_form.html:50
+#: templates/transport_request_detail.html:79
+#: templates/transport_request_form.html:111
+msgid "National Road"
+msgstr "ផ្លូវជាតិ"
+
+#: templates/route_request_form.html:52
+#: templates/transport_request_form.html:112
+msgid "e.g., NR6"
+msgstr "ឧ. NR6"
+
+#: templates/route_request_form.html:55
+#: templates/transport_request_form.html:115
+msgid "Price ($)"
+msgstr "តម្លៃ ($)"
+
+#: templates/route_request_form.html:60
+#: templates/transport_request_detail.html:110
+#: templates/transport_request_form.html:157
+#: templates/trip_operation_report_detail.html:67
+#: templates/trip_operation_report_form.html:41
+msgid "Departure Time"
+msgstr "ម៉ោងចេញដំណើរ"
+
+#: templates/route_request_form.html:65
+#: templates/transport_request_detail.html:111
+#: templates/transport_request_form.html:161
+msgid "Arrival Time"
+msgstr "ម៉ោងមកដល់"
+
+#: templates/route_request_form.html:84
+msgid "Organization Details"
+msgstr "ព័ត៌មានលម្អិតអង្គការ"
+
+#: templates/route_request_form.html:94
+#: templates/transport_request_detail.html:73
+#: templates/transport_request_form.html:102
+msgid "Branch Location"
+msgstr "ទីតាំងសាខា"
+
+#: templates/route_request_form.html:116
+#: templates/transport_request_form.html:190
+msgid "Attachments & Notes"
+msgstr "ឯកសារភ្ជាប់ និងកំណត់ចំណាំ"
+
+#: templates/route_request_form.html:120
+msgid "Supporting Documents"
+msgstr "ឯកសារគាំទ្រ"
+
+#: templates/route_request_form.html:124
+msgid "Current file:"
+msgstr "ឯកសារបច្ចុប្បន្ន៖"
+
+#: templates/route_request_form.html:136
+msgid "Allow Access Permission"
+msgstr "អនុញ្ញាតសិទ្ធិចូលប្រើ"
+
+#: templates/route_request_form.html:147
+msgid "Request Status"
+msgstr "ស្ថានភាពសំណើ"
+
+#: templates/route_request_form.html:152
+#: templates/transport_request_form.html:247
 msgid "Submitted:"
 msgstr "បានដាក់ស្នើ៖"
 
-#: templates/route_request_form.html:152
-msgid "Status:"
-msgstr "ស្ថានភាព៖"
-
-#: templates/route_request_form.html:157
+#: templates/route_request_form.html:158
+#: templates/transport_request_form.html:259
 msgid "A unique Request ID will be auto-generated upon submission."
 msgstr "លេខសម្គាល់សំណើតែមួយគត់នឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិនៅពេលដាក់ស្នើ។"
 
-#: templates/route_request_form.html:164
-msgid "Save Changes"
-msgstr "រក្សាទុកការផ្លាស់ប្តូរ"
-
-#: templates/route_request_form.html:164
+#: templates/route_request_form.html:165
+#: templates/transport_request_form.html:266
 msgid "Submit Request"
 msgstr "ដាក់ស្នើសំណើ"
 
-#: templates/route_request_form.html:166
-msgid "Cancel"
-msgstr "បោះបង់"
-
-#: templates/route_request_form.html:172
+#: templates/route_request_form.html:173
+#: templates/trip_operation_report_form.html:163
 msgid "Quick Reference"
 msgstr "ឯកសារយោងរហ័ស"
 
-#: templates/route_request_form.html:174
+#: templates/route_request_form.html:175
 msgid "Pending: Awaiting regional approval"
 msgstr "រង់ចាំ៖ កំពុងរង់ចាំការអនុម័តពីតំបន់"
 
-#: templates/route_request_form.html:175
+#: templates/route_request_form.html:176
 msgid "Approved: Forwarded to IT"
 msgstr "បានអនុម័ត៖ បញ្ជូនទៅ IT"
 
-#: templates/route_request_form.html:176
+#: templates/route_request_form.html:177
 msgid "Rejected: Request declined"
 msgstr "បានច្រានចោល៖ សំណើត្រូវបានបដិសេធ"
 
@@ -838,79 +3059,1037 @@ msgstr "ការគ្រប់គ្រងសំណើបន្ទាត់ដ
 msgid "Back to Reports & Analytics"
 msgstr "ត្រលប់ទៅរបាយការណ៍ និងការវិភាគ"
 
-#: templates/route_requests.html:11
+#: templates/route_requests.html:11 templates/transport_requests.html:8
 msgid "Manage and track all transportation route requests"
 msgstr "គ្រប់គ្រង និងតាមដានរាល់សំណើបន្ទាត់ដំណើរដឹកជញ្ជូន"
-
-#: templates/route_requests.html:24
-msgid "Search"
-msgstr "ស្វែងរក"
 
 #: templates/route_requests.html:25
 msgid "Search by ID, name, route..."
 msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
 
-#: templates/route_requests.html:30
-msgid "All Status"
-msgstr "ស្ថានភាពទាំងអស់"
-
-#: templates/route_requests.html:37
-msgid "Filter"
-msgstr "តម្រង"
-
-#: templates/route_requests.html:40
-msgid "Clear"
-msgstr "សម្អាត"
-
-#: templates/route_requests.html:50
+#: templates/route_requests.html:50 templates/transport_requests.html:24
 msgid "Total Requests"
 msgstr "សំណើសរុប"
-
-#: templates/route_requests.html:56
-msgid "Pending"
-msgstr "រង់ចាំ"
-
-#: templates/route_requests.html:62
-msgid "Approved"
-msgstr "បានអនុម័ត"
-
-#: templates/route_requests.html:68
-msgid "Rejected"
-msgstr "បានច្រានចោល"
 
 #: templates/route_requests.html:75
 #, python-format
 msgid "Showing %(count)d of %(total)d record(s)"
 msgstr "បង្ហាញ %(count)d ក្នុងចំណោម %(total)d កំណត់ត្រា"
 
-#: templates/route_requests.html:79
-msgid "Excel"
-msgstr "Excel"
-
-#: templates/route_requests.html:82
-msgid "PDF"
-msgstr "PDF"
-
-#: templates/route_requests.html:92
-msgid "Date"
-msgstr "កាលបរិច្ឆេទ"
-
-#: templates/route_requests.html:93
-msgid "Requester"
-msgstr "អ្នកស្នើសុំ"
-
-#: templates/route_requests.html:94
-msgid "Route"
-msgstr "បន្ទាត់ដំណើរ"
-
-#: templates/route_requests.html:95
-msgid "Branch"
-msgstr "សាខា"
-
 #: templates/route_requests.html:97
 msgid "Transport"
 msgstr "ការដឹកជញ្ជូន"
 
-#: templates/route_requests.html:98
-msgid "Price"
+#: templates/route_requests.html:131 templates/transport_request_detail.html:17
+#: templates/transport_requests.html:160
+#, fuzzy
+msgid "Delete this request?"
+msgstr "សំណើដែលត្រូវបានច្រានចោល"
+
+#: templates/telegram_settings.html:3 templates/telegram_settings.html:4
+#, fuzzy
+msgid "Telegram Settings"
+msgstr "ការកំណត់ប្រព័ន្ធ"
+
+#: templates/telegram_settings.html:11
+msgid "Telegram Bot Configuration"
+msgstr "ការកំណត់រចនាសម្ព័ន្ធ Telegram Bot"
+
+#: templates/telegram_settings.html:13
+msgid "Configure and manage your Telegram notification bot"
+msgstr "កំណត់រចនាសម្ព័ន្ធ និងគ្រប់គ្រង bot ការជូនដំណឹង Telegram របស់អ្នក"
+
+#: templates/telegram_settings.html:16
+#, fuzzy
+msgid "Back to Dashboard"
+msgstr "ផ្ទាំងគ្រប់គ្រង"
+
+#: templates/telegram_settings.html:28
+msgid "Bot Connection"
+msgstr "ការតភ្ជាប់ Bot"
+
+#: templates/telegram_settings.html:36
+msgid "Bot Token"
+msgstr "Bot Token"
+
+#: templates/telegram_settings.html:43
+msgid "Change Token"
+msgstr "ផ្លាស់ប្តូរ Token"
+
+#: templates/telegram_settings.html:49 templates/telegram_settings.html:120
+msgid "Chat ID"
+msgstr "Chat ID"
+
+#: templates/telegram_settings.html:53
+msgid "Copy Chat ID"
+msgstr "ចម្លង Chat ID"
+
+#: templates/telegram_settings.html:62
+#, fuzzy
+msgid "Telegram Notifications"
+msgstr "ការជូនដំណឹង"
+
+#: templates/telegram_settings.html:84 templates/telegram_settings.html:413
+msgid "Send Test Message"
+msgstr "ផ្ញើសារសាកល្បង"
+
+#: templates/telegram_settings.html:87
+msgid "Disconnect Bot"
+msgstr "ផ្តាច់ Bot"
+
+#: templates/telegram_settings.html:102
+#, fuzzy
+msgid "Bot Status"
+msgstr "ស្ថានភាព"
+
+#: templates/telegram_settings.html:112
+#, fuzzy
+msgid "Bot Username"
+msgstr "ឈ្មោះអ្នកប្រើ"
+
+#: templates/telegram_settings.html:116
+msgid "Group Name"
+msgstr "ឈ្មោះក្រុម"
+
+#: templates/telegram_settings.html:124
+msgid "Last Test Time"
+msgstr "ពេលវេលាសាកល្បងចុងក្រោយ"
+
+#: templates/telegram_settings.html:138
+msgid "Change Bot Token"
+msgstr "ផ្លាស់ប្តូរ Bot Token"
+
+#: templates/telegram_settings.html:142
+msgid ""
+"Enter a new bot token to replace the existing one. The token will be "
+"encrypted and stored securely."
+msgstr ""
+
+#: templates/telegram_settings.html:144
+msgid "New Bot Token"
+msgstr "Bot Token ថ្មី"
+
+#: templates/telegram_settings.html:145
+msgid "Enter new bot token"
+msgstr "បញ្ចូល bot token ថ្មី"
+
+#: templates/telegram_settings.html:152 templates/telegram_settings.html:310
+msgid "Validate & Save"
+msgstr "ផ្ទៀងផ្ទាត់ និងរក្សាទុក"
+
+#: templates/telegram_settings.html:166
+msgid "Disconnect Bot?"
+msgstr "ផ្តាច់ Bot?"
+
+#: templates/telegram_settings.html:167
+msgid "This will clear the bot token and disable all Telegram notifications."
+msgstr "វានឹងលុប bot token និងបិទការជូនដំណឹង Telegram ទាំងអស់។"
+
+#: templates/telegram_settings.html:172 templates/telegram_settings.html:333
+msgid "Disconnect"
+msgstr "ផ្តាច់"
+
+#: templates/telegram_settings.html:216
+msgid "Failed to load"
+msgstr "បរាជ័យក្នុងការផ្ទុក"
+
+#: templates/telegram_settings.html:222 templates/telegram_settings.html:243
+msgid "Connected"
+msgstr "បានតភ្ជាប់"
+
+#: templates/telegram_settings.html:224 templates/telegram_settings.html:246
+msgid "Disconnected"
+msgstr "បានផ្តាច់"
+
+#: templates/telegram_settings.html:226 templates/telegram_settings.html:249
+msgid "Not Configured"
+msgstr "មិនទាន់កំណត់រចនាសម្ព័ន្ធ"
+
+#: templates/telegram_settings.html:235
+#, fuzzy
+msgid "Enabled"
+msgstr "ពិន័យ"
+
+#: templates/telegram_settings.html:238
+msgid "Disabled"
+msgstr "បានបិទ"
+
+#: templates/telegram_settings.html:275
+msgid "Validating..."
+msgstr "កំពុងផ្ទៀងផ្ទាត់..."
+
+#: templates/telegram_settings.html:292
+msgid "Invalid token"
+msgstr "Token មិនត្រឹមត្រូវ"
+
+#: templates/telegram_settings.html:299
+#, fuzzy
+msgid "Bot token updated successfully."
+msgstr "បានធ្វើបច្ចុប្បន្នភាពមុខតំណែងដោយជោគជ័យ!"
+
+#: templates/telegram_settings.html:301
+msgid "Failed to save token"
+msgstr "បរាជ័យក្នុងការរក្សាទុក token"
+
+#: templates/telegram_settings.html:320
+msgid "Disconnecting..."
+msgstr "កំពុងផ្តាច់..."
+
+#: templates/telegram_settings.html:328
+#, fuzzy
+msgid "Bot disconnected successfully."
+msgstr "បានធ្វើបច្ចុប្បន្នភាពមុខតំណែងដោយជោគជ័យ!"
+
+#: templates/telegram_settings.html:341
+msgid "Chat ID copied to clipboard."
+msgstr "Chat ID ត្រូវបានចម្លងទៅក្ដារតម្បៀតខ្ទាស់។"
+
+#: templates/telegram_settings.html:358
+msgid "Chat ID saved."
+msgstr "Chat ID ត្រូវបានរក្សាទុក។"
+
+#: templates/telegram_settings.html:378
+#, fuzzy
+msgid "Notifications enabled."
+msgstr "ការជូនដំណឹង"
+
+#: templates/telegram_settings.html:378
+#, fuzzy
+msgid "Notifications disabled."
+msgstr "ការជូនដំណឹង"
+
+#: templates/telegram_settings.html:390
+#, fuzzy
+msgid "Sending..."
+msgstr "រង់ចាំ"
+
+#: templates/telegram_settings.html:399
+#, fuzzy, python-format
+msgid "Test message sent successfully."
+msgstr "%(name)s ត្រូវបានបង្កើតដោយជោគជ័យ។"
+
+#: templates/telegram_settings.html:403
+#, fuzzy
+msgid "Failed:"
+msgstr "តម្រង"
+
+#: templates/telegram_settings.html:403
+msgid "Unknown error"
+msgstr "កំហុសមិនស្គាល់"
+
+#: templates/telegram_settings.html:409
+msgid "Connection failed. Please try again."
+msgstr "ការតភ្ជាប់បរាជ័យ។ សូមព្យាយាមម្តងទៀត។"
+
+#: templates/transport_request_detail.html:4
+msgid "Transport Request Detail"
+msgstr "ព័ត៌មានលម្អិតសំណើដឹកជញ្ជូន"
+
+#: templates/transport_request_detail.html:29
+#, fuzzy
+msgid "Submitted on"
+msgstr "បានដាក់ស្នើ៖"
+
+#: templates/transport_request_detail.html:38
+#: templates/transport_request_form.html:249
+#: templates/transport_requests.html:85 templates/transport_requests.html:129
+msgid "Create Journey"
+msgstr "បង្កើតដំណើរ"
+
+#: templates/transport_request_detail.html:39
+#: templates/transport_request_form.html:250
+#: templates/transport_requests.html:86 templates/transport_requests.html:131
+#, fuzzy
+msgid "Open Route"
+msgstr "បន្ទាត់ដំណើរ"
+
+#: templates/transport_request_detail.html:40
+#: templates/transport_request_form.html:251
+#: templates/transport_requests.html:87 templates/transport_requests.html:133
+msgid "Change Route"
+msgstr "ផ្លាស់ប្តូរផ្លូវ"
+
+#: templates/transport_request_detail.html:81
+#: templates/transport_request_form.html:119
+msgid "Vehicle No"
+msgstr "លេខយានយន្ត"
+
+#: templates/transport_request_detail.html:82
+#: templates/transport_request_form.html:123
+#: templates/transport_requests.html:114
+#, fuzzy
+msgid "Route Code"
+msgstr "បន្ទាត់ដំណើរ"
+
+#: templates/transport_request_detail.html:83
+#: templates/transport_request_form.html:127
+#, fuzzy
+msgid "Gender Required"
+msgstr "ត្រូវបញ្ចូលលេខយានជំនិះ។"
+
+#: templates/transport_request_detail.html:88
+#, fuzzy
+msgid "Change Transportation To"
+msgstr "ប្រភេទយានជំនិះ"
+
+#: templates/transport_request_detail.html:89
+#: templates/transport_request_form.html:93
+msgid "Change Company To"
+msgstr "ផ្លាស់ប្តូរក្រុមហ៊ុនទៅ"
+
+#: templates/transport_request_detail.html:90
+#: templates/transport_request_form.html:136
+msgid "Old Route Code"
+msgstr "លេខកូដផ្លូវចាស់"
+
+#: templates/transport_request_detail.html:91
+#, fuzzy
+msgid "Old Price"
 msgstr "តម្លៃ"
+
+#: templates/transport_request_detail.html:92
+#, fuzzy
+msgid "New Price"
+msgstr "តម្លៃ"
+
+#: templates/transport_request_detail.html:106
+#: templates/transport_request_form.html:153
+msgid "Schedule"
+msgstr "កាលវិភាគ"
+
+#: templates/transport_request_detail.html:112
+#: templates/transport_request_form.html:165
+#, fuzzy
+msgid "Duration"
+msgstr "សកម្មភាព"
+
+#: templates/transport_request_detail.html:113
+#: templates/transport_request_form.html:169
+#, fuzzy
+msgid "Active Start Date"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/transport_request_detail.html:114
+#: templates/transport_request_form.html:173
+#, fuzzy
+msgid "Active End Date"
+msgstr "ថ្ងៃបញ្ចប់"
+
+#: templates/transport_request_detail.html:115
+#: templates/transport_request_form.html:177
+msgid "Number of Days"
+msgstr "ចំនួនថ្ងៃ"
+
+#: templates/transport_request_detail.html:116
+#: templates/transport_request_form.html:181
+msgid "Promotion Price"
+msgstr "តម្លៃផ្សព្វផ្សាយ"
+
+#: templates/transport_request_detail.html:141
+#, fuzzy
+msgid "Attachments"
+msgstr "ឯកសារភ្ជាប់ និងកំណត់ចំណាំ"
+
+#: templates/transport_request_detail.html:172
+msgid "optional"
+msgstr "ស្រេចចិត្ត"
+
+#: templates/transport_request_detail.html:200
+msgid "by"
+msgstr "ដោយ"
+
+#: templates/transport_request_form.html:3
+#, fuzzy
+msgid "Transport Request"
+msgstr "សំណើបន្ទាត់ដំណើរ"
+
+#: templates/transport_request_form.html:4
+#, fuzzy
+msgid "New Transport Request"
+msgstr "សំណើបន្ទាត់ដំណើរថ្មី"
+
+#: templates/transport_request_form.html:17
+#, fuzzy
+msgid "Select Request Type"
+msgstr "សំណើដែលត្រូវបានច្រានចោល"
+
+#: templates/transport_request_form.html:68
+#: templates/transport_request_form.html:77
+msgid "Select Type"
+msgstr "ជ្រើសរើសប្រភេទ"
+
+#: templates/transport_request_form.html:75
+#, fuzzy
+msgid "Change Transportation Type To"
+msgstr "ប្រភេទយានជំនិះ"
+
+#: templates/transport_request_form.html:86
+#: templates/transport_request_form.html:95
+#, fuzzy
+msgid "Select Company"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/transport_request_form.html:104
+#, fuzzy
+msgid "Select Branch"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/transport_request_form.html:120
+msgid "e.g., BUS-001"
+msgstr "ឧ. BUS-001"
+
+#: templates/transport_request_form.html:124
+#: templates/transport_request_form.html:137
+#, fuzzy
+msgid "e.g., RC-001"
+msgstr "ឧ. NR6"
+
+#: templates/transport_request_form.html:129
+#, fuzzy
+msgid "Select"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/transport_request_form.html:140
+#, fuzzy
+msgid "Old Price ($)"
+msgstr "តម្លៃ ($)"
+
+#: templates/transport_request_form.html:144
+#, fuzzy
+msgid "New Price ($)"
+msgstr "តម្លៃ ($)"
+
+#: templates/transport_request_form.html:178
+#, fuzzy
+msgid "e.g., 30"
+msgstr "ឧ. NR6"
+
+#: templates/transport_request_form.html:194
+msgid "Documents & Files Upload"
+msgstr "បង្ហោះឯកសារ"
+
+#: templates/transport_request_form.html:198
+msgid "Drop files here or click to browse"
+msgstr "ទម្លាក់ឯកសារនៅទីនេះ ឬចុចដើម្បីរកមើល"
+
+#: templates/transport_request_form.html:199
+msgid "All file types supported. No size limit."
+msgstr "គាំទ្រគ្រប់ប្រភេទឯកសារ។ គ្មានដែនកំណត់ទំហំ។"
+
+#: templates/transport_request_form.html:242
+msgid "Summary"
+msgstr "សេចក្តីសង្ខេប"
+
+#: templates/transport_request_form.html:248
+msgid "Type:"
+msgstr "ប្រភេទ៖"
+
+#: templates/transport_request_form.html:361
+msgid "Failed to upload file"
+msgstr "បរាជ័យក្នុងការបង្ហោះឯកសារ"
+
+#: templates/transport_request_form.html:364
+#, fuzzy
+msgid "Upload failed"
+msgstr "បង្ហោះ"
+
+#: templates/transport_request_form.html:391
+msgid "Delete this file?"
+msgstr "លុបឯកសារនេះ?"
+
+#: templates/transport_request_form.html:455
+msgid "Duration cannot exceed 24 hours. Please check departure and arrival times."
+msgstr "រយៈពេលមិនអាចលើសពី ២៤ ម៉ោង។ សូមពិនិត្យមើលពេលចេញដំណើរ និងពេលមកដល់។"
+
+#: templates/transport_requests.html:3
+#, fuzzy
+msgid "Transportation Route Request Management"
+msgstr "ការគ្រប់គ្រងសំណើបន្ទាត់ដំណើរ"
+
+#: templates/transport_requests.html:12
+#, fuzzy
+msgid "+ New Request"
+msgstr "សំណើថ្មី"
+
+#: templates/transport_requests.html:70
+#, fuzzy
+msgid "Search by ID, name, route, company..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/transport_requests.html:82
+#, fuzzy
+msgid "Request Type"
+msgstr "កាលបរិច្ឆេទសំណើ"
+
+#: templates/transport_requests.html:84
+#, fuzzy
+msgid "All Types"
+msgstr "គ្រប់ពេល"
+
+#: templates/transport_requests.html:110
+msgid "Type"
+msgstr "ប្រភេទ"
+
+#: templates/transport_requests.html:118
+#, fuzzy
+msgid "Approved By"
+msgstr "បានអនុម័ត"
+
+#: templates/trip_operation_report_detail.html:39
+#, python-format
+msgid "Created on %(date)s"
+msgstr "Created on %(date)s"
+
+#: templates/trip_operation_report_detail.html:49
+#, fuzzy
+msgid "Direction"
+msgstr "សកម្មភាព"
+
+#: templates/trip_operation_report_detail.html:59
+#: templates/trip_operation_reports.html:87
+#, fuzzy
+msgid "Departure"
+msgstr "ម៉ោងចេញដំណើរ"
+
+#: templates/trip_operation_report_detail.html:66
+msgid "Travel Direction"
+msgstr "ទិសដៅធ្វើដំណើរ"
+
+#: templates/trip_operation_report_detail.html:68
+#: templates/trip_operation_report_form.html:62
+msgid "Power"
+msgstr "ថាមពល"
+
+#: templates/trip_operation_report_detail.html:69
+#: templates/trip_operation_report_form.html:70
+#: templates/vehicle_performance.html:26
+#, fuzzy
+msgid "Vehicle Number"
+msgstr "ត្រូវបញ្ចូលលេខយានជំនិះ។"
+
+#: templates/trip_operation_report_detail.html:70
+#: templates/trip_operation_reports.html:88
+msgid "Driver Phone"
+msgstr "ទូរស័ព្ទអ្នកបើកបរ"
+
+#: templates/trip_operation_report_detail.html:71
+#: templates/trip_operation_report_form.html:46
+#, fuzzy
+msgid "Arrival at Station"
+msgstr "ម៉ោងមកដល់"
+
+#: templates/trip_operation_report_detail.html:72
+#: templates/trip_operation_report_form.html:51
+#, fuzzy
+msgid "Departure from Station"
+msgstr "ម៉ោងចេញដំណើរ"
+
+#: templates/trip_operation_report_detail.html:73
+#: templates/trip_operation_report_form.html:56
+#: templates/trip_operation_reports.html:90
+#, fuzzy
+msgid "LET Duration"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/trip_operation_report_detail.html:74
+msgid "Delay Duration"
+msgstr "រយៈពេលយឺត"
+
+#: templates/trip_operation_report_detail.html:75
+msgid "Passenger Count"
+msgstr "ចំនួនអ្នកដំណើរ"
+
+#: templates/trip_operation_report_detail.html:76
+#: templates/trip_operation_reports.html:93
+msgid "Coordinator"
+msgstr "អ្នកសម្របសម្រួល"
+
+#: templates/trip_operation_report_detail.html:77
+msgid "Created By"
+msgstr "បង្កើតដោយ"
+
+#: templates/trip_operation_report_detail.html:91
+#: templates/trip_operation_report_form.html:100
+msgid "Reason for Delay"
+msgstr "មូលហេតុនៃការយឺត"
+
+#: templates/trip_operation_report_detail.html:100
+#: templates/trip_operation_report_form.html:127
+#, fuzzy
+msgid "Note"
+msgstr "បន្ទាត់ដំណើរ"
+
+#: templates/trip_operation_report_detail.html:115
+#, fuzzy
+msgid "Report Created"
+msgstr "បានដំណើរការកំណត់ត្រា។"
+
+#: templates/trip_operation_report_form.html:3
+#, fuzzy
+msgid "Edit Trip Operation Report"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/trip_operation_report_form.html:3
+#: templates/trip_operation_report_form.html:4
+#, fuzzy
+msgid "New Trip Operation Report"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/trip_operation_report_form.html:9
+#, fuzzy
+msgid "Back to Trip Reports"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/trip_operation_report_form.html:19
+#, fuzzy
+msgid "Trip Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/trip_operation_report_form.html:25
+#, fuzzy
+msgid "— Select Origin —"
+msgstr "ជ្រើសរើសចំណុចចេញដំណើរ"
+
+#: templates/trip_operation_report_form.html:34
+#, fuzzy
+msgid "— Select Destination —"
+msgstr "ជ្រើសរើសគោលដៅ"
+
+#: templates/trip_operation_report_form.html:72
+msgid "e.g., PP-1234"
+msgstr "ឧ. PP-1234"
+
+#: templates/trip_operation_report_form.html:75
+msgid "Driver Phone Number"
+msgstr "លេខទូរស័ព្ទអ្នកបើកបរ"
+
+#: templates/trip_operation_report_form.html:77
+msgid "e.g., 012 345 678"
+msgstr "ឧ. ០១២ ៣៤៥ ៦៧៨"
+
+#: templates/trip_operation_report_form.html:80
+#, fuzzy
+msgid "Number of Passengers"
+msgstr "អ្នកដំណើរសរុប"
+
+#: templates/trip_operation_report_form.html:90
+#, fuzzy
+msgid "Station Information"
+msgstr "ព័ត៌មានបន្ទាត់ដំណើរ"
+
+#: templates/trip_operation_report_form.html:94
+msgid "Travel Delay Duration (min)"
+msgstr "រយៈពេលយឺត (នាទី)"
+
+#: templates/trip_operation_report_form.html:101
+msgid "Reason if any..."
+msgstr "មូលហេតុប្រសិនបើមាន..."
+
+#: templates/trip_operation_report_form.html:109
+#, fuzzy
+msgid "Status & Notes"
+msgstr "ឯកសារភ្ជាប់ និងកំណត់ចំណាំ"
+
+#: templates/trip_operation_report_form.html:113
+#: templates/trip_operation_reports.html:29
+#, fuzzy
+msgid "Vehicle Status"
+msgstr "ត្រូវបញ្ចូលស្ថានភាពយានជំនិះ។"
+
+#: templates/trip_operation_report_form.html:115
+#, fuzzy
+msgid "-- Select Status --"
+msgstr "ស្ថានភាពសំណើ"
+
+#: templates/trip_operation_report_form.html:122
+msgid "Passenger Coordinator Name"
+msgstr "ឈ្មោះអ្នកសម្របសម្រួលអ្នកដំណើរ"
+
+#: templates/trip_operation_report_form.html:124
+msgid "Coordinator name"
+msgstr "ឈ្មោះអ្នកសម្របសម្រួល"
+
+#: templates/trip_operation_report_form.html:143
+#, fuzzy
+msgid "Created:"
+msgstr "បានច្រានចោល"
+
+#: templates/trip_operation_report_form.html:149
+#, fuzzy
+msgid "A unique Report ID will be auto-generated upon submission."
+msgstr "លេខសម្គាល់សំណើតែមួយគត់នឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិនៅពេលដាក់ស្នើ។"
+
+#: templates/trip_operation_report_form.html:165
+msgid "Departed: Vehicle has departed"
+msgstr "បានចេញដំណើរ៖ យានយន្តបានចេញដំណើរហើយ"
+
+#: templates/trip_operation_report_form.html:166
+msgid "Not Departed: Vehicle still at station"
+msgstr "មិនទាន់ចេញដំណើរ៖ យានយន្តនៅស្ថានីយ៍នៅឡើយ"
+
+#: templates/trip_operation_reports.html:2
+#, fuzzy
+msgid "Trip Operation Reports"
+msgstr "របាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/trip_operation_reports.html:3
+#, fuzzy
+msgid "Trip Operation Report Management"
+msgstr "បានលុបរបាយការណ៍ប្រតិបត្តិការធ្វើដំណើរ។"
+
+#: templates/trip_operation_reports.html:8
+#, fuzzy
+msgid "Manage and track all trip operation reports"
+msgstr "គ្រប់គ្រង និងតាមដានរាល់សំណើបន្ទាត់ដំណើរដឹកជញ្ជូន"
+
+#: templates/trip_operation_reports.html:22
+#, fuzzy
+msgid "Search by ID, vehicle, phone, coordinator..."
+msgstr "ស្វែងរកតាមលេខសម្គាល់ ឈ្មោះ បន្ទាត់ដំណើរ..."
+
+#: templates/trip_operation_reports.html:26
+#, fuzzy
+msgid "Search by origin..."
+msgstr "ស្វែងរក..."
+
+#: templates/trip_operation_reports.html:31
+#, fuzzy
+msgid "All Statuses"
+msgstr "ស្ថានភាពទាំងអស់"
+
+#: templates/trip_operation_reports.html:32
+#: templates/trip_operation_reports.html:53
+#, fuzzy
+msgid "Departed"
+msgstr "មិនទាន់ចេញដំណើរ"
+
+#: templates/trip_operation_reports.html:33
+#: templates/trip_operation_reports.html:59
+msgid "Not Departed"
+msgstr "មិនទាន់ចេញដំណើរ"
+
+#: templates/trip_operation_reports.html:47
+#, fuzzy
+msgid "Total Reports"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/trip_operation_reports.html:89
+#, fuzzy
+msgid "Arrival Station"
+msgstr "ម៉ោងមកដល់"
+
+#: templates/trip_operation_reports.html:91
+msgid "Delay (min)"
+msgstr "យឺត (នាទី)"
+
+#: templates/trip_operation_reports.html:92
+#: templates/vehicle_performance.html:145
+#, fuzzy
+msgid "Passengers"
+msgstr "អ្នកដំណើរសរុប"
+
+#: templates/user_form.html:3 templates/user_form.html:4
+#: templates/user_form.html:17
+#, fuzzy
+msgid "New User"
+msgstr "អ្នកប្រើ"
+
+#: templates/user_form.html:9
+#, fuzzy
+msgid "Back to Users"
+msgstr "ត្រលប់ទៅសំណើ"
+
+#: templates/user_form.html:17
+#, fuzzy, python-format
+msgid "Edit User: %(username)s"
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/user_form.html:23
+msgid "Full Name"
+msgstr "ឈ្មោះពេញ"
+
+#: templates/user_form.html:32
+#, fuzzy
+msgid "username"
+msgstr "ឈ្មោះអ្នកប្រើ"
+
+#: templates/user_form.html:35 templates/users.html:28
+#, fuzzy
+msgid "Role"
+msgstr "តួនាទី"
+
+#: templates/user_form.html:37
+msgid "-- Select Role --"
+msgstr "-- ជ្រើសរើសតួនាទី --"
+
+#: templates/user_form.html:46
+msgid "-- Select Branch --"
+msgstr "-- ជ្រើសរើសសាខា --"
+
+#: templates/user_form.html:53
+msgid "(leave blank to keep current)"
+msgstr "(ទុកឱ្យទទេដើម្បីរក្សាបច្ចុប្បន្ន)"
+
+#: templates/user_form.html:55
+msgid "New password (optional)"
+msgstr "ពាក្យសម្ងាត់ថ្មី (ស្រេចចិត្ត)"
+
+#: templates/user_form.html:55
+#, fuzzy
+msgid "Set password"
+msgstr "បញ្ចូលពាក្យសម្ងាត់"
+
+#: templates/user_form.html:61
+#, fuzzy
+msgid "Account Active"
+msgstr "សកម្មភាពថ្មីៗ"
+
+#: templates/users.html:2
+#, fuzzy
+msgid "User Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/users.html:3
+#, fuzzy
+msgid "User & Role Management"
+msgstr "ការគ្រប់គ្រង IT"
+
+#: templates/users.html:7
+msgid "Manage system users and their access roles"
+msgstr "គ្រប់គ្រងអ្នកប្រើប្រាស់ប្រព័ន្ធ និងតួនាទីចូលប្រើរបស់ពួកគេ"
+
+#: templates/users.html:13
+#, fuzzy
+msgid "Add User"
+msgstr "អ្នកប្រើ"
+
+#: templates/users.html:20
+#, python-format
+msgid "%(count)s user(s) registered"
+msgstr "%(count)s user(s) registered"
+
+#: templates/users.html:26
+#, fuzzy
+msgid "User"
+msgstr "អ្នកប្រើ"
+
+#: templates/users.html:45
+msgid "(You)"
+msgstr "(អ្នក)"
+
+#: templates/users.html:70
+#, fuzzy, python-format
+msgid "Delete user %(username)s?"
+msgstr "បញ្ចូលឈ្មោះអ្នកប្រើ"
+
+#: templates/users.html:91
+msgid "Role Permissions Reference"
+msgstr "ឯកសារយោងការអនុញ្ញាតតួនាទី"
+
+#: templates/vehicle_performance.html:2 templates/vehicle_performance.html:3
+#: templates/vehicle_performance.html:9
+msgid "Vehicle Performance Analysis"
+msgstr "ការវិភាគដំណើរការយានយន្ត"
+
+#: templates/vehicle_performance.html:11 templates/vehicle_performance.html:245
+msgid "Select a vehicle"
+msgstr "ជ្រើសរើសយានយន្ត"
+
+#: templates/vehicle_performance.html:28
+msgid "Select Vehicle"
+msgstr "ជ្រើសរើសយានយន្ត"
+
+#: templates/vehicle_performance.html:36
+msgid "Yesterday"
+msgstr "ម្សិលមិញ"
+
+#: templates/vehicle_performance.html:81
+msgid "Select a vehicle and period to view analysis."
+msgstr "ជ្រើសរើសយានយន្ត និងរយៈពេលដើម្បីមើលការវិភាគ។"
+
+#: templates/vehicle_performance.html:93
+#, fuzzy
+msgid "Vehicle Status Summary"
+msgstr "ត្រូវបញ្ចូលស្ថានភាពយានជំនិះ។"
+
+#: templates/vehicle_performance.html:103
+msgid "LET Duration by Day"
+msgstr "រយៈពេល LET តាមថ្ងៃ"
+
+#: templates/vehicle_performance.html:109
+msgid "Delay Minutes by Day"
+msgstr "នាទីយឺតតាមថ្ងៃ"
+
+#: templates/vehicle_performance.html:120
+#, fuzzy
+msgid "Trips per Day"
+msgstr "ប្រតិបត្តិការធ្វើដំណើរ"
+
+#: templates/vehicle_performance.html:130
+msgid "Per-Vehicle Comparison"
+msgstr "ការប្រៀបធៀបតាមយានយន្ត"
+
+#: templates/vehicle_performance.html:138
+#: templates/vehicle_performance.html:442
+msgid "Trips"
+msgstr "ដំណើរ"
+
+#: templates/vehicle_performance.html:139
+#: templates/vehicle_performance.html:335
+msgid "Total LET Duration Count"
+msgstr "ចំនួនរយៈពេល LET សរុប"
+
+#: templates/vehicle_performance.html:140
+msgid "Avg LET (min)"
+msgstr "មធ្យម LET (នាទី)"
+
+#: templates/vehicle_performance.html:141
+msgid "Max LET (min)"
+msgstr "អតិបរមា LET (នាទី)"
+
+#: templates/vehicle_performance.html:142
+#, fuzzy
+msgid "Total Delay (min)"
+msgstr "ចំនួនទឹកប្រាក់ពិន័យសរុប"
+
+#: templates/vehicle_performance.html:143
+#: templates/vehicle_performance.html:339
+msgid "Delay Records"
+msgstr "កំណត់ត្រាយឺត"
+
+#: templates/vehicle_performance.html:144
+msgid "Avg Delay (min)"
+msgstr "មធ្យមយឺត (នាទី)"
+
+#: templates/vehicle_performance.html:243
+#: templates/vehicle_performance.html:462
+#, fuzzy
+msgid "All Vehicles"
+msgstr "គ្រប់ពេល"
+
+#: templates/vehicle_performance.html:334
+#, fuzzy
+msgid "Total Trips"
+msgstr "របាយការណ៍ធ្វើដំណើរសរុប"
+
+#: templates/vehicle_performance.html:335
+#, fuzzy
+msgid "Times"
+msgstr "គ្រប់ពេល"
+
+#: templates/vehicle_performance.html:336
+msgid "Average LET"
+msgstr "មធ្យម LET"
+
+#: templates/vehicle_performance.html:336
+#: templates/vehicle_performance.html:337
+#: templates/vehicle_performance.html:338
+#: templates/vehicle_performance.html:340
+#, fuzzy
+msgid "min"
+msgstr "មេ"
+
+#: templates/vehicle_performance.html:337
+msgid "Max LET"
+msgstr "អតិបរមា LET"
+
+#: templates/vehicle_performance.html:338
+#, fuzzy
+msgid "Total Delay"
+msgstr "ថ្ងៃនេះ"
+
+#: templates/vehicle_performance.html:339
+msgid "trips"
+msgstr "ដំណើរ"
+
+#: templates/vehicle_performance.html:340
+msgid "Avg Delay/Trip"
+msgstr "មធ្យមយឺត/ដំណើរ"
+
+#: templates/vehicle_performance.html:341
+msgid "Total Passengers"
+msgstr "អ្នកដំណើរសរុប"
+
+#: templates/vehicle_performance.html:363
+#, fuzzy
+msgid "No status data"
+msgstr "ថ្ងៃចាប់ផ្តើម"
+
+#: templates/vehicle_performance.html:398
+msgid "No data available"
+msgstr "គ្មានទិន្នន័យ"
+
+#: templates/vehicle_performance.html:426
+msgid "LET Minutes"
+msgstr "នាទី LET"
+
+#: templates/vehicle_performance.html:434
+msgid "Delay Minutes"
+msgstr "នាទីយឺត"
+
+#~ msgid "HR & Organization"
+#~ msgstr "ធនធានមនុស្ស និងអង្គការ"
+
+#~ msgid "Welcome back, %(name)s. Here's what's happening today."
+#~ msgstr "ស្វាគមន៍ការត្រលប់មកវិញ, %(name)s។ នេះជាអ្វីដែលកំពុងកើតឡើងថ្ងៃនេះ។"
+
+#~ msgid "Apply"
+#~ msgstr "អនុវត្ត"
+
+#~ msgid "Total Route Requests"
+#~ msgstr "សំណើបន្ទាត់ដំណើរសរុប"
+
+#~ msgid "Pending Requests"
+#~ msgstr "សំណើរង់ចាំ"
+
+#~ msgid "Processed Requests"
+#~ msgstr "សំណើដែលបានដំណើរការ"
+
+#~ msgid "Departed Trips"
+#~ msgstr "ដំណើរដែលបានចេញ"
+
+#~ msgid "Quick Actions"
+#~ msgstr "សកម្មភាពរហ័ស"
+
+#~ msgid "Export Excel"
+#~ msgstr "នាំចេញ Excel"
+
+#~ msgid "Monthly Route Requests"
+#~ msgstr "សំណើបន្ទាត់ដំណើរប្រចាំខែ"
+
+#~ msgid "No recent activities"
+#~ msgstr "គ្មានសកម្មភាពថ្មីៗទេ"
+
+#~ msgid "No pending notifications"
+#~ msgstr "គ្មានការជូនដំណឹងរង់ចាំទេ"
+
+#~ msgid "Login Logo"
+#~ msgstr "ឡូហ្គោចូលប្រព័ន្ធ"
+
+#~ msgid "Current logo displayed on login page"
+#~ msgstr "ឡូហ្គោបច្ចុប្បន្នដែលបង្ហាញនៅលើទំព័រចូលប្រព័ន្ធ"
+
+#~ msgid "No logo uploaded yet"
+#~ msgstr "មិនទាន់មានឡូហ្គោដែលបានបង្ហោះទេ"
+
+#~ msgid "Remove logo?"
+#~ msgstr "លុបឡូហ្គោ?"
+
+#~ msgid "Requests Excel"
+#~ msgstr "Excel សំណើ"
+
+#~ msgid "Requests PDF"
+#~ msgstr "PDF សំណើ"
+
+#~ msgid "Penalties Excel"
+#~ msgstr "Excel ពិន័យ"
+
+#~ msgid "Trip Reports Excel"
+#~ msgstr "Excel របាយការណ៍ធ្វើដំណើរ"
+
+#~ msgid "Trip Reports PDF"
+#~ msgstr "PDF របាយការណ៍ធ្វើដំណើរ"
+
+#~ msgid "Print Page"
+#~ msgstr "បោះពុម្ពទំព័រ"
+

@@ -1,35 +1,39 @@
 {% extends 'base.html' %}
-{% block title %}User Management{% endblock %}
-{% block page_title %}User & Role Management{% endblock %}
+{% block title %}{{ _('User Management') }}{% endblock %}
+{% block page_title %}{{ _('User & Role Management') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <p class="text-muted mb-0" style="font-size:.875rem;">Manage system users and their access roles</p>
+  <p class="text-muted mb-0" style="font-size:.875rem;">{{ _('Manage system users and their access roles') }}</p>
   <div class="d-flex gap-2">
+    {% if has_any_permission('role_view','role_create','role_edit','role_delete') %}
     <a href="{{ url_for('list_roles') }}" class="btn btn-outline-secondary">
-      <i class="fas fa-user-shield me-1"></i> Roles
+      <i class="fas fa-user-shield me-1"></i> {{ _('Roles') }}
     </a>
+    {% endif %}
+    {% if has_permission('user_create') %}
     <a href="{{ url_for('new_user') }}" class="btn btn-primary">
-      <i class="fas fa-user-plus me-1"></i> Add User
+      <i class="fas fa-user-plus me-1"></i> {{ _('Add User') }}
     </a>
+    {% endif %}
   </div>
 </div>
 
 <div class="data-table">
   <div class="p-3 border-bottom">
-    <span style="font-size:.875rem;color:#64748b;">{{ users|length }} user(s) registered</span>
+    <span style="font-size:.875rem;color:#64748b;">{{ _('%(count)s user(s) registered', count=users|length) }}</span>
   </div>
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>User</th>
-          <th>Username</th>
-          <th>Role</th>
-          <th>Branch</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Actions</th>
+          <th>{{ _('User') }}</th>
+          <th>{{ _('Username') }}</th>
+          <th>{{ _('Role') }}</th>
+          <th>{{ _('Branch') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Created') }}</th>
+          <th>{{ _('Actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -42,32 +46,32 @@
               </div>
               <div>
                 <div style="font-weight:600;">{{ u.full_name }}</div>
-                {% if u.id == current_user.id %}<small class="text-primary">(You)</small>{% endif %}
+                {% if u.id == current_user.id %}<small class="text-primary">{{ _('(You)') }}</small>{% endif %}
               </div>
             </div>
           </td>
           <td><code>{{ u.username }}</code></td>
           <td>
-            {% set role_colors = {'admin':'#1d4ed8','it_staff':'#0891b2','branch_manager':'#7c3aed','regional_manager':'#065f46','hr_manager':'#9d174d'} %}
-            {% set role_color = role_colors.get(u.role, '#374151') %}
-            <span style="background:{{ role_color }}20;color:{{ role_color }};padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">
+            <span style="background:#1d4ed820;color:#1d4ed8;padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">
               {{ u.role_label }}
             </span>
           </td>
           <td>{{ u.branch or '—' }}</td>
           <td>
             {% if u.is_active %}
-            <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">Active</span>
+            <span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">{{ _('Active') }}</span>
             {% else %}
-            <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">Inactive</span>
+            <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:600;">{{ _('Inactive') }}</span>
             {% endif %}
           </td>
           <td style="color:#64748b;font-size:.8rem;">{{ u.created_date.strftime('%d %b %Y') }}</td>
           <td>
             <div class="d-flex gap-1">
+              {% if has_permission('user_edit') %}
               <a href="{{ url_for('edit_user', id=u.id) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
-              {% if u.id != current_user.id %}
-              <form method="POST" action="{{ url_for('delete_user', id=u.id) }}" onsubmit="return confirm('Delete user {{ u.username }}?');">
+              {% endif %}
+              {% if u.id != current_user.id and has_permission('user_delete') %}
+              <form method="POST" action="{{ url_for('delete_user', id=u.id) }}" onsubmit="return confirm('{{ _('Delete user %(username)s?', username=u.username) }}');">
                 <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
               </form>
               {% endif %}
@@ -82,13 +86,13 @@
 
 <div class="mt-4 mb-3">
   <a href="javascript:history.back()" class="btn btn-outline-secondary">
-    <i class="fas fa-arrow-left me-1"></i> Back
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
   </a>
 </div>
 
 <!-- Roles reference -->
 <div class="form-card mt-4">
-  <h6 class="fw-bold mb-3" style="color:#1a3c5e;">Role Permissions Reference</h6>
+  <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Role Permissions Reference') }}</h6>
   <div class="row g-2">
     {% set roles = [
       ('Administrator', 'admin', '#1d4ed8', 'Full system access, manage all users and data'),
@@ -100,8 +104,8 @@
     {% for name, role, color, desc in roles %}
     <div class="col-md-6 col-lg-4">
       <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;border-left:4px solid {{ color }};">
-        <div style="font-weight:600;color:{{ color }};font-size:.85rem;">{{ name }}</div>
-        <div style="font-size:.75rem;color:#64748b;margin-top:3px;">{{ desc }}</div>
+        <div style="font-weight:600;color:{{ color }};font-size:.85rem;">{{ _(name) }}</div>
+        <div style="font-size:.75rem;color:#64748b;margin-top:3px;">{{ _(desc) }}</div>
       </div>
     </div>
     {% endfor %}

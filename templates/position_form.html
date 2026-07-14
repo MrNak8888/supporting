@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% set back_fallback = url_for('positions') %}
-{% block title %}{% if pos %}Edit{% else %}New{% endif %} Position{% endblock %}
-{% block page_title %}{% if pos %}Edit Position — {{ pos.name }}{% else %}New Position{% endif %}{% endblock %}
+{% block title %}{% if pos %}{{ _('Edit Position') }}{% else %}{{ _('New Position') }}{% endif %}{% endblock %}
+{% block page_title %}{% if pos %}{{ _('Edit Position — %(name)s', name=pos.name) }}{% else %}{{ _('New Position') }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="mb-4">
   <a href="{{ url_for('positions') }}" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Back to Positions
+    <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Positions') }}
   </a>
 </div>
 
@@ -15,25 +15,25 @@
   <div class="col-lg-8">
     <div class="form-card">
       <h6 class="fw-bold mb-4" style="color:#1a3c5e;border-bottom:2px solid #f59e0b;padding-bottom:8px;">
-        <i class="fas fa-briefcase me-2"></i>Position Information
+        <i class="fas fa-briefcase me-2"></i>{{ _('Position Information') }}
       </h6>
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label">Position Name <span class="text-danger">*</span></label>
+          <label class="form-label">{{ _('Position Name') }} <span class="text-danger">*</span></label>
           <input type="text" name="name" class="form-control" required
-            value="{{ pos.name if pos else '' }}" placeholder="e.g., Software Engineer">
+            value="{{ pos.name if pos else '' }}" placeholder="{{ _('e.g., Software Engineer') }}">
         </div>
         <div class="col-md-6">
-          <label class="form-label">Department <span class="text-danger">*</span></label>
+          <label class="form-label">{{ _('Department') }} <span class="text-danger">*</span></label>
           <select name="department_id" class="form-select" required>
-            <option value="">— Select Department —</option>
+            <option value="">{{ _('— Select Department —') }}</option>
             {% for dept in departments %}
             <option value="{{ dept.id }}" {% if pos and pos.department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Status</label>
+          <label class="form-label">{{ _('Status') }}</label>
           <select name="status" class="form-select">
             {% for s in entity_statuses %}
             <option value="{{ s.data.name }}" {% if pos and pos.status == s.data.name %}selected{% endif %}>{{ s.data.name }}</option>
@@ -41,8 +41,8 @@
           </select>
         </div>
         <div class="col-12">
-          <label class="form-label">Description</label>
-          <textarea name="description" class="form-control" rows="4" placeholder="Position description...">{{ pos.description if pos else '' }}</textarea>
+          <label class="form-label">{{ _('Description') }}</label>
+          <textarea name="description" class="form-control" rows="4" placeholder="{{ _('Position description...') }}">{{ pos.description if pos else '' }}</textarea>
         </div>
       </div>
     </div>
@@ -50,13 +50,15 @@
 
   <div class="col-lg-4">
     <div class="form-card">
-      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">Save</h6>
+      <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Save') }}</h6>
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('position_create', 'position_edit') %}
         <button type="submit" class="btn btn-primary btn-lg">
           <i class="fas fa-{{ 'save' if pos else 'plus' }} me-2"></i>
-          {{ 'Save Changes' if pos else 'Create Position' }}
+          {{ _('Save Changes') if pos else _('Create Position') }}
         </button>
-        <a href="{{ url_for('positions') }}" class="btn btn-outline-secondary">Cancel</a>
+        {% endif %}
+        <a href="{{ url_for('positions') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>
   </div>

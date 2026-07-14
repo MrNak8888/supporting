@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS users (
     full_name       VARCHAR(100)    NOT NULL,
     username        VARCHAR(50)     NOT NULL,
     password_hash   VARCHAR(256)    NOT NULL,
-    role            VARCHAR(30)     NOT NULL DEFAULT 'admin',
     role_id         INT             DEFAULT NULL,
     branch          VARCHAR(100)    DEFAULT NULL,
     is_active       TINYINT(1)      NOT NULL DEFAULT 1,
@@ -36,7 +35,6 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_username (username),
-    KEY idx_users_role (role),
     KEY idx_users_role_id (role_id),
     KEY idx_users_is_active (is_active),
     KEY idx_users_deleted_at (deleted_at)

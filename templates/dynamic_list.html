@@ -7,27 +7,29 @@
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <div class="d-flex gap-2 align-items-center">
     <a href="{{ url_for('dynamic_settings') }}" class="btn btn-outline-secondary btn-sm">
-      <i class="fas fa-arrow-left me-1"></i> All Settings
+      <i class="fas fa-arrow-left me-1"></i> {{ _('All Settings') }}
     </a>
-    <span class="text-muted" style="font-size:.875rem;">{{ total }} record(s)</span>
+    <span class="text-muted" style="font-size:.875rem;">{{ _('%(count)s record(s)', count=total) }}</span>
   </div>
+  {% if has_permission('system_settings_edit') %}
   <a href="{{ url_for('dynamic_create', module_key=module.module_key) }}" class="btn btn-primary btn-sm">
-    <i class="fas fa-plus me-1"></i> Add {{ module.module_name }}
+    <i class="fas fa-plus me-1"></i> {{ _('Add %(name)s', name=module.module_name) }}
   </a>
+  {% endif %}
 </div>
 
 <!-- Search -->
 <div class="form-card mb-4">
   <form method="GET" class="row g-2 align-items-end">
     <div class="col-md-4">
-      <label class="form-label">Search</label>
-      <input type="text" name="search" class="form-control" placeholder="Search records..." value="{{ search }}">
+      <label class="form-label">{{ _('Search') }}</label>
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search records...') }}" value="{{ search }}">
     </div>
     <div class="col-md-2">
-      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> Search</button>
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> {{ _('Search') }}</button>
     </div>
     <div class="col-md-2">
-      <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary w-100">Clear</a>
+      <a href="{{ url_for('dynamic_list', module_key=module.module_key) }}" class="btn btn-outline-secondary w-100">{{ _('Clear') }}</a>
     </div>
   </form>
 </div>
@@ -38,7 +40,7 @@
     <table class="table">
       <thead>
         <tr>
-          <th>#</th>
+          <th>{{ _('#') }}</th>
           {% for fld in fields if fld.is_listable %}
           <th>
             {% if fld.is_sortable %}
@@ -54,8 +56,8 @@
             {% endif %}
           </th>
           {% endfor %}
-          <th>Status</th>
-          <th>Actions</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -81,38 +83,42 @@
           {% endfor %}
           <td>
             {% if rec.is_active %}
-            <span class="status-badge badge-approved">Active</span>
+            <span class="status-badge badge-approved">{{ _('Active') }}</span>
             {% else %}
-            <span class="status-badge badge-rejected">Inactive</span>
+            <span class="status-badge badge-rejected">{{ _('Inactive') }}</span>
             {% endif %}
           </td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{{ url_for('dynamic_view', module_key=module.module_key, id=rec.id) }}" class="btn btn-sm btn-outline-info" title="View">
+              {% if has_permission('system_settings_view') %}
+              <a href="{{ url_for('dynamic_view', module_key=module.module_key, id=rec.id) }}" class="btn btn-sm btn-outline-info" title="{{ _('View') }}">
                 <i class="fas fa-eye"></i>
               </a>
-              <a href="{{ url_for('dynamic_edit', module_key=module.module_key, id=rec.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+              {% endif %}
+              {% if has_permission('system_settings_edit') %}
+              <a href="{{ url_for('dynamic_edit', module_key=module.module_key, id=rec.id) }}" class="btn btn-sm btn-outline-warning" title="{{ _('Edit') }}">
                 <i class="fas fa-edit"></i>
               </a>
               <form method="POST" action="{{ url_for('dynamic_toggle', module_key=module.module_key, id=rec.id) }}" style="display:inline;">
                 <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if rec.is_active else 'success' }}"
-                  title="{{ 'Deactivate' if rec.is_active else 'Activate' }}">
+                  title="{{ _('Deactivate') if rec.is_active else _('Activate') }}">
                   <i class="fas fa-{{ 'ban' if rec.is_active else 'check' }}"></i>
                 </button>
               </form>
               <form method="POST" action="{{ url_for('dynamic_delete', module_key=module.module_key, id=rec.id) }}"
-                style="display:inline;" onsubmit="return confirm('Delete this record?');">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                style="display:inline;" onsubmit="return confirm('{{ _('Delete this record?') }}');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>
+              {% endif %}
             </div>
           </td>
         </tr>
         {% else %}
         <tr>
           <td colspan="{{ 3 + fields|selectattr('is_listable')|list|length }}" class="text-center py-5 text-muted">
-            <i class="fas fa-database fa-2x mb-2 d-block"></i>No records found.
+            <i class="fas fa-database fa-2x mb-2 d-block"></i>{{ _('No records found.') }}
           </td>
         </tr>
         {% endfor %}
@@ -127,7 +133,7 @@
     <nav>
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item {{ 'disabled' if page <= 1 }}">
-          <a class="page-link" href="{{ url_for('dynamic_list', module_key=module.module_key, page=page-1, search=search, sort_by=sort_by, sort_dir=sort_dir) }}">Previous</a>
+          <a class="page-link" href="{{ url_for('dynamic_list', module_key=module.module_key, page=page-1, search=search, sort_by=sort_by, sort_dir=sort_dir) }}">{{ _('Previous') }}</a>
         </li>
         {% for p in range(1, total_pages + 1) %}
         <li class="page-item {{ 'active' if p == page }}">
@@ -135,7 +141,7 @@
         </li>
         {% endfor %}
         <li class="page-item {{ 'disabled' if page >= total_pages }}">
-          <a class="page-link" href="{{ url_for('dynamic_list', module_key=module.module_key, page=page+1, search=search, sort_by=sort_by, sort_dir=sort_dir) }}">Next</a>
+          <a class="page-link" href="{{ url_for('dynamic_list', module_key=module.module_key, page=page+1, search=search, sort_by=sort_by, sort_dir=sort_dir) }}">{{ _('Next') }}</a>
         </li>
       </ul>
     </nav>

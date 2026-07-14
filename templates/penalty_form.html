@@ -131,10 +131,12 @@
       </div>
       {% endif %}
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('penalty_create', 'penalty_edit') %}
         <button type="submit" class="btn btn-danger btn-lg">
           <i class="fas fa-{{ 'save' if penalty else 'plus' }} me-2"></i>
           {{ _('Save Changes') if penalty else _('Create Penalty') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('penalties') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>
@@ -142,10 +144,10 @@
     <div class="form-card mt-3">
       <h6 class="fw-bold mb-2" style="color:#1a3c5e;">{{ _('Violation Reference') }}</h6>
       <div style="font-size:.78rem;color:#64748b;line-height:1.8;">
-        <div>• <strong>Late Arrival</strong>: $25–$50/instance</div>
-        <div>• <strong>Absenteeism</strong>: $50–$100/day</div>
-        <div>• <strong>Policy Violation</strong>: $50–$150</div>
-        <div>• <strong>Misconduct</strong>: $100–$500</div>
+        <div>• <strong>{{ _('Late Arrival') }}</strong>: {{ _('$25–$50/instance') }}</div>
+        <div>• <strong>{{ _('Absenteeism') }}</strong>: {{ _('$50–$100/day') }}</div>
+        <div>• <strong>{{ _('Policy Violation') }}</strong>: {{ _('$50–$150') }}</div>
+        <div>• <strong>{{ _('Misconduct') }}</strong>: {{ _('$100–$500') }}</div>
       </div>
     </div>
   </div>

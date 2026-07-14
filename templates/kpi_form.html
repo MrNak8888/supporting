@@ -293,12 +293,14 @@
       <input type="hidden" name="sop_compliance_score" id="sopScoreHidden" value="{{ evaluation.sop_compliance_score if evaluation else 0 }}">
 
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('kpi_evaluation_create', 'kpi_evaluation_edit') %}
         <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('statusInput').value='Draft'">
           <i class="fas fa-save me-2"></i> {{ _('Save Draft') }}
         </button>
         <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('statusInput').value='Submitted'">
           <i class="fas fa-check-circle me-2"></i> {{ _('Submit Evaluation') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('kpi_evaluations') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>
@@ -371,11 +373,11 @@ function calcKpi() {
 
   // Rating
   var rating = '';
-  if (total >= 95) rating = 'Excellent';
-  else if (total >= 85) rating = 'Very Good';
-  else if (total >= 75) rating = 'Good';
-  else if (total >= 60) rating = 'Need Improvement';
-  else rating = 'Unsatisfactory';
+  if (total >= 95) rating = '{{ _('Excellent') }}';
+  else if (total >= 85) rating = '{{ _('Very Good') }}';
+  else if (total >= 75) rating = '{{ _('Good') }}';
+  else if (total >= 60) rating = '{{ _('Need Improvement') }}';
+  else rating = '{{ _('Unsatisfactory') }}';
   document.getElementById('ratingDisplay').textContent = rating;
 }
 </script>

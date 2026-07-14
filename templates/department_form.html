@@ -43,11 +43,13 @@
     <div class="form-card">
       <h6 class="fw-bold mb-3" style="color:#1a3c5e;">{{ _('Save') }}</h6>
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('department_create', 'department_edit') %}
         <button type="submit" class="btn btn-primary btn-lg">
           <i class="fas fa-{{ 'save' if dept else 'plus' }} me-2"></i>
           {{ _('Save Changes') if dept else _('Create Department') }}
         </button>
-        <a href="{{ url_for('departments') }}" class="btn btn-outline-secondary">Cancel</a>
+        {% endif %}
+        <a href="{{ url_for('departments') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>
   </div>

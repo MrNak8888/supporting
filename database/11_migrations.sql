@@ -283,7 +283,15 @@ AND NOT EXISTS (SELECT 1 FROM destinations WHERE destinations.name = route_reque
 DROP PROCEDURE IF EXISTS sp_create_index_if_not_exists;
 
 -- =============================================================================
--- PART 6: VERIFICATION
+-- PART 6: REMOVE LEGACY COLUMNS
+-- =============================================================================
+
+-- 6.1 Drop legacy role string column from users table
+-- The RBAC system now uses role_id FK exclusively.
+ALTER TABLE users DROP COLUMN IF EXISTS role;
+
+-- =============================================================================
+-- PART 7: VERIFICATION
 -- =============================================================================
 
 SELECT 'MIGRATION COMPLETE' AS status;

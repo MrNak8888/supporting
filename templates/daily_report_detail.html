@@ -8,14 +8,16 @@
   <a href="{{ url_for('daily_reports') }}" class="btn btn-outline-secondary btn-sm">
     <i class="fas fa-arrow-left me-1"></i> {{ _('Back') }}
   </a>
-  {% if dr.status == 'Draft' %}
+  {% if dr.status == 'Draft' and has_permission('daily_report_edit') %}
   <a href="{{ url_for('edit_daily_report', id=dr.id) }}" class="btn btn-outline-warning btn-sm">
     <i class="fas fa-edit me-1"></i> {{ _('Edit') }}
   </a>
   {% endif %}
+  {% if has_permission('daily_report_delete') %}
   <form method="POST" action="{{ url_for('delete_daily_report', id=dr.id) }}" onsubmit="return confirm('{{ _('Delete this report?') }}');">
     <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>{{ _('Delete') }}</button>
   </form>
+  {% endif %}
 </div>
 
 <div class="row g-4">

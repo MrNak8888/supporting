@@ -40,7 +40,7 @@
         <div class="col-md-6">
           <label class="form-label">{{ _('Transportation Type') }}</label>
           <select name="transportation" class="form-select">
-            <option value="">— Select Type —</option>
+            <option value="">{{ _('— Select Type —') }}</option>
             {% for t in transport_types %}
             <option value="{{ t.data.name }}" {% if request_obj and request_obj.transportation == t.data.name %}selected{% endif %}>{{ t.data.name }}</option>
             {% endfor %}
@@ -93,7 +93,7 @@
         <div class="col-md-6">
           <label class="form-label">{{ _('Branch Location') }}</label>
           <select name="branch_location" class="form-select">
-            <option value="">— Select Branch —</option>
+            <option value="">{{ _('— Select Branch —') }}</option>
             {% for b in branches %}
             <option value="{{ b.data.name }}" {% if request_obj and request_obj.branch_location == b.data.name %}selected{% elif not request_obj and current_user.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
             {% endfor %}
@@ -102,7 +102,7 @@
         <div class="col-md-6">
           <label class="form-label">{{ _('Company') }}</label>
           <select name="company" class="form-select">
-            <option value="">— Select Company —</option>
+            <option value="">{{ _('— Select Company —') }}</option>
             {% for c in companies %}
             <option value="{{ c.data.name }}" {% if request_obj and request_obj.company == c.data.name %}selected{% elif not request_obj and loop.first %}selected{% endif %}>{{ c.data.name }}</option>
             {% endfor %}
@@ -160,10 +160,12 @@
       {% endif %}
 
       <div class="d-grid gap-2 mt-4">
+        {% if has_any_permission('route_request_create', 'route_request_edit') %}
         <button type="submit" class="btn btn-primary btn-lg">
           <i class="fas fa-{{ 'save' if request_obj else 'paper-plane' }} me-2"></i>
           {{ _('Save Changes') if request_obj else _('Submit Request') }}
         </button>
+        {% endif %}
         <a href="{{ url_for('route_requests') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
     </div>

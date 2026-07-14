@@ -76,7 +76,10 @@ INSERT IGNORE INTO permissions (code, name, module, is_system) VALUES
 ('user_reset_password', 'Reset User Passwords', 'users', 1),
 ('user_activate', 'Activate Users', 'users', 1),
 ('user_deactivate', 'Deactivate Users', 'users', 1),
-('user_download', 'Download Users', 'users', 1);
+('user_download', 'Download Users', 'users', 1),
+-- System-wide capabilities
+('view_all_records', 'View All Records', 'system', 1),
+('edit_any_status', 'Edit Any Status', 'system', 1);
 
 -- =============================================================================
 -- Role-Permission Mapping
