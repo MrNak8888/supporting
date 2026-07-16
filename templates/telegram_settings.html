@@ -10,7 +10,7 @@
       <h4 class="fw-bold mb-1" style="color: var(--text-primary);">
         <i class="fab fa-telegram-plane me-2" style="color: #0891b2;"></i>{{ _('Telegram Bot Configuration') }}
       </h4>
-      <p class="text-muted small mb-0">{{ _('Configure and manage your Telegram notification bot') }}</p>
+      <p class="text-muted small mb-0">{{ _('Configure independent bots for Transport Requests and Penalty notifications') }}</p>
     </div>
     <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-arrow-left me-1"></i> {{ _('Back to Dashboard') }}
@@ -18,14 +18,15 @@
   </div>
 
   <div class="row g-4">
-    <div class="col-lg-7">
+    {# ── TRANSPORT BOT CARD ── #}
+    <div class="col-lg-6">
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
           <div class="d-flex align-items-center gap-2">
             <span class="d-flex align-items-center justify-content-center rounded" style="width: 32px; height: 32px; background: #e0f2fe;">
-              <i class="fab fa-telegram-plane" style="color: #0891b2;"></i>
+              <i class="fas fa-truck" style="color: #0891b2;"></i>
             </span>
-            <h5 class="card-title mb-0 fw-semibold" style="color: #1a3c5e;">{{ _('Bot Connection') }}</h5>
+            <h5 class="card-title mb-0 fw-semibold" style="color: #1a3c5e;">{{ _('Transport Requests Bot') }}</h5>
           </div>
         </div>
         <div class="card-body p-4">
@@ -34,72 +35,73 @@
               <i class="fas fa-key" style="color: #94a3b8; font-size: 1.1rem;"></i>
               <div>
                 <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.2;">{{ _('Bot Token') }}</small>
-                <span class="fw-semibold" id="tokenStatus">
+                <span class="fw-semibold" id="transportTokenStatus">
                   <i class="fas fa-spinner fa-spin me-1"></i> {{ _('Loading...') }}
                 </span>
               </div>
             </div>
             {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
-            <button class="btn btn-sm btn-outline-primary px-3" id="changeTokenBtn">
+            <button class="btn btn-sm btn-outline-primary px-3 transport-action" data-action="change-token" data-type="transport">
               <i class="fas fa-key me-1"></i> {{ _('Change Token') }}
             </button>
             {% endif %}
           </div>
 
-          <div class="mb-4">
+          <div class="mb-3">
             <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
               <i class="far fa-comment-dots me-1"></i> {{ _('Chat ID') }}
             </label>
             <div class="input-group">
-              <input type="text" class="form-control" id="chatId" value="—">
-              <button class="btn btn-outline-secondary" type="button" onclick="copyChatId()" title="{{ _('Copy Chat ID') }}">
+              <input type="text" class="form-control transport-chat-id" id="transportChatId" value="—" data-type="transport">
+              <button class="btn btn-outline-secondary" type="button" onclick="copyChatId('transport')" title="{{ _('Copy Chat ID') }}">
                 <i class="far fa-copy"></i>
               </button>
             </div>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
+              <i class="fas fa-image me-1"></i> {{ _('Banner Image') }}
+            </label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="file" class="form-control form-control-sm transport-banner-upload" accept="image/*" data-type="transport" style="max-width: 260px;">
+              <button class="btn btn-sm btn-outline-danger transport-banner-delete d-none" data-type="transport">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <div class="mt-1 transport-banner-preview" data-type="transport"></div>
+          </div>
+
           <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e8edf2;">
             <div class="d-flex align-items-center gap-2">
               <i class="fas fa-bell" style="color: #94a3b8;"></i>
-              <span class="fw-semibold">{{ _('Telegram Notifications') }}</span>
-              <span id="enabledBadge" class="badge rounded-pill bg-secondary" style="font-size: 0.7rem;">{{ _('Loading...') }}</span>
+              <span class="fw-semibold">{{ _('Notifications') }}</span>
+              <span id="transportEnabledBadge" class="badge rounded-pill bg-secondary" style="font-size: 0.7rem;">{{ _('Loading...') }}</span>
             </div>
             {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
             <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="enableTelegram" role="switch" style="width: 2.5em; height: 1.25em; cursor: pointer;">
+              <input class="form-check-input transport-toggle" type="checkbox" id="transportEnable" role="switch" data-type="transport" style="width: 2.5em; height: 1.25em; cursor: pointer;">
             </div>
             {% endif %}
           </div>
+
+          <div class="mt-3">
+            <div class="d-flex gap-2 flex-wrap">
+              {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
+              <button class="btn btn-primary btn-sm px-3 transport-action" data-action="test" data-type="transport">
+                <i class="fab fa-telegram-plane me-1"></i> {{ _('Send Test Message') }}
+              </button>
+              <button class="btn btn-outline-danger btn-sm px-3 transport-action" data-action="disconnect" data-type="transport">
+                <i class="fas fa-plug me-1"></i> {{ _('Disconnect Bot') }}
+              </button>
+              {% endif %}
+            </div>
+            <div id="transportTestResult" class="mt-2" style="display: none;"></div>
+          </div>
         </div>
       </div>
 
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
-          <div class="d-flex align-items-center gap-2">
-            <span class="d-flex align-items-center justify-content-center rounded" style="width: 32px; height: 32px; background: #e0f2fe;">
-              <i class="fas fa-paper-plane" style="color: #0891b2;"></i>
-            </span>
-            <h5 class="card-title mb-0 fw-semibold" style="color: #1a3c5e;">{{ _('Actions') }}</h5>
-          </div>
-        </div>
-        <div class="card-body p-4">
-          <div class="d-flex gap-3 flex-wrap">
-            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
-            <button class="btn btn-primary px-4" id="sendTestBtn">
-              <i class="fab fa-telegram-plane me-1"></i> {{ _('Send Test Message') }}
-            </button>
-            <button class="btn btn-outline-danger px-4" id="disconnectBtn">
-              <i class="fas fa-plug me-1"></i> {{ _('Disconnect Bot') }}
-            </button>
-            {% endif %}
-          </div>
-          <div id="testResult" class="mt-3" style="display: none;"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-5">
-      <div class="card shadow-sm border-0 mb-4">
+      <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
           <div class="d-flex align-items-center gap-2">
             <span class="d-flex align-items-center justify-content-center rounded" style="width: 32px; height: 32px; background: #e0f2fe;">
@@ -112,23 +114,142 @@
           <div class="list-group list-group-flush">
             <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
               <span class="text-muted small">{{ _('Status') }}</span>
-              <span id="statusBadge" class="badge rounded-pill bg-secondary">{{ _('Loading...') }}</span>
+              <span id="transportStatusBadge" class="badge rounded-pill bg-secondary">{{ _('Loading...') }}</span>
             </div>
             <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
               <span class="text-muted small">{{ _('Bot Username') }}</span>
-              <span id="botUsername" class="fw-semibold small">—</span>
+              <span id="transportBotUsername" class="fw-semibold small">—</span>
             </div>
             <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
               <span class="text-muted small">{{ _('Group Name') }}</span>
-              <span id="groupName" class="fw-semibold small">—</span>
+              <span id="transportGroupName" class="fw-semibold small">—</span>
             </div>
             <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
               <span class="text-muted small">{{ _('Chat ID') }}</span>
-              <span id="statusChatId" class="fw-semibold small">—</span>
+              <span id="transportStatusChatId" class="fw-semibold small">—</span>
             </div>
             <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
               <span class="text-muted small">{{ _('Last Test Time') }}</span>
-              <span id="lastTestTime" class="fw-semibold small">—</span>
+              <span id="transportLastTestTime" class="fw-semibold small">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── PENALTY BOT CARD ── #}
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <span class="d-flex align-items-center justify-content-center rounded" style="width: 32px; height: 32px; background: #fdf2f8;">
+              <i class="fas fa-gavel" style="color: #db2777;"></i>
+            </span>
+            <h5 class="card-title mb-0 fw-semibold" style="color: #1a3c5e;">{{ _('Penalties Bot') }}</h5>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3 mb-4" style="background: #f8fafc; border: 1px solid #e8edf2;">
+            <div class="d-flex align-items-center gap-3">
+              <i class="fas fa-key" style="color: #94a3b8; font-size: 1.1rem;"></i>
+              <div>
+                <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.2;">{{ _('Bot Token') }}</small>
+                <span class="fw-semibold" id="penaltyTokenStatus">
+                  <i class="fas fa-spinner fa-spin me-1"></i> {{ _('Loading...') }}
+                </span>
+              </div>
+            </div>
+            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
+            <button class="btn btn-sm btn-outline-primary px-3 penalty-action" data-action="change-token" data-type="penalty">
+              <i class="fas fa-key me-1"></i> {{ _('Change Token') }}
+            </button>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
+              <i class="far fa-comment-dots me-1"></i> {{ _('Chat ID') }}
+            </label>
+            <div class="input-group">
+              <input type="text" class="form-control penalty-chat-id" id="penaltyChatId" value="—" data-type="penalty">
+              <button class="btn btn-outline-secondary" type="button" onclick="copyChatId('penalty')" title="{{ _('Copy Chat ID') }}">
+                <i class="far fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
+              <i class="fas fa-image me-1"></i> {{ _('Banner Image') }}
+            </label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="file" class="form-control form-control-sm penalty-banner-upload" accept="image/*" data-type="penalty" style="max-width: 260px;">
+              <button class="btn btn-sm btn-outline-danger penalty-banner-delete d-none" data-type="penalty">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <div class="mt-1 penalty-banner-preview" data-type="penalty"></div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e8edf2;">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-bell" style="color: #94a3b8;"></i>
+              <span class="fw-semibold">{{ _('Notifications') }}</span>
+              <span id="penaltyEnabledBadge" class="badge rounded-pill bg-secondary" style="font-size: 0.7rem;">{{ _('Loading...') }}</span>
+            </div>
+            {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input penalty-toggle" type="checkbox" id="penaltyEnable" role="switch" data-type="penalty" style="width: 2.5em; height: 1.25em; cursor: pointer;">
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="mt-3">
+            <div class="d-flex gap-2 flex-wrap">
+              {% if has_any_permission('system_settings_edit', 'system_settings_update') %}
+              <button class="btn btn-primary btn-sm px-3 penalty-action" data-action="test" data-type="penalty">
+                <i class="fab fa-telegram-plane me-1"></i> {{ _('Send Test Message') }}
+              </button>
+              <button class="btn btn-outline-danger btn-sm px-3 penalty-action" data-action="disconnect" data-type="penalty">
+                <i class="fas fa-plug me-1"></i> {{ _('Disconnect Bot') }}
+              </button>
+              {% endif %}
+            </div>
+            <div id="penaltyTestResult" class="mt-2" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <span class="d-flex align-items-center justify-content-center rounded" style="width: 32px; height: 32px; background: #fdf2f8;">
+              <i class="fas fa-info-circle" style="color: #db2777;"></i>
+            </span>
+            <h5 class="card-title mb-0 fw-semibold" style="color: #1a3c5e;">{{ _('Bot Status') }}</h5>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+              <span class="text-muted small">{{ _('Status') }}</span>
+              <span id="penaltyStatusBadge" class="badge rounded-pill bg-secondary">{{ _('Loading...') }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+              <span class="text-muted small">{{ _('Bot Username') }}</span>
+              <span id="penaltyBotUsername" class="fw-semibold small">—</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+              <span class="text-muted small">{{ _('Group Name') }}</span>
+              <span id="penaltyGroupName" class="fw-semibold small">—</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+              <span class="text-muted small">{{ _('Chat ID') }}</span>
+              <span id="penaltyStatusChatId" class="fw-semibold small">—</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+              <span class="text-muted small">{{ _('Last Test Time') }}</span>
+              <span id="penaltyLastTestTime" class="fw-semibold small">—</span>
             </div>
           </div>
         </div>
@@ -137,6 +258,7 @@
   </div>
 </div>
 
+{# ── SHARED TOKEN MODAL ── #}
 <div class="modal fade" id="changeTokenModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -162,6 +284,7 @@
   </div>
 </div>
 
+{# ── SHARED DISCONNECT MODAL ── #}
 <div class="modal fade" id="disconnectModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content border-0 shadow">
@@ -170,7 +293,7 @@
           <i class="fas fa-exclamation-triangle"></i>
         </div>
         <h5 class="fw-bold mb-2">{{ _('Disconnect Bot?') }}</h5>
-        <p class="text-muted small mb-0">{{ _('This will clear the bot token and disable all Telegram notifications.') }}</p>
+        <p class="text-muted small mb-0">{{ _('This will clear the bot token and disable all Telegram notifications for this bot.') }}</p>
       </div>
       <div class="modal-footer border-top-0 justify-content-center pt-0 pb-4">
         <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
@@ -190,98 +313,102 @@
 (function() {
   'use strict';
 
-  const tokenStatus = document.getElementById('tokenStatus');
-  const chatId = document.getElementById('chatId');
-  const statusBadge = document.getElementById('statusBadge');
-  const botUsername = document.getElementById('botUsername');
-  const groupName = document.getElementById('groupName');
-  const statusChatId = document.getElementById('statusChatId');
-  const lastTestTime = document.getElementById('lastTestTime');
-  const enabledBadge = document.getElementById('enabledBadge');
-  const enableToggle = document.getElementById('enableTelegram');
-  const sendTestBtn = document.getElementById('sendTestBtn');
-  const testResult = document.getElementById('testResult');
-  const disconnectBtn = document.getElementById('disconnectBtn');
-  const changeTokenBtn = document.getElementById('changeTokenBtn');
-  const newToken = document.getElementById('newToken');
-  const saveTokenBtn = document.getElementById('saveTokenBtn');
-  const tokenValidation = document.getElementById('tokenValidation');
-  const confirmDisconnectBtn = document.getElementById('confirmDisconnectBtn');
   const toastContainer = document.getElementById('toastContainer');
+  let activeBotType = null;
 
-  const changeTokenModal = new bootstrap.Modal(document.getElementById('changeTokenModal'));
-  const disconnectModal = new bootstrap.Modal(document.getElementById('disconnectModal'));
+  // ── Bot UI helpers ──
+  function botUI(type) {
+    const p = type === 'transport' ? 'transport' : 'penalty';
+    return {
+      tokenStatus: document.getElementById(p + 'TokenStatus'),
+      chatId: document.getElementById(p + 'ChatId'),
+      statusBadge: document.getElementById(p + 'StatusBadge'),
+      botUsername: document.getElementById(p + 'BotUsername'),
+      groupName: document.getElementById(p + 'GroupName'),
+      statusChatId: document.getElementById(p + 'StatusChatId'),
+      lastTestTime: document.getElementById(p + 'LastTestTime'),
+      enabledBadge: document.getElementById(p + 'EnabledBadge'),
+      enableToggle: document.getElementById(p + 'Enable'),
+      testResult: document.getElementById(p + 'TestResult'),
+      bannerPreview: document.querySelector('.' + p + '-banner-preview'),
+      bannerUpload: document.querySelector('.' + p + '-banner-upload'),
+      bannerDelete: document.querySelector('.' + p + '-banner-delete'),
+    };
+  }
 
-  fetchStatus();
-
-  function fetchStatus() {
-    fetch('{{ url_for("api_telegram_status") }}')
+  function fetchStatus(type) {
+    const ui = botUI(type);
+    fetch('{{ url_for("api_telegram_status", notification_type="") }}' + type)
       .then(function(r) { return r.json(); })
-      .then(function(data) { updateUI(data); })
+      .then(function(data) { updateUI(type, data); })
       .catch(function() {
-        tokenStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger me-1"></i> {{ _("Failed to load")|e }}';
+        ui.tokenStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger me-1"></i> {{ _("Failed to load")|e }}';
       });
   }
 
-  function updateUI(data) {
+  function updateUI(type, data) {
+    const ui = botUI(type);
     if (data.has_token && data.connected) {
-      tokenStatus.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> {{ _("Connected")|e }}';
+      ui.tokenStatus.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> {{ _("Connected")|e }}';
     } else if (data.has_token) {
-      tokenStatus.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-1"></i> {{ _("Disconnected")|e }}';
+      ui.tokenStatus.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-1"></i> {{ _("Disconnected")|e }}';
     } else {
-      tokenStatus.innerHTML = '<i class="fas fa-times-circle text-secondary me-1"></i> {{ _("Not Configured")|e }}';
+      ui.tokenStatus.innerHTML = '<i class="fas fa-times-circle text-secondary me-1"></i> {{ _("Not Configured")|e }}';
     }
 
-    chatId.value = data.chat_id || '—';
-
+    ui.chatId.value = data.chat_id || '—';
     var isEnabled = data.enabled;
-    enableToggle.checked = isEnabled;
+    ui.enableToggle.checked = isEnabled;
     if (isEnabled && data.has_token && data.connected) {
-      enabledBadge.className = 'badge rounded-pill bg-success';
-      enabledBadge.textContent = '{{ _("Enabled")|e }}';
+      ui.enabledBadge.className = 'badge rounded-pill bg-success';
+      ui.enabledBadge.textContent = '{{ _("Enabled")|e }}';
     } else {
-      enabledBadge.className = 'badge rounded-pill bg-secondary';
-      enabledBadge.textContent = '{{ _("Disabled")|e }}';
+      ui.enabledBadge.className = 'badge rounded-pill bg-secondary';
+      ui.enabledBadge.textContent = '{{ _("Disabled")|e }}';
     }
 
     if (data.has_token && data.connected) {
-      statusBadge.className = 'badge rounded-pill bg-success';
-      statusBadge.textContent = '{{ _("Connected")|e }}';
+      ui.statusBadge.className = 'badge rounded-pill bg-success';
+      ui.statusBadge.textContent = '{{ _("Connected")|e }}';
     } else if (data.has_token) {
-      statusBadge.className = 'badge rounded-pill bg-warning text-dark';
-      statusBadge.textContent = '{{ _("Disconnected")|e }}';
+      ui.statusBadge.className = 'badge rounded-pill bg-warning text-dark';
+      ui.statusBadge.textContent = '{{ _("Disconnected")|e }}';
     } else {
-      statusBadge.className = 'badge rounded-pill bg-secondary';
-      statusBadge.textContent = '{{ _("Not Configured")|e }}';
+      ui.statusBadge.className = 'badge rounded-pill bg-secondary';
+      ui.statusBadge.textContent = '{{ _("Not Configured")|e }}';
     }
 
-    botUsername.textContent = data.bot_username ? '@' + data.bot_username : '—';
-    groupName.textContent = data.group_name || '—';
-    statusChatId.textContent = data.chat_id || '—';
-    lastTestTime.textContent = data.last_test_at ? new Date(data.last_test_at).toLocaleString() : '—';
+    ui.botUsername.textContent = data.bot_username ? '@' + data.bot_username : '—';
+    ui.groupName.textContent = data.group_name || '—';
+    ui.statusChatId.textContent = data.chat_id || '—';
+    ui.lastTestTime.textContent = data.last_test_at ? new Date(data.last_test_at).toLocaleString() : '—';
   }
 
-  changeTokenBtn.addEventListener('click', function() {
-    newToken.value = '';
-    tokenValidation.style.display = 'none';
-    saveTokenBtn.disabled = true;
-    changeTokenModal.show();
+  // ── Change Token ──
+  document.querySelectorAll('[data-action="change-token"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      activeBotType = this.getAttribute('data-type');
+      document.getElementById('newToken').value = '';
+      document.getElementById('tokenValidation').style.display = 'none';
+      document.getElementById('saveTokenBtn').disabled = true;
+      new bootstrap.Modal(document.getElementById('changeTokenModal')).show();
+    });
   });
 
-  newToken.addEventListener('input', function() {
-    var token = this.value.trim();
-    saveTokenBtn.disabled = token.length < 20;
+  document.getElementById('newToken').addEventListener('input', function() {
+    document.getElementById('saveTokenBtn').disabled = this.value.trim().length < 20;
   });
 
-  saveTokenBtn.addEventListener('click', function() {
-    var token = newToken.value.trim();
-    if (!token) return;
+  document.getElementById('saveTokenBtn').addEventListener('click', function() {
+    var token = document.getElementById('newToken').value.trim();
+    if (!token || !activeBotType) return;
 
-    saveTokenBtn.disabled = true;
-    saveTokenBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Validating...")|e }}';
-    tokenValidation.style.display = 'none';
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Validating...")|e }}';
+    document.getElementById('tokenValidation').style.display = 'none';
 
-    fetch('{{ url_for("api_telegram_validate") }}', {
+    fetch('{{ url_for("api_telegram_validate", notification_type="") }}' + activeBotType, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: token })
@@ -289,7 +416,7 @@
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.success) {
-        return fetch('{{ url_for("api_telegram_save") }}', {
+        return fetch('{{ url_for("api_telegram_save", notification_type="") }}' + activeBotType, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bot_token: token })
@@ -300,126 +427,199 @@
     })
     .then(function(data) {
       if (data.success) {
-        changeTokenModal.hide();
-        fetchStatus();
+        bootstrap.Modal.getInstance(document.getElementById('changeTokenModal')).hide();
+        fetchStatus(activeBotType);
         showToast('success', '<i class="fas fa-check-circle me-2"></i> {{ _("Bot token updated successfully.")|e }}');
       } else {
         throw new Error(data.error || '{{ _("Failed to save token")|e }}');
       }
     })
     .catch(function(err) {
-      tokenValidation.style.display = 'block';
-      tokenValidation.innerHTML = '<div class="alert alert-danger py-2 mb-0 small d-flex align-items-center gap-2"><i class="fas fa-times-circle"></i> ' + err.message + '</div>';
+      document.getElementById('tokenValidation').style.display = 'block';
+      document.getElementById('tokenValidation').innerHTML = '<div class="alert alert-danger py-2 mb-0 small d-flex align-items-center gap-2"><i class="fas fa-times-circle"></i> ' + err.message + '</div>';
     })
     .finally(function() {
-      saveTokenBtn.disabled = false;
-      saveTokenBtn.innerHTML = '<i class="fas fa-check me-1"></i> {{ _("Validate & Save")|e }}';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check me-1"></i> {{ _("Validate & Save")|e }}';
     });
   });
 
-  disconnectBtn.addEventListener('click', function() {
-    disconnectModal.show();
-  });
-
-  confirmDisconnectBtn.addEventListener('click', function() {
-    confirmDisconnectBtn.disabled = true;
-    confirmDisconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Disconnecting...")|e }}';
-
-    fetch('{{ url_for("api_telegram_disconnect") }}', { method: 'POST' })
+  // ── Chat ID save on blur ──
+  document.querySelectorAll('.transport-chat-id, .penalty-chat-id').forEach(function(input) {
+    input.addEventListener('blur', function() {
+      var val = this.value.trim();
+      var type = this.getAttribute('data-type');
+      if (!val) return;
+      fetch('{{ url_for("api_telegram_save", notification_type="") }}' + type, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: val })
+      })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success) {
-          disconnectModal.hide();
-          fetchStatus();
+          fetchStatus(type);
+          showToast('success', '<i class="fas fa-check-circle me-2"></i> {{ _("Chat ID saved.")|e }}');
+        }
+      });
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') this.blur();
+    });
+  });
+
+  // ── Enable/Disable Toggle ──
+  document.querySelectorAll('.transport-toggle, .penalty-toggle').forEach(function(toggle) {
+    toggle.addEventListener('change', function() {
+      var enabled = this.checked;
+      var type = this.getAttribute('data-type');
+      fetch('{{ url_for("api_telegram_save", notification_type="") }}' + type, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: enabled })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          fetchStatus(type);
+          showToast('success', '<i class="fas fa-' + (enabled ? 'bell' : 'bell-slash') + ' me-2"></i> ' + (enabled ? '{{ _("Notifications enabled.")|e }}' : '{{ _("Notifications disabled.")|e }}'));
+        } else {
+          toggle.checked = !enabled;
+        }
+      })
+      .catch(function() {
+        toggle.checked = !enabled;
+      });
+    });
+  });
+
+  // ── Send Test Message ──
+  document.querySelectorAll('[data-action="test"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var type = this.getAttribute('data-type');
+      var ui = botUI(type);
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Sending...")|e }}';
+      ui.testResult.style.display = 'none';
+
+      fetch('{{ url_for("api_telegram_test", notification_type="") }}' + type, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          ui.testResult.style.display = 'block';
+          if (data.success) {
+            ui.testResult.className = 'mt-2 alert alert-success d-flex align-items-center gap-2 py-2 mb-0';
+            ui.testResult.innerHTML = '<i class="fas fa-check-circle" style="font-size: 1.1rem;"></i> <span>\u2705 {{ _("Test message sent successfully.")|e }}</span>';
+            fetchStatus(type);
+          } else {
+            ui.testResult.className = 'mt-2 alert alert-danger d-flex align-items-center gap-2 py-2 mb-0';
+            ui.testResult.innerHTML = '<i class="fas fa-times-circle" style="font-size: 1.1rem;"></i> <span>{{ _("Failed:")|e }} ' + (data.error || '{{ _("Unknown error")|e }}') + '</span>';
+          }
+        })
+        .catch(function() {
+          ui.testResult.style.display = 'block';
+          ui.testResult.className = 'mt-2 alert alert-danger d-flex align-items-center gap-2 py-2 mb-0';
+          ui.testResult.innerHTML = '<i class="fas fa-times-circle" style="font-size: 1.1rem;"></i> <span>{{ _("Connection failed.")|e }}</span>';
+        })
+        .finally(function() {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fab fa-telegram-plane me-1"></i> {{ _("Send Test Message")|e }}';
+        });
+    });
+  });
+
+  // ── Disconnect Bot ──
+  document.querySelectorAll('[data-action="disconnect"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      activeBotType = this.getAttribute('data-type');
+      new bootstrap.Modal(document.getElementById('disconnectModal')).show();
+    });
+  });
+
+  document.getElementById('confirmDisconnectBtn').addEventListener('click', function() {
+    if (!activeBotType) return;
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Disconnecting...")|e }}';
+
+    fetch('{{ url_for("api_telegram_disconnect", notification_type="") }}' + activeBotType, { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('disconnectModal')).hide();
+          fetchStatus(activeBotType);
           showToast('warning', '<i class="fas fa-plug me-2"></i> {{ _("Bot disconnected successfully.")|e }}');
         }
       })
       .finally(function() {
-        confirmDisconnectBtn.disabled = false;
-        confirmDisconnectBtn.innerHTML = '<i class="fas fa-plug me-1"></i> {{ _("Disconnect")|e }}';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug me-1"></i> {{ _("Disconnect")|e }}';
       });
   });
 
-  window.copyChatId = function() {
-    var val = chatId.value;
+  // ── Banner Upload ──
+  document.querySelectorAll('.transport-banner-upload, .penalty-banner-upload').forEach(function(input) {
+    input.addEventListener('change', function() {
+      var type = this.getAttribute('data-type');
+      var file = this.files[0];
+      if (!file) return;
+      var formData = new FormData();
+      formData.append('banner', file);
+      fetch('{{ url_for("api_telegram_banner_upload", notification_type="") }}' + type, {
+        method: 'POST',
+        body: formData
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('success', '<i class="fas fa-check-circle me-2"></i> {{ _("Banner updated.")|e }}');
+          loadBannerPreview(type);
+        }
+      });
+    });
+  });
+
+  // ── Banner Delete ──
+  document.querySelectorAll('.transport-banner-delete, .penalty-banner-delete').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var type = this.getAttribute('data-type');
+      fetch('{{ url_for("api_telegram_banner_delete", notification_type="") }}' + type, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast('warning', '<i class="fas fa-trash me-2"></i> {{ _("Banner removed.")|e }}');
+            loadBannerPreview(type);
+          }
+        });
+    });
+  });
+
+  function loadBannerPreview(type) {
+    var ui = botUI(type);
+    fetch('{{ url_for("api_telegram_status", notification_type="") }}' + type)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.banner_image) {
+          ui.bannerPreview.innerHTML = '<img src="/static/uploads/' + data.banner_image + '" style="max-height:60px;border-radius:8px;" class="mt-1">';
+          ui.bannerDelete.classList.remove('d-none');
+        } else {
+          ui.bannerPreview.innerHTML = '';
+          ui.bannerDelete.classList.add('d-none');
+        }
+      });
+  }
+
+  // ── Copy Chat ID ──
+  window.copyChatId = function(type) {
+    var input = document.getElementById(type === 'transport' ? 'transportChatId' : 'penaltyChatId');
+    var val = input.value;
     if (val && val !== '—') {
       navigator.clipboard.writeText(val).then(function() {
-        showToast('success', '<i class="fas fa-copy me-2"></i> {{ _("Chat ID copied to clipboard.")|e }}');
+        showToast('success', '<i class="fas fa-copy me-2"></i> {{ _("Chat ID copied.")|e }}');
       });
     }
   };
 
-  chatId.addEventListener('blur', function() {
-    var val = this.value.trim();
-    if (!val) return;
-    fetch('{{ url_for("api_telegram_save") }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: val })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        fetchStatus();
-        showToast('success', '<i class="fas fa-check-circle me-2"></i> {{ _("Chat ID saved.")|e }}');
-      }
-    });
-  });
-
-  chatId.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') this.blur();
-  });
-
-  enableToggle.addEventListener('change', function() {
-    var enabled = this.checked;
-    fetch('{{ url_for("api_telegram_save") }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: enabled })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        fetchStatus();
-        showToast('success', '<i class="fas fa-' + (enabled ? 'bell' : 'bell-slash') + ' me-2"></i> ' + (enabled ? '{{ _("Notifications enabled.")|e }}' : '{{ _("Notifications disabled.")|e }}'));
-      } else {
-        enableToggle.checked = !enabled;
-      }
-    })
-    .catch(function() {
-      enableToggle.checked = !enabled;
-    });
-  });
-
-  sendTestBtn.addEventListener('click', function() {
-    sendTestBtn.disabled = true;
-    sendTestBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {{ _("Sending...")|e }}';
-    testResult.style.display = 'none';
-
-    fetch('{{ url_for("telegram_settings_test") }}', { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        testResult.style.display = 'block';
-        if (data.success) {
-          testResult.className = 'mt-3 alert alert-success d-flex align-items-center gap-2 py-2 mb-0';
-          testResult.innerHTML = '<i class="fas fa-check-circle" style="font-size: 1.1rem;"></i> <span>\u2705 {{ _("Test message sent successfully.")|e }}</span>';
-          fetchStatus();
-        } else {
-          testResult.className = 'mt-3 alert alert-danger d-flex align-items-center gap-2 py-2 mb-0';
-          testResult.innerHTML = '<i class="fas fa-times-circle" style="font-size: 1.1rem;"></i> <span>{{ _("Failed:")|e }} ' + (data.error || '{{ _("Unknown error")|e }}') + '</span>';
-        }
-      })
-      .catch(function() {
-        testResult.style.display = 'block';
-        testResult.className = 'mt-3 alert alert-danger d-flex align-items-center gap-2 py-2 mb-0';
-        testResult.innerHTML = '<i class="fas fa-times-circle" style="font-size: 1.1rem;"></i> <span>{{ _("Connection failed. Please try again.")|e }}</span>';
-      })
-      .finally(function() {
-        sendTestBtn.disabled = false;
-        sendTestBtn.innerHTML = '<i class="fab fa-telegram-plane me-1"></i> {{ _("Send Test Message")|e }}';
-      });
-  });
-
+  // ── Toast ──
   function showToast(type, html) {
     var el = document.createElement('div');
     el.className = 'toast align-items-center text-bg-' + type + ' border-0 show';
@@ -430,6 +630,12 @@
     toast.show();
     el.addEventListener('hidden.bs.toast', function() { el.remove(); });
   }
+
+  // ── Init ──
+  fetchStatus('transport');
+  fetchStatus('penalty');
+  loadBannerPreview('transport');
+  loadBannerPreview('penalty');
 })();
 </script>
 {% endblock %}

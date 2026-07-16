@@ -17,7 +17,7 @@
   <form method="GET" class="row g-3 align-items-end">
     <div class="col-md-5">
       <label class="form-label">{{ _('Search') }}</label>
-      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by employee ID, name, department...') }}" value="{{ search }}">
+      <input type="text" name="search" class="form-control" placeholder="{{ _('Search by employee ID, name, department, branch...') }}" value="{{ search }}">
     </div>
     <div class="col-md-3">
       <label class="form-label">{{ _('Status') }}</label>
@@ -87,12 +87,14 @@
           <th>{{ _('Name Employee') }}</th>
           <th>{{ _('ID') }}</th>
           <th>{{ _('Department') }}</th>
+          <th>{{ _('Branch') }}</th>
           <th>{{ _('Violation') }}</th>
           <th>{{ _('Old Code') }}</th>
+          <th>{{ _('Price') }}</th>
           <th>{{ _('Amount') }}</th>
           <th>{{ _('Date') }}</th>
           <th>{{ _('Status') }}</th>
-          <th>{{ _('Request by') }}</th>
+          <th>{{ _('Approved by') }}</th>
           <th>{{ _('Actions') }}</th>
         </tr>
       </thead>
@@ -103,16 +105,18 @@
           <td style="font-weight:600;">{{ ep.employee_name }}</td>
           <td style="color:#64748b;">{{ ep.employee_id }}</td>
           <td>{{ ep.department or '—' }}</td>
+          <td>{{ ep.branch or '—' }}</td>
           <td>
             <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:600;">
               {{ ep.violation_type }}
             </span>
           </td>
           <td style="color:#64748b;">{{ ep.old_code or '—' }}</td>
+          <td style="font-weight:700;color:#059669;">${{ "%.2f"|format(ep.price or 0) }}</td>
           <td style="font-weight:700;color:#dc2626;">${{ "%.2f"|format(ep.penalty_amount) }}</td>
           <td style="color:#64748b;">{{ ep.incident_date }}</td>
           <td><span class="status-badge badge-{{ ep.status.lower() }}">{{ ep.status }}</span></td>
-          <td>{{ ep.approved_by or '—' }}</td>
+          <td>{{ ep.approver.full_name if ep.approver else (ep.approved_by or '—') }}</td>
           <td>
             <div class="d-flex gap-1">
               <a href="{{ url_for('view_penalty', id=ep.id) }}" class="btn btn-sm btn-outline-primary" title="View">
@@ -132,7 +136,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="11" class="text-center py-5 text-muted">
+        <tr><td colspan="13" class="text-center py-5 text-muted">
           <i class="fas fa-inbox fa-2x mb-2 d-block"></i>{{ _('No penalty records found') }}
         </td></tr>
         {% endfor %}

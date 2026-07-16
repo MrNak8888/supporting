@@ -212,21 +212,21 @@ def _decrypt_token(token):
         return ''
 
 
-def _send_telegram_notification(sender_fn, event_type, *args):
+def _send_telegram_notification(notification_type, sender_fn, event_type, *args):
     try:
-        setting = TelegramSetting.query.first()
-        if not setting or not setting.enabled or not setting.bot_token or not setting.chat_id:
+        config = TelegramSetting.query.filter_by(notification_type=notification_type, enabled=True).first()
+        if not config or not config.bot_token or not config.chat_id:
             return
-        bot_token = _decrypt_token(setting.bot_token)
+        bot_token = _decrypt_token(config.bot_token)
         if not bot_token:
             return
 
         base_url = request.host_url.rstrip('/') if request else None
-        success, error = sender_fn(bot_token, setting.chat_id, *args, event_type=event_type, base_url=base_url)
+        success, error = sender_fn(bot_token, config.chat_id, *args, event_type=event_type, base_url=base_url)
         if not success:
-            app.logger.warning('Telegram notification failed: event=%s error=%s', event_type, error)
+            app.logger.warning('Telegram notification failed: type=%s event=%s error=%s', notification_type, event_type, error)
     except Exception as e:
-        app.logger.error('=== TELEGRAM EXCEPTION === Event=%s Error=%s', event_type, str(e), exc_info=True)
+        app.logger.error('=== TELEGRAM EXCEPTION === type=%s event=%s error=%s', notification_type, event_type, str(e), exc_info=True)
 
 
 def _calc_rating(score):
@@ -814,19 +814,23 @@ class EmployeePenalty(db.Model):
     employee_name = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(100))
     position = db.Column(db.String(100))
+    branch = db.Column(db.String(100))
     violation_type = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    price = db.Column(db.Float, default=0)
     penalty_amount = db.Column(db.Float, default=0)
     old_code = db.Column(db.String(100))
     evidence_file = db.Column(db.String(255))
     incident_date = db.Column(db.Date, default=date.today)
     approved_by = db.Column(db.String(100))
+    approved_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     status = db.Column(db.String(20), default='Pending')
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     updated_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     creator = db.relationship('User', foreign_keys=[created_by])
+    approver = db.relationship('User', foreign_keys=[approved_by_user_id])
 
     def generate_id(self):
         last = EmployeePenalty.query.order_by(EmployeePenalty.id.desc()).first()
@@ -842,18 +846,35 @@ class EmployeePenalty(db.Model):
         self.penalty_id = f"EP-{datetime.now().year}-{num:04d}"
 
 
+NOTIFICATION_TYPE_TRANSPORT = 'transport'
+NOTIFICATION_TYPE_PENALTY = 'penalty'
+
+VALID_NOTIFICATION_TYPES = [NOTIFICATION_TYPE_TRANSPORT, NOTIFICATION_TYPE_PENALTY]
+
+
 class TelegramSetting(db.Model):
     __tablename__ = 'telegram_settings'
     id = db.Column(db.Integer, primary_key=True)
+    notification_type = db.Column(db.String(50), unique=True, nullable=False, default=NOTIFICATION_TYPE_TRANSPORT)
     bot_token = db.Column(db.Text, default='')
     chat_id = db.Column(db.String(100), default='')
-    enabled = db.Column(db.Boolean, default=False)
     bot_username = db.Column(db.String(100), default='')
     group_name = db.Column(db.String(200), default='')
-    last_test_at = db.Column(db.DateTime, nullable=True)
+    banner_image = db.Column(db.String(255), default=None)
+    enabled = db.Column(db.Boolean, default=False)
     is_connected = db.Column(db.Boolean, default=False)
+    last_test_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+    @staticmethod
+    def get_or_create(notification_type):
+        config = TelegramSetting.query.filter_by(notification_type=notification_type).first()
+        if not config:
+            config = TelegramSetting(notification_type=notification_type)
+            db.session.add(config)
+            db.session.commit()
+        return config
 
 
 class TripOperationReport(db.Model):
@@ -2505,7 +2526,7 @@ def new_transport_request():
 
         db.session.add(tr)
         db.session.commit()
-        _send_telegram_notification(telegram_service.send_transport_notification, 'new', tr)
+        _send_telegram_notification(NOTIFICATION_TYPE_TRANSPORT, telegram_service.send_transport_notification, 'new', tr)
         flash(_('Transport Request %(id)s submitted successfully!', id=tr.request_id), 'success')
         return redirect(url_for('transport_requests'))
 
@@ -2590,7 +2611,7 @@ def edit_transport_request(id):
 
         tr.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
-        _send_telegram_notification(telegram_service.send_transport_notification, 'updated', tr)
+        _send_telegram_notification(NOTIFICATION_TYPE_TRANSPORT, telegram_service.send_transport_notification, 'updated', tr)
         flash(_('Transport Request updated successfully!'), 'success')
         return redirect(url_for('view_transport_request', id=id))
 
@@ -2611,7 +2632,7 @@ def review_transport_request(id):
         tr.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
         event_type = 'approved' if action == 'Approved' else 'rejected'
-        _send_telegram_notification(telegram_service.send_transport_notification, event_type, tr)
+        _send_telegram_notification(NOTIFICATION_TYPE_TRANSPORT, telegram_service.send_transport_notification, event_type, tr)
         flash(_('Request %(action)s successfully!', action=action), 'success')
     return redirect(url_for('view_transport_request', id=id))
 
@@ -2621,7 +2642,7 @@ def review_transport_request(id):
 @permission_required('transport_request_delete')
 def delete_transport_request(id):
     tr = TransportRequest.query.get_or_404(id)
-    _send_telegram_notification(telegram_service.send_transport_notification, 'cancelled', tr)
+    _send_telegram_notification(NOTIFICATION_TYPE_TRANSPORT, telegram_service.send_transport_notification, 'cancelled', tr)
     if tr.attachments:
         for filename in tr.attachments:
             delete_upload(filename)
@@ -2654,6 +2675,7 @@ def penalties():
             (EmployeePenalty.employee_id.contains(search)) |
             (EmployeePenalty.employee_name.contains(search)) |
             (EmployeePenalty.department.contains(search)) |
+            (EmployeePenalty.branch.contains(search)) |
             (EmployeePenalty.violation_type.contains(search))
         )
     penalties_list = query.order_by(EmployeePenalty.created_date.desc()).limit(500).all()
@@ -2679,13 +2701,15 @@ def new_penalty():
     dept_module = ConfigModule.query.filter_by(module_key='penalty_department', is_active=True).first()
     penalty_departments = DynamicRecord.query.filter_by(module_id=dept_module.id, is_active=True).all() if dept_module else []
     positions = Position.query.filter_by(status='Active').order_by(Position.name).all()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
     if request.method == 'POST':
         employee_id = (request.form.get('employee_id') or '').strip()
         employee_name = (request.form.get('employee_name') or '').strip()
         violation_type = request.form.get('violation_type')
         if not employee_id or not employee_name:
             flash(_('Employee ID and name are required.'), 'danger')
-            return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
+            return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions, branches=branches)
 
         ep = EmployeePenalty()
         ep.generate_id()
@@ -2693,11 +2717,12 @@ def new_penalty():
         ep.employee_name = employee_name
         ep.department = request.form.get('department')
         ep.position = request.form.get('position')
+        ep.branch = request.form.get('branch')
         ep.violation_type = violation_type
         ep.description = request.form.get('description')
+        ep.price = abs(float(request.form.get('price') or 0))
         ep.penalty_amount = abs(float(request.form.get('penalty_amount') or 0))
         ep.old_code = request.form.get('old_code')
-        ep.approved_by = request.form.get('approved_by')
         ep.created_by = current_user.id
         inc_date = request.form.get('incident_date')
         ep.incident_date = datetime.strptime(inc_date, '%Y-%m-%d').date() if inc_date else date.today()
@@ -2707,10 +2732,10 @@ def new_penalty():
 
         db.session.add(ep)
         db.session.commit()
-        _send_telegram_notification(telegram_service.send_penalty_notification, 'new', ep)
+        _send_telegram_notification(NOTIFICATION_TYPE_PENALTY, telegram_service.send_penalty_notification, 'new', ep)
         flash(_('Penalty Record %(id)s created successfully!', id=ep.penalty_id), 'success')
         return redirect(url_for('penalties'))
-    return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
+    return render_template('penalty_form.html', penalty=None, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions, branches=branches)
 
 
 @app.route('/penalties/<int:id>')
@@ -2732,6 +2757,8 @@ def edit_penalty(id):
     dept_module = ConfigModule.query.filter_by(module_key='penalty_department', is_active=True).first()
     penalty_departments = DynamicRecord.query.filter_by(module_id=dept_module.id, is_active=True).all() if dept_module else []
     positions = Position.query.filter_by(status='Active').order_by(Position.name).all()
+    branch_module = ConfigModule.query.filter_by(module_key='branch', is_active=True).first()
+    branches = DynamicRecord.query.filter_by(module_id=branch_module.id, is_active=True).order_by(DynamicRecord.created_date.desc()).all() if branch_module else []
     if ep.status != 'Pending' and not current_user.has_permission('edit_any_status'):
         flash(_('Only pending penalties can be edited.'), 'warning')
         return redirect(url_for('view_penalty', id=id))
@@ -2740,24 +2767,25 @@ def edit_penalty(id):
         employee_name = (request.form.get('employee_name') or '').strip()
         if not employee_id or not employee_name:
             flash(_('Employee ID and name are required.'), 'danger')
-            return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
+            return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions, branches=branches)
         ep.employee_id = employee_id
         ep.employee_name = employee_name
         ep.department = request.form.get('department')
         ep.position = request.form.get('position')
+        ep.branch = request.form.get('branch')
         ep.violation_type = request.form.get('violation_type')
         ep.description = request.form.get('description')
+        ep.price = abs(float(request.form.get('price') or 0))
         ep.penalty_amount = abs(float(request.form.get('penalty_amount') or 0))
         ep.old_code = request.form.get('old_code')
-        ep.approved_by = request.form.get('approved_by')
         inc_date = request.form.get('incident_date')
         ep.incident_date = datetime.strptime(inc_date, '%Y-%m-%d').date() if inc_date else ep.incident_date
         ep.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
-        _send_telegram_notification(telegram_service.send_penalty_notification, 'updated', ep)
+        _send_telegram_notification(NOTIFICATION_TYPE_PENALTY, telegram_service.send_penalty_notification, 'updated', ep)
         flash(_('Penalty record updated!'), 'success')
         return redirect(url_for('view_penalty', id=id))
-    return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions)
+    return render_template('penalty_form.html', penalty=ep, users=users, violation_types=violation_types, penalty_departments=penalty_departments, positions=positions, branches=branches)
 
 
 @app.route('/penalties/<int:id>/approve', methods=['POST'])
@@ -2768,10 +2796,12 @@ def approve_penalty(id):
     action = request.form.get('action')
     if action in ['Approved', 'Rejected']:
         ep.status = action
+        ep.approved_by_user_id = current_user.id
+        ep.approved_by = current_user.full_name
         ep.updated_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
         event_type = 'approved' if action == 'Approved' else 'rejected'
-        _send_telegram_notification(telegram_service.send_penalty_notification, event_type, ep)
+        _send_telegram_notification(NOTIFICATION_TYPE_PENALTY, telegram_service.send_penalty_notification, event_type, ep)
         flash(_('Penalty %(action)s!', action=action), 'success')
     return redirect(url_for('view_penalty', id=id))
 
@@ -2781,7 +2811,7 @@ def approve_penalty(id):
 @permission_required('penalty_delete')
 def delete_penalty(id):
     ep = EmployeePenalty.query.get_or_404(id)
-    _send_telegram_notification(telegram_service.send_penalty_notification, 'deleted', ep)
+    _send_telegram_notification(NOTIFICATION_TYPE_PENALTY, telegram_service.send_penalty_notification, 'deleted', ep)
     delete_upload(ep.evidence_file)
     db.session.delete(ep)
     db.session.commit()
@@ -2790,85 +2820,73 @@ def delete_penalty(id):
 
 
 # ─────────────────────────────────────────
-#  ROUTES: TELEGRAM SETTINGS
+#  ROUTES: TELEGRAM SETTINGS (Multi-Bot)
 # ─────────────────────────────────────────
-@app.route('/settings/telegram')
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def telegram_settings():
-    setting = TelegramSetting.query.first()
-    return render_template('telegram_settings.html', setting=setting)
+
+def _get_telegram_config_or_404(notification_type):
+    config = TelegramSetting.query.filter_by(notification_type=notification_type).first()
+    return config
 
 
-@app.route('/settings/telegram/test', methods=['POST'])
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def telegram_settings_test():
-    setting = TelegramSetting.query.first()
-    if not setting:
-        return jsonify({'success': False, 'error': 'No settings configured'})
-    bot_token = _decrypt_token(setting.bot_token)
-    if not bot_token:
-        return jsonify({'success': False, 'error': 'Bot token not configured'})
-    if not setting.chat_id:
-        return jsonify({'success': False, 'error': 'Chat ID not configured'})
-    now = datetime.now()
-    text = (
-        '\u2705 Telegram Notification Connected Successfully\n\n'
-        'System:\nIT Management\n\n'
-        'Date:\n' + now.strftime('%d %B %Y') + '\n\n'
-        'Time:\n' + now.strftime('%I:%M %p')
-    )
-    success, error = telegram_service.send_message(bot_token, setting.chat_id, text)
-    if success:
-        setting.last_test_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        setting.is_connected = True
-        info, _ = telegram_service.get_bot_info(bot_token)
-        if info:
-            setting.bot_username = info.get('username', '')
-        chat_info, _ = telegram_service.get_chat_info(bot_token, setting.chat_id)
-        if chat_info:
-            setting.group_name = chat_info.get('title', '')
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False, 'error': error})
-
-
-@app.route('/api/telegram/status')
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def api_telegram_status():
-    setting = TelegramSetting.query.first()
-    if not setting or not setting.bot_token:
-        return jsonify({
+def _telegram_config_to_json(config):
+    if not config:
+        return {
             'connected': False,
             'has_token': False,
             'bot_username': '',
             'group_name': '',
             'chat_id': '',
             'enabled': False,
-            'last_test_at': None
-        })
-    bot_token = _decrypt_token(setting.bot_token)
-    info, _ = telegram_service.get_bot_info(bot_token)
+            'notification_type': '',
+            'last_test_at': None,
+        }
+    bot_token = _decrypt_token(config.bot_token) if config.bot_token else ''
+    info = None
+    if bot_token:
+        info, _ = telegram_service.get_bot_info(bot_token)
     chat_info = None
-    if info and setting.chat_id:
-        chat_info, _ = telegram_service.get_chat_info(bot_token, setting.chat_id)
-    return jsonify({
+    if info and config.chat_id:
+        chat_info, _ = telegram_service.get_chat_info(bot_token, config.chat_id)
+    return {
         'connected': info is not None,
-        'has_token': True,
-        'bot_username': info.get('username', '') if info else (setting.bot_username or ''),
-        'group_name': chat_info.get('title', '') if chat_info else (setting.group_name or ''),
-        'chat_id': setting.chat_id or '',
-        'enabled': setting.enabled,
-        'last_test_at': setting.last_test_at.isoformat() if setting.last_test_at else None
-    })
+        'has_token': bool(config.bot_token),
+        'bot_username': info.get('username', '') if info else (config.bot_username or ''),
+        'group_name': chat_info.get('title', '') if chat_info else (config.group_name or ''),
+        'chat_id': config.chat_id or '',
+        'enabled': config.enabled,
+        'notification_type': config.notification_type or '',
+        'banner_image': config.banner_image,
+        'last_test_at': config.last_test_at.isoformat() if config.last_test_at else None,
+    }
 
 
-@app.route('/api/telegram/validate', methods=['POST'])
+@app.route('/settings/telegram')
 @login_required
 @any_permission_required('system_settings_edit', 'system_settings_update')
-def api_telegram_validate():
+def telegram_settings():
+    transport_config = TelegramSetting.get_or_create(NOTIFICATION_TYPE_TRANSPORT)
+    penalty_config = TelegramSetting.get_or_create(NOTIFICATION_TYPE_PENALTY)
+    return render_template('telegram_settings.html',
+                           transport_config=transport_config,
+                           penalty_config=penalty_config)
+
+
+@app.route('/api/telegram/<notification_type>/status')
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_status(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = _get_telegram_config_or_404(notification_type)
+    return jsonify(_telegram_config_to_json(config))
+
+
+@app.route('/api/telegram/<notification_type>/validate', methods=['POST'])
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_validate(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
     data = request.get_json(silent=True)
     token = (data or {}).get('token', '')
     if not token:
@@ -2883,51 +2901,126 @@ def api_telegram_validate():
     return jsonify({'success': False, 'error': error or 'Invalid token'})
 
 
-@app.route('/api/telegram/disconnect', methods=['POST'])
+@app.route('/api/telegram/<notification_type>/save', methods=['POST'])
 @login_required
 @any_permission_required('system_settings_edit', 'system_settings_update')
-def api_telegram_disconnect():
-    setting = TelegramSetting.query.first()
-    if setting:
-        setting.bot_token = ''
-        setting.bot_username = ''
-        setting.group_name = ''
-        setting.is_connected = False
-        setting.enabled = False
-        setting.last_test_at = None
-        setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        db.session.commit()
-    return jsonify({'success': True})
-
-
-@app.route('/api/telegram/save', methods=['POST'])
-@login_required
-@any_permission_required('system_settings_edit', 'system_settings_update')
-def api_telegram_save():
-    setting = TelegramSetting.query.first()
-    if not setting:
-        setting = TelegramSetting()
-        db.session.add(setting)
+def api_telegram_save(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = TelegramSetting.get_or_create(notification_type)
     data = request.get_json(silent=True) or {}
     if data.get('bot_token'):
         token = data['bot_token']
         is_valid, info, error = telegram_service.validate_token(token)
         if not is_valid:
             return jsonify({'success': False, 'error': error or 'Invalid token'})
-        setting.bot_token = _encrypt_token(token)
-        setting.bot_username = info.get('username', '')
-        setting.is_connected = True
+        config.bot_token = _encrypt_token(token)
+        config.bot_username = info.get('username', '')
+        config.is_connected = True
     if 'chat_id' in data:
-        setting.chat_id = data['chat_id']
-        if setting.bot_token:
-            bot_token = _decrypt_token(setting.bot_token)
+        config.chat_id = data['chat_id']
+        if config.bot_token:
+            bot_token = _decrypt_token(config.bot_token)
             chat_info, _ = telegram_service.get_chat_info(bot_token, data['chat_id'])
             if chat_info:
-                setting.group_name = chat_info.get('title', '')
+                config.group_name = chat_info.get('title', '')
     if 'enabled' in data:
-        setting.enabled = data['enabled']
-    setting.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        config.enabled = data['enabled']
+    config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/telegram/<notification_type>/test', methods=['POST'])
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_test(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = _get_telegram_config_or_404(notification_type)
+    if not config:
+        return jsonify({'success': False, 'error': 'No settings configured'})
+    bot_token = _decrypt_token(config.bot_token)
+    if not bot_token:
+        return jsonify({'success': False, 'error': 'Bot token not configured'})
+    if not config.chat_id:
+        return jsonify({'success': False, 'error': 'Chat ID not configured'})
+    now = datetime.now()
+    text = (
+        '\u2705 Telegram Notification Connected Successfully\n\n'
+        'System:\nIT Management\n\n'
+        'Date:\n' + now.strftime('%d %B %Y') + '\n\n'
+        'Time:\n' + now.strftime('%I:%M %p')
+    )
+    success, error = telegram_service.send_message(bot_token, config.chat_id, text)
+    if success:
+        config.last_test_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        config.is_connected = True
+        info, _ = telegram_service.get_bot_info(bot_token)
+        if info:
+            config.bot_username = info.get('username', '')
+        chat_info, _ = telegram_service.get_chat_info(bot_token, config.chat_id)
+        if chat_info:
+            config.group_name = chat_info.get('title', '')
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': error})
+
+
+@app.route('/api/telegram/<notification_type>/disconnect', methods=['POST'])
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_disconnect(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = _get_telegram_config_or_404(notification_type)
+    if config:
+        config.bot_token = ''
+        config.bot_username = ''
+        config.group_name = ''
+        config.is_connected = False
+        config.enabled = False
+        config.last_test_at = None
+        config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/telegram/<notification_type>/banner-upload', methods=['POST'])
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_banner_upload(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = TelegramSetting.get_or_create(notification_type)
+    file = request.files.get('banner')
+    if not file:
+        return jsonify({'success': False, 'error': 'No file uploaded'})
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    filename = save_upload(file)
+    if not filename:
+        return jsonify({'success': False, 'error': 'Invalid file type. Allowed: jpg, png, jpeg, gif'})
+    if config.banner_image:
+        delete_upload(config.banner_image)
+    config.banner_image = filename
+    config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+    return jsonify({'success': True, 'filename': filename, 'url': url_for('static', filename=f'uploads/{filename}')})
+
+
+@app.route('/api/telegram/<notification_type>/banner-delete', methods=['POST'])
+@login_required
+@any_permission_required('system_settings_edit', 'system_settings_update')
+def api_telegram_banner_delete(notification_type):
+    if notification_type not in VALID_NOTIFICATION_TYPES:
+        return jsonify({'success': False, 'error': 'Invalid notification type'})
+    config = _get_telegram_config_or_404(notification_type)
+    if config and config.banner_image:
+        delete_upload(config.banner_image)
+        config.banner_image = None
+        config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
     return jsonify({'success': True})
 
 
@@ -4651,7 +4744,7 @@ def export_penalties_excel():
     ws = wb.active
     ws.title = "Employee Penalties"
     headers = ['Penalty ID', 'Employee ID', 'Employee Name', 'Department',
-               'Position', 'Violation Type', 'Old Code', 'Amount ($)', 'Date', 'Status']
+               'Position', 'Branch', 'Violation Type', 'Price ($)', 'Old Code', 'Amount ($)', 'Date', 'Status', 'Approved by']
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="1a3c5e")
     for col, h in enumerate(headers, 1):
@@ -4663,8 +4756,8 @@ def export_penalties_excel():
 
     for ep in EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).all():
         ws.append([ep.penalty_id, ep.employee_id, ep.employee_name,
-                   ep.department, ep.position, ep.violation_type,
-                   ep.old_code, ep.penalty_amount, str(ep.incident_date), ep.status])
+                   ep.department, ep.position, ep.branch, ep.violation_type,
+                   ep.price, ep.old_code, ep.penalty_amount, str(ep.incident_date), ep.status, ep.approved_by])
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -4744,13 +4837,13 @@ def export_requests_pdf():
 @any_permission_required('penalty_view', 'penalty_download')
 def export_penalties_pdf():
     headers = ['Penalty ID', 'Emp ID', 'Employee Name', 'Department', 'Position',
-               'Violation Type', 'Old Code', 'Amount ($)', 'Date', 'Status']
+               'Branch', 'Violation Type', 'Price ($)', 'Old Code', 'Amount ($)', 'Date', 'Status', 'Approved by']
     rows = []
     for ep in EmployeePenalty.query.order_by(EmployeePenalty.created_date.desc()).all():
         rows.append([
             ep.penalty_id, ep.employee_id, ep.employee_name,
-            ep.department or '', ep.position or '', ep.violation_type,
-            ep.old_code or '', f"${ep.penalty_amount:.2f}", str(ep.incident_date), ep.status
+            ep.department or '', ep.position or '', ep.branch or '', ep.violation_type,
+            f"${ep.price:.2f}" if ep.price else '', ep.old_code or '', f"${ep.penalty_amount:.2f}", str(ep.incident_date), ep.status, ep.approved_by or ''
         ])
     buf = _export_pdf_report('Employee Penalties Report', headers, rows, f'penalties_{date.today()}.pdf')
     return send_pdf(buf, f"penalties_{date.today()}.pdf")

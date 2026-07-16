@@ -175,8 +175,9 @@ def _build_penalty_text(ep, event_type, event_emoji, event_title, base_url):
     lines.append(f'{SEPARATOR}{status_emoji} <b>Status:</b> {ep.status}')
 
     if event_type in ('approved', 'rejected'):
-        if ep.approved_by:
-            lines.append(f'👨‍⚖️ <b>Approved By:</b> {ep.approved_by}')
+        approver_name = ep.approver.full_name if hasattr(ep, 'approver') and ep.approver else (ep.approved_by or '')
+        if approver_name:
+            lines.append(f'👨‍⚖️ <b>Approved By:</b> {approver_name}')
     elif event_type == 'deleted':
         lines.append(f'🗑️ <b>Deleted By:</b> {creator_name}')
 

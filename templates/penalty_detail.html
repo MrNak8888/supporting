@@ -53,11 +53,13 @@
           </div>
           <div class="col">
             <h6 class="fw-bold mb-0" style="color:#1a3c5e;">{{ ep.employee_name }}</h6>
-            <div style="color:#64748b;font-size:.85rem;">{{ ep.position or '' }}{% if ep.department %} · {{ ep.department }}{% endif %}</div>
+            <div style="color:#64748b;font-size:.85rem;">{{ ep.position or '' }}{% if ep.department %} · {{ ep.department }}{% endif %}{% if ep.branch %} · {{ ep.branch }}{% endif %}</div>
             <div style="color:#94a3b8;font-size:.8rem;">ID: {{ ep.employee_id }}</div>
           </div>
           <div class="col-auto text-end">
-            <div style="font-size:1.5rem;font-weight:800;color:#dc2626;">${{ "%.2f"|format(ep.penalty_amount) }}</div>
+            <div style="font-size:1.5rem;font-weight:800;color:#059669;">${{ "%.2f"|format(ep.price or 0) }}</div>
+            <div style="font-size:.75rem;color:#94a3b8;">{{ _('Price') }}</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#dc2626;">${{ "%.2f"|format(ep.penalty_amount) }}</div>
             <div style="font-size:.75rem;color:#94a3b8;">{{ _('Penalty Amount') }}</div>
           </div>
         </div>
@@ -67,9 +69,11 @@
         {% set fields = [
           (_('Violation Type'), ep.violation_type),
           (_('Incident Date'), ep.incident_date|string),
+          (_('Branch'), ep.branch or '—'),
+          (_('Price'), '$%.2f'|format(ep.price or 0)),
           (_('Old Code'), ep.old_code),
           (_('Requester'), ep.creator.full_name if ep.creator else '—'),
-          (_('Request by'), ep.approved_by),
+          (_('Approved by'), ep.approver.full_name if ep.approver else (ep.approved_by or '—')),
           (_('Created Date'), ep.created_date.strftime('%d %b %Y %H:%M')),
         ] %}
         {% for label, value in fields %}

@@ -47,6 +47,15 @@
             {% endfor %}
           </select>
         </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ _('Branch') }}</label>
+          <select name="branch" class="form-select select2">
+            <option value="">{{ _('— Select Branch —') }}</option>
+            {% for b in branches %}
+            <option value="{{ b.data.name }}" {% if penalty and penalty.branch == b.data.name %}selected{% endif %}>{{ b.data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
     </div>
 
@@ -81,6 +90,14 @@
             value="{{ penalty.old_code if penalty else '' }}" placeholder="{{ _('Legacy code from old system') }}">
         </div>
         <div class="col-md-6">
+          <label class="form-label">{{ _('Price ($)') }}</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="price" class="form-control" step="0.01" min="0"
+              value="{{ penalty.price if penalty else 0 }}">
+          </div>
+        </div>
+        <div class="col-md-6">
           <label class="form-label">{{ _('Penalty Amount ($)') }}</label>
           <div class="input-group">
             <span class="input-group-text">$</span>
@@ -95,13 +112,10 @@
             style="background:var(--badge-bg);cursor:not-allowed;">
         </div>
         <div class="col-md-6">
-          <label class="form-label">{{ _('Request by') }}</label>
-          <select name="approved_by" class="form-select">
-            <option value="">{{ _('— Select User —') }}</option>
-            {% for u in users %}
-            <option value="{{ u.full_name }}" {% if penalty and penalty.approved_by == u.full_name %}selected{% elif not penalty and u.id == current_user.id %}selected{% endif %}>{{ u.full_name }}</option>
-            {% endfor %}
-          </select>
+          <label class="form-label">{{ _('Approved By') }}</label>
+          <input type="text" class="form-control" readonly
+            value="{{ penalty.approver.full_name if penalty and penalty.approver else (penalty.approved_by or '—') }}"
+            style="background:var(--badge-bg);cursor:not-allowed;">
         </div>
         <div class="col-12">
           <label class="form-label">{{ _('Evidence File') }}</label>

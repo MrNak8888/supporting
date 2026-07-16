@@ -48,7 +48,9 @@ ALTER TABLE transport_requests
 ALTER TABLE employee_penalties
     ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL AFTER updated_at,
     ADD COLUMN IF NOT EXISTS reviewed_by_user INT DEFAULT NULL AFTER created_by,
-    ADD COLUMN IF NOT EXISTS is_recurring TINYINT(1) DEFAULT 0 AFTER status;
+    ADD COLUMN IF NOT EXISTS is_recurring TINYINT(1) DEFAULT 0 AFTER status,
+    ADD COLUMN IF NOT EXISTS branch VARCHAR(100) DEFAULT NULL AFTER position,
+    ADD COLUMN IF NOT EXISTS price DECIMAL(12,2) DEFAULT 0.00 AFTER violation_type;
 
 -- 1.8 trip_operation_reports
 ALTER TABLE trip_operation_reports
